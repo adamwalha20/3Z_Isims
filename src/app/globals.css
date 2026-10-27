@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #006948;
+    --primary-hover: #005338;
+    --primary-container: #00855d;
+    --secondary: #006e2a;
+    --secondary-container: #3ce36a;
+    --surface: #f4f9f6;
+    --surface-container: #e8f4ee;
+    --surface-container-low: #edf6f1;
+    --surface-container-lowest: #ffffff;
+    --on-surface: #0d1c32;
+    --on-surface-variant: #3d4a42;
+    --outline: #6d7a72;
+    --outline-subdued: #e1e8e2;
+  }
+
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f9f6;
+    color: #0d1c32;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 12px);
+  }
+}
+
+/* Custom Stitch Vibrancy Utilities */
+.badge-gradient {
+  background: linear-gradient(135deg, #024f33 0%, #00784a 55%, #05a766 100%);
+}
+
+.badge-gradient-dark {
+  background: linear-gradient(135deg, #013821 0%, #024f33 50%, #00784a 100%);
+}
+
+.neon-glow {
+  box-shadow: 0 0 16px rgba(105, 255, 135, 0.45);
+}
+
+.card-luminous {
+  box-shadow: 0 8px 30px -4px rgba(0, 77, 48, 0.07), 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -4px rgba(0, 77, 48, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
