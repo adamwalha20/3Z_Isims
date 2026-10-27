@@ -110,6 +110,20 @@ interface AuthContextType {
   assignBureauPosition: (positionKey: string, userIdOrName: string, memberName?: string) => Promise<{ success: boolean; error?: string }>;
   setUserRole: (userId: string, roleKey: 'admin' | 'bureau' | 'member') => Promise<{ success: boolean; error?: string }>;
 
+  // Approval & Profile Management
+  isApproved: boolean;
+  approveMembership: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  rejectMembership: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  updateUserProfile: (updates: {
+    fullName?: string;
+    studentId?: string;
+    studyField?: string;
+    bio?: string;
+    skills?: string[];
+    avatarPath?: string;
+    contactPreferences?: { email: boolean; in_app: boolean };
+  }) => Promise<{ success: boolean; error?: string }>;
+
   // Onboarding state
   needsOnboarding: boolean;
   setNeedsOnboarding: (val: boolean) => void;
@@ -145,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeRole, setActiveRole] = useState<ActiveRole>('bureau');
   const [activeBureauPosition, setActiveBureauPosition] = useState<ActiveBureauPosition>('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isApproved, setIsApproved] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLiveSupabase, setIsLiveSupabase] = useState<boolean>(false);
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
@@ -184,21 +199,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           setIsAuthenticated(true);
 
-          // 1. Fetch user's profile
+          // 1. Fetch user's profile and membership status
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
 
+          const { data: userMembership } = await supabase
+            .from('club_memberships')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
           const currentEmail = session.user.email || profile?.email || '';
           const isAdam = currentEmail.toLowerCase() === 'adamwalha20@gmail.com';
+
+          const approved = isAdam || userMembership?.membership_status === 'active';
+          setIsApproved(approved);
+
+          if (!userMembership) {
+            await supabase.from('club_memberships').insert({
+              user_id: session.user.id,
+              membership_status: isAdam ? 'active' : 'pending',
+            });
+          }
 
           if (profile) {
             setUser({
               ...INITIAL_USER,
               ...profile,
               email: currentEmail,
+              membership: userMembership || {
+                id: `mem-${session.user.id}`,
+                user_id: session.user.id,
+                membership_status: isAdam ? 'active' : 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
             });
 
             // If skills or student_id are missing, prompt onboarding
@@ -226,11 +264,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // 3. Fetch all registered members from Supabase
+        // 3. Fetch all registered members and memberships from Supabase
         const { data: allProfiles } = await supabase
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false });
+
+        const { data: allMemberships } = await supabase
+          .from('club_memberships')
+          .select('*');
 
         if (allProfiles && allProfiles.length > 0) {
           const { data: allRoles } = await supabase
@@ -240,9 +282,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const formatted: Profile[] = allProfiles.map((p) => {
             const userRole = allRoles?.find((r) => r.user_id === p.id);
             const rKey = (userRole?.roles as any)?.key || 'member';
+            const mem = allMemberships?.find((m) => m.user_id === p.id);
             return {
               ...p,
               roles: [{ id: `role-${rKey}`, key: rKey, display_name: rKey.toUpperCase() }],
+              membership: mem || {
+                id: `mem-${p.id}`,
+                user_id: p.id,
+                membership_status: p.email?.toLowerCase() === 'adamwalha20@gmail.com' ? 'active' : 'pending',
+                created_at: p.created_at,
+                updated_at: p.updated_at,
+              },
             };
           });
           setMembers(formatted);
@@ -938,12 +988,154 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const approveMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = createClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from('club_memberships')
+        .upsert(
+          {
+            user_id: userId,
+            membership_status: 'active',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === userId
+          ? {
+              ...m,
+              membership: {
+                ...(m.membership || {
+                  id: `mem-${userId}`,
+                  user_id: userId,
+                  created_at: new Date().toISOString(),
+                }),
+                membership_status: 'active',
+                updated_at: new Date().toISOString(),
+              },
+            }
+          : m
+      )
+    );
+
+    if (user?.id === userId) {
+      setIsApproved(true);
+    }
+
+    return { success: true };
+  };
+
+  const rejectMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = createClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from('club_memberships')
+        .upsert(
+          {
+            user_id: userId,
+            membership_status: 'suspended',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === userId
+          ? {
+              ...m,
+              membership: {
+                ...(m.membership || {
+                  id: `mem-${userId}`,
+                  user_id: userId,
+                  created_at: new Date().toISOString(),
+                }),
+                membership_status: 'suspended',
+                updated_at: new Date().toISOString(),
+              },
+            }
+          : m
+      )
+    );
+
+    if (user?.id === userId) {
+      setIsApproved(false);
+    }
+
+    return { success: true };
+  };
+
+  const updateUserProfile = async (updates: {
+    fullName?: string;
+    studentId?: string;
+    studyField?: string;
+    bio?: string;
+    skills?: string[];
+    avatarPath?: string;
+    contactPreferences?: { email: boolean; in_app: boolean };
+  }): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    const supabase = createClient();
+
+    const dbUpdates: any = {};
+    if (updates.fullName !== undefined) dbUpdates.full_name = updates.fullName;
+    if (updates.studentId !== undefined) dbUpdates.student_id = updates.studentId;
+    if (updates.studyField !== undefined) dbUpdates.study_field = updates.studyField;
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.skills !== undefined) dbUpdates.skills = updates.skills;
+    if (updates.avatarPath !== undefined) dbUpdates.avatar_path = updates.avatarPath;
+    if (updates.contactPreferences !== undefined) dbUpdates.contact_preferences = updates.contactPreferences;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    if (supabase && user?.id) {
+      const { error } = await supabase
+        .from('profiles')
+        .update(dbUpdates)
+        .eq('id', user.id);
+
+      if (error) {
+        setIsLoading(false);
+        return { success: false, error: error.message };
+      }
+    }
+
+    setUser((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...dbUpdates,
+      };
+    });
+
+    setMembers((prev) =>
+      prev.map((m) => (m.id === user?.id ? { ...m, ...dbUpdates } : m))
+    );
+
+    setIsLoading(false);
+    return { success: true };
+  };
+
   const signOut = async () => {
     const supabase = createClient();
     if (supabase) {
       await supabase.auth.signOut();
     }
     setIsAuthenticated(false);
+    setUser(null);
+    window.location.href = '/login';
   };
 
   const resetPassword = async (email: string) => {
@@ -966,6 +1158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         activeBureauPosition,
         setActiveBureauPosition,
         isAuthenticated,
+        isApproved,
         isLoading,
         isLiveSupabase,
         isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com',
@@ -1011,6 +1204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateApplicationStatus,
         assignBureauPosition,
         setUserRole,
+        approveMembership,
+        rejectMembership,
+        updateUserProfile,
         needsOnboarding,
         setNeedsOnboarding,
         updateProfileOnboarding,

@@ -79,72 +79,74 @@ export default function AppHeader() {
           </div>
         </Link>
 
-        {/* Center: Live Role Context Switcher Badge */}
-        <div className="relative">
-          <button
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-900 text-xs font-bold transition-all shadow-xs"
-            title="Click to simulate different access roles and functional bureau positions"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="capitalize truncate max-w-[140px] sm:max-w-none">{currentDisplayTitle}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-          </button>
+        {/* Center: Live Role Context Switcher Badge (Admin Only) */}
+        {isSuperAdmin && (
+          <div className="relative">
+            <button
+              onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-900 text-xs font-bold transition-all shadow-xs"
+              title="Click to simulate different access roles and functional bureau positions"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="capitalize truncate max-w-[140px] sm:max-w-none">{currentDisplayTitle}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+            </button>
 
-          {showRoleDropdown && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 max-h-[80vh] overflow-y-auto no-scrollbar">
-              <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Security Role Mode
-              </div>
-              {roleOptions.map((role) => (
-                <button
-                  key={role.key}
-                  onClick={() => {
-                    setActiveRole(role.key);
-                    if (role.key !== 'bureau') {
-                      setActiveBureauPosition('all');
-                      setShowRoleDropdown(false);
-                    }
-                  }}
-                  className={`w-full text-left p-2 rounded-xl flex items-center gap-2.5 transition-colors ${
-                    activeRole === role.key ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[18px] text-emerald-700">{role.icon}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold">{role.label}</div>
-                    <div className="text-[10px] text-slate-500 truncate">{role.desc}</div>
-                  </div>
-                </button>
-              ))}
-
-              {/* Functional Bureau Positions Switcher */}
-              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-2">
-                Bureau Position Workspaces
-              </div>
-              <div className="grid grid-cols-1 gap-1">
-                {bureauPositionList.map((bp) => (
+            {showRoleDropdown && (
+              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 max-h-[80vh] overflow-y-auto no-scrollbar">
+                <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Security Role Mode
+                </div>
+                {roleOptions.map((role) => (
                   <button
-                    key={bp.key}
+                    key={role.key}
                     onClick={() => {
-                      setActiveRole('bureau');
-                      setActiveBureauPosition(bp.key as any);
-                      setShowRoleDropdown(false);
+                      setActiveRole(role.key);
+                      if (role.key !== 'bureau') {
+                        setActiveBureauPosition('all');
+                        setShowRoleDropdown(false);
+                      }
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 text-xs transition-colors ${
-                      activeBureauPosition === bp.key
-                        ? 'bg-emerald-700 text-white font-bold'
-                        : 'text-slate-700 hover:bg-slate-50'
+                    className={`w-full text-left p-2 rounded-xl flex items-center gap-2.5 transition-colors ${
+                      activeRole === role.key ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[16px]">{bp.icon}</span>
-                    <span className="truncate">{bp.label}</span>
+                    <span className="material-symbols-outlined text-[18px] text-emerald-700">{role.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold">{role.label}</div>
+                      <div className="text-[10px] text-slate-500 truncate">{role.desc}</div>
+                    </div>
                   </button>
                 ))}
+
+                {/* Functional Bureau Positions Switcher */}
+                <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-2">
+                  Bureau Position Workspaces
+                </div>
+                <div className="grid grid-cols-1 gap-1">
+                  {bureauPositionList.map((bp) => (
+                    <button
+                      key={bp.key}
+                      onClick={() => {
+                        setActiveRole('bureau');
+                        setActiveBureauPosition(bp.key as any);
+                        setShowRoleDropdown(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 text-xs transition-colors ${
+                        activeBureauPosition === bp.key
+                          ? 'bg-emerald-700 text-white font-bold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">{bp.icon}</span>
+                      <span className="truncate">{bp.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Right: NFC Ready Pill, Notification Bell & User Avatar */}
         <div className="flex items-center gap-2 shrink-0">

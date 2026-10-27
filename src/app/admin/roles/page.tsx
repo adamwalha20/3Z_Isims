@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminRolesPage() {
-  const { user, bureauMembers, assignBureauPosition, setUserRole, members } = useAuth();
+  const { user, bureauMembers, assignBureauPosition, setUserRole, members, approveMembership } = useAuth();
   const [activeTab, setActiveTab] = useState<'bureau' | 'users'>('bureau');
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -84,6 +84,16 @@ export default function AdminRolesPage() {
       setStatusMessage({ text: `Updated ${userName}'s system role to ${newRole.toUpperCase()}.`, type: 'success' });
     } else {
       setStatusMessage({ text: res.error || 'Failed to update role.', type: 'error' });
+    }
+  };
+
+  const handleApproveMember = async (userId: string, userName: string) => {
+    setStatusMessage(null);
+    const res = await approveMembership(userId);
+    if (res.success) {
+      setStatusMessage({ text: `Approved and activated ${userName}'s membership!`, type: 'success' });
+    } else {
+      setStatusMessage({ text: res.error || 'Failed to approve member.', type: 'error' });
     }
   };
 
@@ -341,6 +351,15 @@ export default function AdminRolesPage() {
                           >
                             {currentRole}
                           </span>
+                          {member.membership?.membership_status === 'pending' && member.email?.toLowerCase() !== 'adamwalha20@gmail.com' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                              Pending Approval
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              Active
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
@@ -369,6 +388,16 @@ export default function AdminRolesPage() {
 
                     {/* Role Change Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                      {member.membership?.membership_status === 'pending' && member.email?.toLowerCase() !== 'adamwalha20@gmail.com' && (
+                        <button
+                          onClick={() => handleApproveMember(member.id, member.full_name)}
+                          className="px-3 py-1 text-xs rounded-xl font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs flex items-center gap-1"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                      )}
+
                       <span className="text-[11px] font-bold text-slate-400 mr-1 hidden sm:inline">Change Role:</span>
 
                       <button

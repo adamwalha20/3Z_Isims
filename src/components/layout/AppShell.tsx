@@ -5,8 +5,17 @@ import AppHeader from './AppHeader';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import OnboardingModal from '@/components/auth/OnboardingModal';
+import PendingApprovalScreen from '@/components/auth/PendingApprovalScreen';
+import { useAuth } from '@/lib/auth-context';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isApproved, isAdmin, needsOnboarding } = useAuth();
+
+  // If user is authenticated but pending approval, display approval notice gate
+  if (isAuthenticated && !isApproved && !isAdmin && !needsOnboarding) {
+    return <PendingApprovalScreen />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f4f9f6]">
       <AppHeader />
