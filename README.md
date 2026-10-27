@@ -129,4 +129,22 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+## 🏛️ Official Bureau Positions & Tailored Workspaces
+
+| Position | Initial Holder | Dedicated Operational Workspace & Capabilities |
+| :--- | :--- | :--- |
+| **Vice President** | Heba Sanaa | Cross-department execution oversight, urgent bottleneck mitigation, assembly decision tracking & follow-up coordination. |
+| **Secretary General** | Nawress | Official assembly minutes (PV), adopted decisions register, decision-to-task converters, and Handover Vault. |
+| **Treasurer** | Ahmed Bahri | Financial ledger in TND (Inflows, Outflows, Net Cash), budget vs actual spending gauges, expense reviews & receipt verification. |
+| **Human Resources Manager** | Med Aziz Turky | Student recruitment pipeline (Submitted, Interview, Accepted), onboarding checklists, member directory & team dispatch. |
+| **Marketing & Design Manager** | Sa | Social media campaign planner (Instagram, LinkedIn, Posters), content lifecycle (Idea -> Review -> Published), creative briefs. |
+| **Sustainable Campus Manager** | Oussema | Ecological impact telemetry (Trees planted, kg waste recycled, standby energy draw), calculation methodology documentation. |
+| **Comms & Engagement Manager** | drvcou | Circular drafting, audience targeting (Club vs Dept), circular readership analytics & engagement stats. |
+| **Events Manager** | Chaima Besbes | Flagship summit logistics, venue preparation checklists, seating capacity meter, attendee check-in readiness & post-mortems. |
+| **Project Manager** | Ayoub | 3Z Lab incubation portfolio, real task progress tracking, blocker detection, and milestone delivery. |
+| **Partnerships & Sponsorship Manager** | Open Role | Sponsor directory & CRM pipeline (Prospect -> Proposal Sent -> Negotiation -> Confirmed), committed amounts in TND & deliverables tracking. |
+| *General Member* | Ahmed Triki & Students | Digital 3Z Pass, assigned tasks, project participation, event registration, and ideas submission. |
+
+---
+
 © 2026 ZERO EXCLUSION CARBON POVERTY (3Z) — Campus Club ISIMS (Higher Institute of Computer Science and Multimedia of Sfax).
