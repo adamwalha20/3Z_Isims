@@ -127,11 +127,19 @@ export default function LoginPage() {
               Fill Sample Credentials
             </button>
           </div>
+
+          {/* New Member Registration Link */}
+          <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+            <span>New student at ISIMS?</span>
+            <Link href="/signup" className="font-bold text-emerald-700 hover:underline">
+              Apply for Membership
+            </Link>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="text-center text-[11px] text-slate-400">
-          New student member? Contact your department lead or bureau for onboarding.
+          ZERO EXCLUSION CARBON POVERTY • ISIMS University Campus Club
         </div>
       </div>
     </div>

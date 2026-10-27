@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
   // If user is not signed in and path is protected, redirect to login
   const isAuthRoute =
     request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/signup') ||
     request.nextUrl.pathname.startsWith('/forgot-password') ||
     request.nextUrl.pathname.startsWith('/reset-password');
 

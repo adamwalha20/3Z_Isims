@@ -24,6 +24,8 @@ export interface Profile {
   };
   created_at: string;
   updated_at: string;
+  membership?: ClubMembership | null;
+  roles?: Role[];
 }
 
 export interface ClubMembership {

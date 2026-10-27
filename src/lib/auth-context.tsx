@@ -66,6 +66,14 @@ interface AuthContextType {
   
   // Auth operations
   signIn: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (data: {
+    fullName: string;
+    email: string;
+    password: string;
+    studentId: string;
+    studyField: string;
+    departmentId?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
@@ -284,6 +292,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const signUp = async (data: {
+    fullName: string;
+    email: string;
+    password: string;
+    studentId: string;
+    studyField: string;
+    departmentId?: string;
+  }) => {
+    setIsLoading(true);
+    const supabase = createClient();
+    if (supabase) {
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            student_id: data.studentId,
+            study_field: data.studyField,
+          },
+        },
+      });
+
+      if (authErr) {
+        setIsLoading(false);
+        return { success: false, error: authErr.message };
+      }
+
+      if (authData.user) {
+        // Upsert profile and membership
+        try {
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            full_name: data.fullName,
+            student_id: data.studentId,
+            study_field: data.studyField,
+          });
+
+          await supabase.from('club_memberships').upsert({
+            user_id: authData.user.id,
+            membership_status: 'pending',
+          });
+        } catch {
+          // Trigger handles automatic creation
+        }
+
+        const newMemberProfile: Profile = {
+          id: authData.user.id,
+          full_name: data.fullName,
+          student_id: data.studentId,
+          study_field: data.studyField,
+          skills: ['Climate Action', 'Innovation'],
+          contact_preferences: { email: true, in_app: true },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          membership: {
+            id: `mem-${Date.now()}`,
+            user_id: authData.user.id,
+            membership_status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          roles: [{ id: 'role-member', key: 'member', display_name: 'Club Member' }],
+        };
+
+        setMembers((prev) => [newMemberProfile, ...prev]);
+        setUser(newMemberProfile);
+        setActiveRole('member');
+        setIsAuthenticated(true);
+      }
+
+      setIsLoading(false);
+      return { success: true };
+    }
+
+    // Demo fallback signup
+    await new Promise((res) => setTimeout(res, 400));
+    setIsLoading(false);
+    const newMemberProfile: Profile = {
+      id: `usr-${Date.now()}`,
+      full_name: data.fullName,
+      student_id: data.studentId,
+      study_field: data.studyField,
+      skills: ['Climate Action', 'Innovation'],
+      contact_preferences: { email: true, in_app: true },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      membership: {
+        id: `mem-${Date.now()}`,
+        user_id: `usr-${Date.now()}`,
+        membership_status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      roles: [{ id: 'role-member', key: 'member', display_name: 'Club Member' }],
+    };
+    setMembers((prev) => [newMemberProfile, ...prev]);
+    setUser(newMemberProfile);
+    setActiveRole('member');
+    setIsAuthenticated(true);
+    return { success: true };
+  };
+
   const signOut = async () => {
     const supabase = createClient();
     if (supabase) {
@@ -334,6 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         addDocument,
         addMeeting,
         signIn,
+        signUp,
         signOut,
         resetPassword,
       }}
