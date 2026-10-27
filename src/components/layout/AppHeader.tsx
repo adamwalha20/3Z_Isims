@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function AppHeader() {
-  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, notifications, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
+  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
@@ -27,18 +27,28 @@ export default function AppHeader() {
     { key: 'member', label: 'Active Member', desc: 'Student view, assigned tasks & badge pass', icon: 'person' },
   ];
 
-  const bureauPositionList = [
-    { key: 'vice_president', label: 'Vice President (Heba)', icon: 'shield_with_heart' },
-    { key: 'secretary_general', label: 'Secretary Gen (Nawress)', icon: 'history_edu' },
-    { key: 'treasurer', label: 'Treasurer (Ahmed Bahri)', icon: 'payments' },
-    { key: 'hr_manager', label: 'HR Manager (Med Aziz)', icon: 'badge' },
-    { key: 'marketing_design_manager', label: 'Marketing & Design (Sa)', icon: 'palette' },
-    { key: 'sustainable_campus_manager', label: 'Sustainable Campus (Oussema)', icon: 'eco' },
-    { key: 'events_manager', label: 'Events Manager (Chaima)', icon: 'event' },
-    { key: 'project_manager', label: 'Project Manager (Ayoub)', icon: 'rocket_launch' },
+  const bureauPositionBase = [
+    { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart' },
+    { key: 'secretary_general', label: 'Secretary General', icon: 'history_edu' },
+    { key: 'treasurer', label: 'Treasurer', icon: 'payments' },
+    { key: 'hr_manager', label: 'HR Manager', icon: 'badge' },
+    { key: 'marketing_design_manager', label: 'Marketing & Design', icon: 'palette' },
+    { key: 'sustainable_campus_manager', label: 'Sustainable Campus', icon: 'eco' },
+    { key: 'events_manager', label: 'Events Manager', icon: 'event' },
+    { key: 'project_manager', label: 'Project Manager', icon: 'rocket_launch' },
     { key: 'partnerships_sponsorship_manager', label: 'Partnerships Lead', icon: 'handshake' },
     { key: 'all', label: 'All Bureau Modules', icon: 'dashboard' },
   ];
+
+  const bureauPositionList = bureauPositionBase.map((item) => {
+    if (item.key === 'all') return item;
+    const bm = bureauMembers.find((m) => m.position_key === item.key);
+    const holder = bm?.member_name && bm.member_name !== 'Unassigned' ? ` (${bm.member_name.split(' ')[0]})` : ' (Vacant)';
+    return {
+      ...item,
+      label: `${item.label}${holder}`,
+    };
+  });
 
   const currentDisplayTitle =
     activeRole === 'bureau' && activeBureauPosition !== 'all'
@@ -143,6 +153,17 @@ export default function AppHeader() {
             </span>
             <span className="text-[10px] font-bold tracking-wider uppercase">NFC Pass Ready</span>
           </div>
+
+          {/* Quick Admin Role Management Shortcut */}
+          {activeRole === 'admin' && (
+            <Link
+              href="/admin/roles"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 text-xs font-bold transition-all shadow-xs"
+            >
+              <Shield className="w-3.5 h-3.5 text-rose-700" />
+              <span>Assign Roles</span>
+            </Link>
+          )}
 
           {/* Notifications Button */}
           <div className="relative">

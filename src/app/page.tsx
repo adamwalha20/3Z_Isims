@@ -64,7 +64,7 @@ export default function DashboardPage() {
       description: 'Quick task initiated from chapter dashboard.',
       status: 'todo',
       priority: quickPriority,
-      creator_id: user?.id || 'usr-yassine-001',
+      creator_id: user?.id || 'usr-default',
       due_at: new Date(Date.now() + 86400000).toISOString(),
     });
     setQuickTitle('');
@@ -125,7 +125,7 @@ export default function DashboardPage() {
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1 flex-wrap">
                   <h1 className="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight truncate">
-                    {user?.full_name || 'Yassine Mezghani'}
+                    {user?.full_name || 'Club Member'}
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-200 uppercase">
                     {activeRole}
@@ -133,10 +133,10 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono mt-0.5">
-                  <span>{user?.student_id || 'ISIMS-2024-8891'}</span>
+                  <span>{user?.student_id || 'ISIMS-ID-PENDING'}</span>
                   <span>•</span>
                   <span className="text-emerald-700 font-semibold font-sans">
-                    {user?.study_field || 'L2 DSI / CS & Multimedia'}
+                    {user?.study_field || 'General Sciences'}
                   </span>
                 </div>
 
@@ -762,7 +762,9 @@ export default function DashboardPage() {
             <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
               <QrCode className="w-56 h-56 text-emerald-900" />
             </div>
-            <div className="font-mono text-xs text-slate-600">ISIMS-2024-8891 • Yassine Mezghani</div>
+            <div className="font-mono text-xs text-slate-600">
+              {user?.student_id || 'ISIMS-MEMBER'} • {user?.full_name || 'Student Member'}
+            </div>
             <button
               onClick={() => setShowQRModal(false)}
               className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"

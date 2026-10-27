@@ -4,6 +4,7 @@ import React from 'react';
 import AppHeader from './AppHeader';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import OnboardingModal from '@/components/auth/OnboardingModal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <BottomNav />
+      <OnboardingModal />
     </div>
   );
 }

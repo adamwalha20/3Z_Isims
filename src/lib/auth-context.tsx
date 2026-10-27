@@ -106,17 +106,32 @@ interface AuthContextType {
   updateInitiativeProgress: (id: string, current: number) => void;
   addDecision: (dec: Omit<Decision, 'id' | 'decided_at'>) => void;
   updateApplicationStatus: (id: string, status: RecruitmentApplication['status'], notes?: string) => void;
-  assignBureauPosition: (positionKey: string, memberName: string) => void;
+  assignBureauPosition: (positionKey: string, userIdOrName: string, memberName?: string) => Promise<{ success: boolean; error?: string }>;
+  setUserRole: (userId: string, roleKey: 'admin' | 'bureau' | 'member') => Promise<{ success: boolean; error?: string }>;
+
+  // Onboarding state
+  needsOnboarding: boolean;
+  setNeedsOnboarding: (val: boolean) => void;
+  updateProfileOnboarding: (data: {
+    studentId: string;
+    studyField: string;
+    skills: string[];
+    interestedDepartmentId?: string;
+    bio?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
 
   // Auth operations
   signIn: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signUp: (data: {
     fullName: string;
     email: string;
     password: string;
     studentId: string;
     studyField: string;
+    skills?: string[];
     departmentId?: string;
+    bio?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -131,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLiveSupabase, setIsLiveSupabase] = useState<boolean>(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
 
   // Core data store
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
@@ -154,27 +170,117 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [decisions, setDecisions] = useState<Decision[]>(INITIAL_DECISIONS);
   const [recruitmentApps, setRecruitmentApps] = useState<RecruitmentApplication[]>(INITIAL_RECRUITMENT_APPLICATIONS);
 
-  // Check Supabase client initialization
+  // Check Supabase client initialization & load live profiles, roles, and bureau assignments
   useEffect(() => {
     const supabase = createClient();
-    if (supabase) {
-      setIsLiveSupabase(true);
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!supabase) return;
+
+    setIsLiveSupabase(true);
+
+    const loadUserData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setIsAuthenticated(true);
-          supabase
+
+          // 1. Fetch user's profile
+          const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                setUser(data as Profile);
-              }
+            .single();
+
+          if (profile) {
+            setUser({
+              ...INITIAL_USER,
+              ...profile,
             });
+
+            // If skills or student_id are missing, prompt onboarding
+            if (!profile.student_id || !profile.study_field || !profile.skills || (profile.skills as string[]).length === 0) {
+              setNeedsOnboarding(true);
+            }
+          }
+
+          // 2. Fetch user's assigned role
+          const { data: roleRecords } = await supabase
+            .from('user_roles')
+            .select('role_id, roles(key, display_name)')
+            .eq('user_id', session.user.id);
+
+          if (roleRecords && roleRecords.length > 0) {
+            const roleKey = (roleRecords[0].roles as any)?.key;
+            if (roleKey === 'admin') setActiveRole('admin');
+            else if (roleKey === 'bureau') setActiveRole('bureau');
+            else setActiveRole('member');
+          }
         }
-      });
-    }
+
+        // 3. Fetch all registered members from Supabase
+        const { data: allProfiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (allProfiles && allProfiles.length > 0) {
+          const { data: allRoles } = await supabase
+            .from('user_roles')
+            .select('user_id, roles(key, display_name)');
+
+          const formatted: Profile[] = allProfiles.map((p) => {
+            const userRole = allRoles?.find((r) => r.user_id === p.id);
+            const rKey = (userRole?.roles as any)?.key || 'member';
+            return {
+              ...p,
+              roles: [{ id: `role-${rKey}`, key: rKey, display_name: rKey.toUpperCase() }],
+            };
+          });
+          setMembers(formatted);
+        }
+
+        // 4. Fetch all bureau positions & assigned officers
+        const { data: posData } = await supabase
+          .from('bureau_positions')
+          .select(`
+            id, key, display_name, description,
+            user_bureau_positions (
+              user_id,
+              profiles ( id, full_name, avatar_path, student_id )
+            )
+          `);
+
+        if (posData && posData.length > 0) {
+          const mappedBureau: BureauMemberAssignment[] = posData.map((bp: any) => {
+            const assignment = bp.user_bureau_positions?.[0];
+            const assignedProfile = assignment?.profiles;
+            return {
+              position_key: bp.key,
+              position_name: bp.display_name,
+              member_name: assignedProfile?.full_name || 'Unassigned',
+              avatar: assignedProfile?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+              department: bp.display_name,
+              email: assignedProfile ? `${assignedProfile.full_name.toLowerCase().replace(/\s+/g, '.')}@isims.tn` : 'bureau@isims.tn',
+            };
+          });
+          setBureauMembers(mappedBureau);
+        }
+      } catch (err) {
+        console.error('Error fetching Supabase auth & bureau data:', err);
+      }
+    };
+
+    loadUserData();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        loadUserData();
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const toggleTaskDone = (taskId: string) => {
@@ -445,10 +551,159 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const assignBureauPosition = (positionKey: string, memberName: string) => {
+  const assignBureauPosition = async (positionKey: string, userIdOrName: string, memberName?: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = createClient();
+    
+    // Look for matching user in members list
+    const matchedMember = members.find((m) => m.id === userIdOrName || m.full_name.toLowerCase() === userIdOrName.toLowerCase());
+    const finalName = memberName || matchedMember?.full_name || (userIdOrName === 'unassigned' ? 'Unassigned' : userIdOrName);
+    const finalUserId = matchedMember?.id || (userIdOrName !== 'unassigned' && userIdOrName.startsWith('usr-') ? userIdOrName : null);
+
+    if (supabase) {
+      try {
+        // Find position record
+        const { data: pos } = await supabase
+          .from('bureau_positions')
+          .select('id')
+          .eq('key', positionKey)
+          .single();
+
+        if (pos) {
+          // Remove old assignment
+          await supabase
+            .from('user_bureau_positions')
+            .delete()
+            .eq('position_id', pos.id);
+
+          if (finalUserId) {
+            // Assign new member
+            await supabase
+              .from('user_bureau_positions')
+              .insert({
+                position_id: pos.id,
+                user_id: finalUserId,
+                assigned_by: user?.id || null,
+              });
+
+            // Ensure member has bureau role
+            const { data: bRole } = await supabase.from('roles').select('id').eq('key', 'bureau').single();
+            if (bRole) {
+              await supabase.from('user_roles').upsert({
+                user_id: finalUserId,
+                role_id: bRole.id,
+              });
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error('Error assigning bureau position in Supabase:', err);
+      }
+    }
+
+    // Update local state
     setBureauMembers((prev) =>
-      prev.map((bm) => (bm.position_key === positionKey ? { ...bm, member_name: memberName } : bm))
+      prev.map((bm) => (bm.position_key === positionKey ? { ...bm, member_name: finalName } : bm))
     );
+
+    // If assigned member exists, grant them bureau role locally
+    if (finalUserId) {
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === finalUserId
+            ? {
+                ...m,
+                roles: [{ id: 'role-bureau', key: 'bureau', display_name: 'Bureau Officer' }],
+              }
+            : m
+        )
+      );
+    }
+
+    return { success: true };
+  };
+
+  const setUserRole = async (userId: string, roleKey: 'admin' | 'bureau' | 'member'): Promise<{ success: boolean; error?: string }> => {
+    const supabase = createClient();
+    if (supabase) {
+      try {
+        const { data: roleRow } = await supabase.from('roles').select('id').eq('key', roleKey).single();
+        if (roleRow) {
+          await supabase.from('user_roles').delete().eq('user_id', userId);
+          await supabase.from('user_roles').insert({
+            user_id: userId,
+            role_id: roleRow.id,
+            assigned_by: user?.id || null,
+          });
+        }
+      } catch (err: any) {
+        console.error('Error setting user role in Supabase:', err);
+      }
+    }
+
+    // Update local members state
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === userId
+          ? {
+              ...m,
+              roles: [{ id: `role-${roleKey}`, key: roleKey, display_name: roleKey.toUpperCase() }],
+            }
+          : m
+      )
+    );
+
+    // If changing active user's role
+    if (user && user.id === userId) {
+      setActiveRole(roleKey);
+    }
+
+    return { success: true };
+  };
+
+  const updateProfileOnboarding = async (data: {
+    studentId: string;
+    studyField: string;
+    skills: string[];
+    interestedDepartmentId?: string;
+    bio?: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    const supabase = createClient();
+    if (supabase && user?.id) {
+      try {
+        const { error } = await supabase.from('profiles').update({
+          student_id: data.studentId,
+          study_field: data.studyField,
+          skills: data.skills,
+          interested_department_id: data.interestedDepartmentId || null,
+          bio: data.bio || user.bio,
+          updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
+
+        if (error) {
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        return { success: false, error: err?.message || 'Failed to update profile' };
+      }
+    }
+
+    setUser((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        student_id: data.studentId,
+        study_field: data.studyField,
+        skills: data.skills,
+        bio: data.bio || prev.bio,
+      };
+    });
+
+    setNeedsOnboarding(false);
+    setIsLoading(false);
+    return { success: true };
   };
 
   // ----------------------------------------------------------------------------
@@ -458,7 +713,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, pass: string) => {
     setIsLoading(true);
     const trimmedEmail = email.trim().toLowerCase();
-    const isSampleUser = trimmedEmail === 'yassine.mezghani@isims.tn' && pass === '3Zero@2025';
 
     const supabase = createClient();
     if (supabase) {
@@ -477,15 +731,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               ...INITIAL_USER,
               ...profile,
             });
-          }
-          setIsAuthenticated(true);
-          setIsLoading(false);
-          return { success: true };
-        }
 
-        // Resilient fallback: If sample demo credentials were provided, allow immediate access
-        if (isSampleUser) {
-          setUser(INITIAL_USER);
+            // Check if profile is complete
+            if (!profile.student_id || !profile.study_field || !profile.skills || (profile.skills as string[]).length === 0) {
+              setNeedsOnboarding(true);
+            }
+          }
+
+          // Fetch user role
+          const { data: roleRecords } = await supabase
+            .from('user_roles')
+            .select('role_id, roles(key, display_name)')
+            .eq('user_id', data.user.id);
+
+          if (roleRecords && roleRecords.length > 0) {
+            const roleKey = (roleRecords[0].roles as any)?.key;
+            if (roleKey === 'admin') setActiveRole('admin');
+            else if (roleKey === 'bureau') setActiveRole('bureau');
+            else setActiveRole('member');
+          }
+
           setIsAuthenticated(true);
           setIsLoading(false);
           return { success: true };
@@ -494,12 +759,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         return { success: false, error: error?.message || 'Invalid login credentials' };
       } catch (err: any) {
-        if (isSampleUser) {
-          setUser(INITIAL_USER);
-          setIsAuthenticated(true);
-          setIsLoading(false);
-          return { success: true };
-        }
         setIsLoading(false);
         return { success: false, error: err?.message || 'Authentication error occurred' };
       }
@@ -516,13 +775,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    const supabase = createClient();
+    if (supabase) {
+      try {
+        const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '/auth/callback';
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+
+        if (error) {
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+        return { success: true };
+      } catch (err: any) {
+        setIsLoading(false);
+        return { success: false, error: err?.message || 'Failed to initialize Google authentication' };
+      }
+    }
+
+    // Demo fallback
+    await new Promise((res) => setTimeout(res, 400));
+    setIsLoading(false);
+    setUser(INITIAL_USER);
+    setIsAuthenticated(true);
+    setNeedsOnboarding(true);
+    return { success: true };
+  };
+
   const signUp = async (data: {
     fullName: string;
     email: string;
     password: string;
     studentId: string;
     studyField: string;
+    skills?: string[];
     departmentId?: string;
+    bio?: string;
   }) => {
     setIsLoading(true);
     const supabase = createClient();
@@ -551,12 +849,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             full_name: data.fullName,
             student_id: data.studentId,
             study_field: data.studyField,
+            skills: data.skills || ['Climate Action', 'Innovation'],
+            interested_department_id: data.departmentId || null,
+            bio: data.bio || '',
           });
 
           await supabase.from('club_memberships').upsert({
             user_id: authData.user.id,
             membership_status: 'pending',
           });
+
+          // Ensure default role is 'member'
+          const { data: memberRole } = await supabase.from('roles').select('id').eq('key', 'member').single();
+          if (memberRole) {
+            await supabase.from('user_roles').upsert({
+              user_id: authData.user.id,
+              role_id: memberRole.id,
+            });
+          }
         } catch {
           // Trigger handles automatic creation
         }
@@ -566,7 +876,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: data.fullName,
           student_id: data.studentId,
           study_field: data.studyField,
-          skills: ['Climate Action', 'Innovation'],
+          skills: data.skills || ['Climate Action', 'Innovation'],
           contact_preferences: { email: true, in_app: true },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -598,7 +908,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       full_name: data.fullName,
       student_id: data.studentId,
       study_field: data.studyField,
-      skills: ['Climate Action', 'Innovation'],
+      skills: data.skills || ['Climate Action', 'Innovation'],
       contact_preferences: { email: true, in_app: true },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -689,7 +999,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         addDecision,
         updateApplicationStatus,
         assignBureauPosition,
+        setUserRole,
+        needsOnboarding,
+        setNeedsOnboarding,
+        updateProfileOnboarding,
         signIn,
+        signInWithGoogle,
         signUp,
         signOut,
         resetPassword,

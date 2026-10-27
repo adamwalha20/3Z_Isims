@@ -36,18 +36,18 @@ import { Partner, FinancialTransaction, MarketingCampaign, SustainabilityInitiat
 export function BureauPositionSelector() {
   const { activeBureauPosition, setActiveBureauPosition, bureauMembers } = useAuth();
 
-  const positions: { key: ActiveBureauPosition; label: string; icon: string; member: string }[] = [
-    { key: 'all', label: 'All Operations', icon: 'dashboard', member: 'Global Bureau View' },
-    { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart', member: 'Heba Sanaa' },
-    { key: 'secretary_general', label: 'Secretary General', icon: 'history_edu', member: 'Nawress' },
-    { key: 'treasurer', label: 'Treasurer', icon: 'payments', member: 'Ahmed Bahri' },
-    { key: 'hr_manager', label: 'HR Manager', icon: 'badge', member: 'Med Aziz Turky' },
-    { key: 'marketing_design_manager', label: 'Marketing & Design', icon: 'palette', member: 'Sa' },
-    { key: 'sustainable_campus_manager', label: 'Sustainable Campus', icon: 'eco', member: 'Oussema' },
-    { key: 'communication_engagement_manager', label: 'Comms & Engagement', icon: 'campaign', member: 'drvcou' },
-    { key: 'events_manager', label: 'Events Manager', icon: 'event', member: 'Chaima Besbes' },
-    { key: 'project_manager', label: 'Project Manager', icon: 'rocket_launch', member: 'Ayoub' },
-    { key: 'partnerships_sponsorship_manager', label: 'Partnerships', icon: 'handshake', member: 'Sponsor Lead' },
+  const positions: { key: ActiveBureauPosition; label: string; icon: string }[] = [
+    { key: 'all', label: 'All Operations', icon: 'dashboard' },
+    { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart' },
+    { key: 'secretary_general', label: 'Secretary General', icon: 'history_edu' },
+    { key: 'treasurer', label: 'Treasurer', icon: 'payments' },
+    { key: 'hr_manager', label: 'HR Manager', icon: 'badge' },
+    { key: 'marketing_design_manager', label: 'Marketing & Design', icon: 'palette' },
+    { key: 'sustainable_campus_manager', label: 'Sustainable Campus', icon: 'eco' },
+    { key: 'communication_engagement_manager', label: 'Comms & Engagement', icon: 'campaign' },
+    { key: 'events_manager', label: 'Events Manager', icon: 'event' },
+    { key: 'project_manager', label: 'Project Manager', icon: 'rocket_launch' },
+    { key: 'partnerships_sponsorship_manager', label: 'Partnerships', icon: 'handshake' },
   ];
 
   return (
@@ -67,6 +67,9 @@ export function BureauPositionSelector() {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar">
         {positions.map((pos) => {
           const isSelected = activeBureauPosition === pos.key;
+          const assignedMember = bureauMembers.find((bm) => bm.position_key === pos.key)?.member_name;
+          const isVacant = !assignedMember || assignedMember === 'Unassigned';
+
           return (
             <button
               key={pos.key}
@@ -85,8 +88,14 @@ export function BureauPositionSelector() {
               </span>
               <span>{pos.label}</span>
               {pos.key !== 'all' && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-normal ${isSelected ? 'bg-emerald-700 text-emerald-100' : 'bg-slate-100 text-slate-500'}`}>
-                  {pos.member.split(' ')[0]}
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-normal ${
+                  isSelected
+                    ? 'bg-emerald-700 text-emerald-100'
+                    : isVacant
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isVacant ? 'Vacant' : assignedMember.split(' ')[0]}
                 </span>
               )}
             </button>
@@ -102,8 +111,10 @@ export function BureauPositionSelector() {
 // ==============================================================================
 
 export function VicePresidentCockpit() {
-  const { tasks, projects, decisions, addDecision } = useAuth();
+  const { tasks, projects, decisions, addDecision, bureauMembers } = useAuth();
   const [showCoordModal, setShowCoordModal] = useState(false);
+  const vpMember = bureauMembers.find((bm) => bm.position_key === 'vice_president')?.member_name || 'Unassigned';
+  const isVacant = vpMember === 'Unassigned';
 
   const overdue = tasks.filter((t) => t.priority === 'urgent' && t.status !== 'done');
   const unresolvedDecisions = decisions.filter((d) => d.status === 'under_execution');
@@ -118,8 +129,8 @@ export function VicePresidentCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Vice President Operational Oversight</h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                Heba Sanaa
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800'}`}>
+                {vpMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Cross-department execution, bottleneck mitigation & executive decisions</p>
@@ -195,12 +206,15 @@ export function VicePresidentCockpit() {
 // ==============================================================================
 
 export function TreasurerCockpit() {
-  const { transactions, budgets, addTransaction, approveTransaction } = useAuth();
+  const { transactions, budgets, addTransaction, approveTransaction, bureauMembers } = useAuth();
   const [showAddTxModal, setShowAddTxModal] = useState(false);
   const [txType, setTxType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<any>('logistics');
   const [desc, setDesc] = useState('');
+
+  const treasurerMember = bureauMembers.find((bm) => bm.position_key === 'treasurer')?.member_name || 'Unassigned';
+  const isVacant = treasurerMember === 'Unassigned';
 
   const totalIncome = transactions
     .filter((t) => t.transaction_type === 'income' && t.approval_status === 'approved')
@@ -240,8 +254,8 @@ export function TreasurerCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Treasury & Financial Workspace</h2>
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                Ahmed Bahri
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                {treasurerMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Club accounts, budget periods, cash flow & expense verification</p>
@@ -458,7 +472,9 @@ export function TreasurerCockpit() {
 // ==============================================================================
 
 export function HrManagerCockpit() {
-  const { recruitmentApps, updateApplicationStatus, members } = useAuth();
+  const { recruitmentApps, updateApplicationStatus, members, bureauMembers } = useAuth();
+  const hrMember = bureauMembers.find((bm) => bm.position_key === 'hr_manager')?.member_name || 'Unassigned';
+  const isVacant = hrMember === 'Unassigned';
 
   return (
     <div className="p-5 bg-gradient-to-br from-white to-blue-50/30 rounded-3xl border border-blue-900/15 shadow-sm flex flex-col gap-4 mb-6">
@@ -470,8 +486,8 @@ export function HrManagerCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Human Resources & Onboarding Workspace</h2>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
-                Med Aziz Turky
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800'}`}>
+                {hrMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Student recruitment pipeline, department dispatch & team development</p>
@@ -540,10 +556,13 @@ export function HrManagerCockpit() {
 // ==============================================================================
 
 export function MarketingCockpit() {
-  const { campaigns, addCampaign, updateCampaignStatus } = useAuth();
+  const { campaigns, addCampaign, updateCampaignStatus, bureauMembers } = useAuth();
   const [showNewCamp, setShowNewCamp] = useState(false);
   const [title, setTitle] = useState('');
   const [platform, setPlatform] = useState<any>('instagram');
+
+  const mktgMember = bureauMembers.find((bm) => bm.position_key === 'marketing_design_manager')?.member_name || 'Unassigned';
+  const isVacant = mktgMember === 'Unassigned';
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -568,8 +587,8 @@ export function MarketingCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Marketing & Design Creative Workspace</h2>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold">
-                Sa
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-purple-100 text-purple-800'}`}>
+                {mktgMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Social campaigns, visual identity assets, creative briefs & publication calendar</p>
@@ -646,7 +665,9 @@ export function MarketingCockpit() {
 // ==============================================================================
 
 export function SustainableCampusCockpit() {
-  const { initiatives, updateInitiativeProgress } = useAuth();
+  const { initiatives, updateInitiativeProgress, bureauMembers } = useAuth();
+  const sustMember = bureauMembers.find((bm) => bm.position_key === 'sustainable_campus_manager')?.member_name || 'Unassigned';
+  const isVacant = sustMember === 'Unassigned';
 
   return (
     <div className="p-5 bg-gradient-to-br from-white to-emerald-50/40 rounded-3xl border border-emerald-900/15 shadow-sm flex flex-col gap-4 mb-6">
@@ -658,8 +679,8 @@ export function SustainableCampusCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Sustainable Campus Ecological Tracker</h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                Oussema
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800'}`}>
+                {sustMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Documented carbon reduction, reforestation metrics & green campus projects</p>
@@ -719,7 +740,10 @@ export function SustainableCampusCockpit() {
 // ==============================================================================
 
 export function PartnershipsCockpit() {
-  const { partners, updatePartnerStage } = useAuth();
+  const { partners, updatePartnerStage, bureauMembers } = useAuth();
+
+  const partMember = bureauMembers.find((bm) => bm.position_key === 'partnerships_sponsorship_manager')?.member_name || 'Unassigned';
+  const isVacant = partMember === 'Unassigned';
 
   const totalCommitted = partners
     .filter((p) => p.pipeline_stage === 'confirmed')
@@ -735,8 +759,8 @@ export function PartnershipsCockpit() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900">Partnerships & Sponsorship CRM</h2>
-              <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold">
-                External Relations
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-teal-100 text-teal-800'}`}>
+                {partMember}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">Corporate partners, CRDA MOU dossiers, sponsorship pipeline & commitments</p>
