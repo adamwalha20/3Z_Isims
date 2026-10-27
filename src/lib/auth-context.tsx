@@ -314,7 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id, key, display_name, description,
             user_bureau_positions (
               user_id,
-              profiles ( id, full_name, avatar_path, student_id )
+              profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
             )
           `);
 
@@ -630,27 +630,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Look for matching user in members list
     const matchedMember = members.find((m) => m.id === userIdOrName || m.full_name.toLowerCase() === userIdOrName.toLowerCase());
     const finalName = memberName || matchedMember?.full_name || (userIdOrName === 'unassigned' ? 'Unassigned' : userIdOrName);
-    const finalUserId = matchedMember?.id || (userIdOrName !== 'unassigned' && userIdOrName.startsWith('usr-') ? userIdOrName : null);
+    const finalUserId = matchedMember?.id || (userIdOrName !== 'unassigned' ? userIdOrName : null);
+    const finalAvatar = matchedMember?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
 
     if (supabase) {
       try {
         // Find position record
-        const { data: pos } = await supabase
+        const { data: pos, error: posErr } = await supabase
           .from('bureau_positions')
           .select('id')
           .eq('key', positionKey)
           .single();
 
+        if (posErr) {
+          console.error('Error finding bureau position:', posErr);
+          return { success: false, error: posErr.message };
+        }
+
         if (pos) {
           // Remove old assignment
-          await supabase
+          const { error: delErr } = await supabase
             .from('user_bureau_positions')
             .delete()
             .eq('position_id', pos.id);
 
+          if (delErr) {
+            console.error('Error clearing previous bureau position:', delErr);
+          }
+
           if (finalUserId) {
             // Assign new member
-            await supabase
+            const { error: insErr } = await supabase
               .from('user_bureau_positions')
               .insert({
                 position_id: pos.id,
@@ -658,7 +668,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 assigned_by: user?.id || null,
               });
 
-            // Ensure member has bureau role
+            if (insErr) {
+              console.error('Error inserting new bureau assignment:', insErr);
+              return { success: false, error: insErr.message };
+            }
+
+            // Ensure member has bureau role in user_roles
             const { data: bRole } = await supabase.from('roles').select('id').eq('key', 'bureau').single();
             if (bRole) {
               await supabase.from('user_roles').upsert({
@@ -670,12 +685,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err: any) {
         console.error('Error assigning bureau position in Supabase:', err);
+        return { success: false, error: err?.message || 'Failed to update bureau position' };
       }
     }
 
     // Update local state
     setBureauMembers((prev) =>
-      prev.map((bm) => (bm.position_key === positionKey ? { ...bm, member_name: finalName } : bm))
+      prev.map((bm) =>
+        bm.position_key === positionKey
+          ? {
+              ...bm,
+              member_name: finalName,
+              avatar: finalAvatar,
+            }
+          : bm
+      )
     );
 
     // If assigned member exists, grant them bureau role locally
