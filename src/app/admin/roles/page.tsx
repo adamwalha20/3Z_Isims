@@ -23,14 +23,14 @@ import {
 } from 'lucide-react';
 
 export default function AdminRolesPage() {
-  const { activeRole, bureauMembers, assignBureauPosition, setUserRole, members } = useAuth();
+  const { user, bureauMembers, assignBureauPosition, setUserRole, members } = useAuth();
   const [activeTab, setActiveTab] = useState<'bureau' | 'users'>('bureau');
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = activeRole === 'admin' || activeRole === 'bureau';
+  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
 
   if (!isAuthorized) {
     return (
@@ -39,10 +39,13 @@ export default function AdminRolesPage() {
           <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
             <Lock className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-extrabold text-slate-900">Permission Denied</h2>
+          <h2 className="text-base font-extrabold text-slate-900">Access Restricted</h2>
           <p className="text-xs text-slate-500 max-w-sm">
-            Managing executive bureau positions and role assignments requires Administrator permissions.
+            Managing executive bureau positions and assigning roles is exclusively reserved for the designated administrator (adamwalha20@gmail.com).
           </p>
+          <div className="mt-2 text-[11px] font-mono text-slate-400">
+            Current account: {user?.email || 'Guest / Unverified'}
+          </div>
         </div>
       </AppShell>
     );

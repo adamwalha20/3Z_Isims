@@ -58,6 +58,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isLiveSupabase: boolean;
+  isAdmin: boolean;
 
   // Data store state
   tasks: Task[];
@@ -190,10 +191,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .single();
 
+          const currentEmail = session.user.email || profile?.email || '';
+          const isAdam = currentEmail.toLowerCase() === 'adamwalha20@gmail.com';
+
           if (profile) {
             setUser({
               ...INITIAL_USER,
               ...profile,
+              email: currentEmail,
             });
 
             // If skills or student_id are missing, prompt onboarding
@@ -202,17 +207,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          // 2. Fetch user's assigned role
-          const { data: roleRecords } = await supabase
-            .from('user_roles')
-            .select('role_id, roles(key, display_name)')
-            .eq('user_id', session.user.id);
+          if (isAdam) {
+            setActiveRole('admin');
+          } else {
+            // 2. Fetch user's assigned role
+            const { data: roleRecords } = await supabase
+              .from('user_roles')
+              .select('role_id, roles(key, display_name)')
+              .eq('user_id', session.user.id);
 
-          if (roleRecords && roleRecords.length > 0) {
-            const roleKey = (roleRecords[0].roles as any)?.key;
-            if (roleKey === 'admin') setActiveRole('admin');
-            else if (roleKey === 'bureau') setActiveRole('bureau');
-            else setActiveRole('member');
+            if (roleRecords && roleRecords.length > 0) {
+              const roleKey = (roleRecords[0].roles as any)?.key;
+              if (roleKey === 'bureau') setActiveRole('bureau');
+              else setActiveRole('member');
+            } else {
+              setActiveRole('member');
+            }
           }
         }
 
@@ -958,6 +968,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         isLoading,
         isLiveSupabase,
+        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com',
         tasks,
         projects,
         events,

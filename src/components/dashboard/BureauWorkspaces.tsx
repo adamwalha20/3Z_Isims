@@ -495,7 +495,7 @@ export function HrManagerCockpit() {
         </div>
 
         <Link
-          href="/admin/members"
+          href="/members"
           className="px-3.5 py-1.5 rounded-xl bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
         >
           <span>Member Roster ({members.length})</span>

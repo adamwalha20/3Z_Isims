@@ -360,7 +360,7 @@ export default function MembersDirectoryPage() {
         {/* =========================================================================
             5. ADMINISTRATION CONTROLS (Audit & Permissions)
         ========================================================================= */}
-        {(activeRole === 'admin' || activeRole === 'bureau') && (
+        {user?.email?.toLowerCase() === 'adamwalha20@gmail.com' && (
           <section className="rounded-3xl bg-white p-5 shadow-xs border border-rose-100 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">

@@ -13,6 +13,7 @@ export interface Profile {
   id: string;
   full_name: string;
   student_id: string;
+  email?: string | null;
   avatar_path?: string | null;
   bio?: string | null;
   phone?: string | null;

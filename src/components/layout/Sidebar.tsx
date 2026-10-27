@@ -22,7 +22,8 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { activeRole } = useAuth();
+  const { activeRole, user } = useAuth();
+  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
 
   const navLinks = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -85,8 +86,8 @@ export default function Sidebar() {
           );
         })}
 
-        {/* Administration Section (Available to Admin and Bureau) */}
-        {(activeRole === 'admin' || activeRole === 'bureau') && (
+        {/* Administration Section (Available only to adamwalha20@gmail.com) */}
+        {isSuperAdmin && (
           <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-1">
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1">
               <span>Admin & Controls</span>

@@ -11,15 +11,37 @@ import {
   ArrowLeft,
   Search,
   ShieldAlert,
+  Lock,
 } from 'lucide-react';
 
 export default function AdminMembersApprovalPage() {
-  const { activeRole } = useAuth();
+  const { user } = useAuth();
   const [pendingApplicants, setPendingApplicants] = useState([
     { id: 'app-01', name: 'Oussema Cherif', matricule: 'ISIMS-2024-9102', study: 'L1 Computer Science', applied: '2 days ago' },
     { id: 'app-02', name: 'Nour El Houda', matricule: 'ISIMS-2023-4180', study: 'L2 DSI / Multimedia', applied: '3 days ago' },
     { id: 'app-03', name: 'Ahmed Ghorbel', matricule: 'ISIMS-2024-1189', study: 'L1 Computer Science', applied: 'Yesterday' },
   ]);
+
+  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+
+  if (!isAuthorized) {
+    return (
+      <AppShell>
+        <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-base font-extrabold text-slate-900">Access Restricted</h2>
+          <p className="text-xs text-slate-500 max-w-sm">
+            Member approval and verification is exclusively accessible to the designated club administrator (adamwalha20@gmail.com).
+          </p>
+          <div className="mt-2 text-[11px] font-mono text-slate-400">
+            Current account: {user?.email || 'Guest / Unverified'}
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   const handleApprove = (id: string, name: string) => {
     setPendingApplicants((prev) => prev.filter((a) => a.id !== id));

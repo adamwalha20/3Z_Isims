@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 
 export default function AdminGovernancePage() {
-  const { activeRole, auditLogs, members } = useAuth();
+  const { user, auditLogs, members } = useAuth();
 
-  const isAuthorized = activeRole === 'admin' || activeRole === 'bureau';
+  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
 
   if (!isAuthorized) {
     return (
@@ -26,10 +26,13 @@ export default function AdminGovernancePage() {
           <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
             <Lock className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-extrabold text-slate-900">Permission Denied</h2>
+          <h2 className="text-base font-extrabold text-slate-900">Access Restricted</h2>
           <p className="text-xs text-slate-500 max-w-sm">
-            Elevated governance requires Bureau Officer or Administrator access. Switch roles in the top bar to inspect this view.
+            The Admin Governance Console is exclusively accessible to the designated club administrator (adamwalha20@gmail.com).
           </p>
+          <div className="mt-2 text-[11px] font-mono text-slate-400">
+            Current account: {user?.email || 'Guest / Unverified'}
+          </div>
         </div>
       </AppShell>
     );

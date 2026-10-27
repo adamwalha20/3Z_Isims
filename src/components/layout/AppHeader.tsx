@@ -19,13 +19,16 @@ export default function AppHeader() {
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
 
-  const roleOptions: { key: ActiveRole; label: string; desc: string; icon: string }[] = [
+  const allRoleOptions: { key: ActiveRole; label: string; desc: string; icon: string }[] = [
     { key: 'bureau', label: 'Bureau Officer', desc: 'Full operational & publishing privileges', icon: 'verified_user' },
     { key: 'admin', label: 'Administrator', desc: 'Membership approval & governance logs', icon: 'shield_person' },
     { key: 'lead', label: 'Department Lead', desc: 'Manage Training & Innovation unit', icon: 'stars' },
     { key: 'member', label: 'Active Member', desc: 'Student view, assigned tasks & badge pass', icon: 'person' },
   ];
+
+  const roleOptions = allRoleOptions.filter((r) => r.key !== 'admin' || isSuperAdmin);
 
   const bureauPositionBase = [
     { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart' },
@@ -155,7 +158,7 @@ export default function AppHeader() {
           </div>
 
           {/* Quick Admin Role Management Shortcut */}
-          {activeRole === 'admin' && (
+          {isSuperAdmin && (
             <Link
               href="/admin/roles"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 text-xs font-bold transition-all shadow-xs"
