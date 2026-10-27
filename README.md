@@ -32,6 +32,7 @@ The user interface is faithfully implemented from the **Google Stitch Design** (
 | **Document Vault** | `/documents` | Category-filtered repository (Templates, Legal/PVs, Brand Assets, Reports) with secure file upload simulator and access control tags. |
 | **Governance & Admin** | `/admin` & `/admin/members` | Bureau governance portal, active membership requests, approval/rejection workflows, role adjustments, and system audit logs. |
 | **Profile & Settings** | `/profile` | Member ID card, student number, notification preferences, security credentials, and active session management. |
+| **Onboarding & Auth** | `/signup` & `/login` | Student onboarding registration (Matricule, Study Field, Department choice) & secure sign-in with live Supabase Auth. |
 
 ---
 
