@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -33,7 +33,13 @@ const SUGGESTED_SKILLS = [
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle, isLoading } = useAuth();
+  const { signUp, signInWithGoogle, isLoading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.location.href = '/';
+    }
+  }, [isAuthenticated]);
 
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -8,11 +8,18 @@ import { Lock, Mail, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signInWithGoogle, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, isLoading, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // If already authenticated, redirect to workspace immediately
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.location.href = '/';
+    }
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +29,7 @@ export default function LoginPage() {
     if (!res.success) {
       setErrorMsg(res.error || 'Authentication failed. Please verify your credentials.');
     } else {
-      router.push('/');
+      window.location.href = '/';
     }
   };
 
