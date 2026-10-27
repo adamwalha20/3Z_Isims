@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   X,
   Camera,
+  UploadCloud,
   Sparkles,
 } from 'lucide-react';
 
@@ -28,12 +29,13 @@ const AVATAR_PRESETS = [
 ];
 
 export default function ProfilePage() {
-  const { user, activeRole, signOut, updateUserProfile } = useAuth();
+  const { user, activeRole, signOut, updateUserProfile, uploadAvatar } = useAuth();
 
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [studentId, setStudentId] = useState(user?.student_id || '');
   const [studyField, setStudyField] = useState(user?.study_field || '');
   const [avatarPath, setAvatarPath] = useState(user?.avatar_path || AVATAR_PRESETS[0]);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [bio, setBio] = useState(user?.bio || '');
   const [skills, setSkills] = useState<string[]>(user?.skills || ['Climate Action', 'Innovation']);
   const [newSkill, setNewSkill] = useState('');
@@ -42,8 +44,32 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Handle direct file upload from device
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setErrorMessage('');
+    setSavedMessage('');
+
+    const res = await uploadAvatar(file);
+    setIsUploadingAvatar(false);
+
+    if (res.success && res.url) {
+      setAvatarPath(res.url);
+      setSavedMessage('Profile picture uploaded and saved successfully!');
+      setTimeout(() => setSavedMessage(''), 4000);
+    } else {
+      setErrorMessage(res.error || 'Failed to upload photo. Please try a different image.');
+    }
+
+    e.target.value = '';
+  };
 
   // Sync state when user profile is loaded
   useEffect(() => {
@@ -142,15 +168,33 @@ export default function ProfilePage() {
           <div className="p-5 flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-4 min-w-0">
-                <div className="relative shrink-0">
+                <div className="relative shrink-0 group">
                   <img
                     src={user?.avatar_path || avatarPath}
                     alt={user?.full_name || 'Profile'}
-                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-emerald-500 shadow-sm"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-emerald-500 shadow-md group-hover:opacity-90 transition-opacity"
                   />
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center ring-2 ring-white">
-                    <span className="material-symbols-outlined text-[13px]">verified</span>
-                  </span>
+                  {isUploadingAvatar ? (
+                    <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center text-white">
+                      <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="badge-avatar-upload"
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center ring-2 ring-white shadow-xs cursor-pointer transition-transform hover:scale-110"
+                      title="Upload new profile picture"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <input
+                        id="badge-avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFileChange}
+                        disabled={isUploadingAvatar}
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -272,23 +316,90 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Avatar Preset Selector (Visible when Editing) */}
+            {/* Profile Picture Configuration (Visible when Editing) */}
             {isEditing && (
-              <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-xs font-bold text-slate-700">Choose Profile Avatar Preset:</span>
-                <div className="flex items-center gap-3 overflow-x-auto pb-1">
-                  {AVATAR_PRESETS.map((preset, idx) => (
+              <div className="flex flex-col gap-3 p-4 bg-emerald-50/40 rounded-2xl border border-emerald-200/70">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-700" />
+                    <span>Profile Picture & Pass Photo</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Live Supabase Storage
+                  </span>
+                </div>
+
+                {/* 1. Device File Upload Box */}
+                <label
+                  htmlFor="editor-avatar-upload"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-emerald-300 rounded-2xl bg-white hover:bg-emerald-50/50 cursor-pointer transition-all group shadow-2xs"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                    {isUploadingAvatar ? (
+                      <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                    ) : (
+                      <UploadCloud className="w-5 h-5 text-emerald-700" />
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 text-center">
+                    {isUploadingAvatar ? 'Uploading picture to cloud...' : 'Click to upload your photo from your device'}
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-0.5">
+                    Supports JPG, PNG, WEBP (Max 5MB)
+                  </span>
+                  <input
+                    id="editor-avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                    disabled={isUploadingAvatar}
+                  />
+                </label>
+
+                {/* 2. Custom URL Input */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-slate-600">Or paste image URL:</span>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={customAvatarUrl}
+                      onChange={(e) => setCustomAvatarUrl(e.target.value)}
+                      placeholder="https://example.com/my-photo.jpg"
+                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
                     <button
-                      key={idx}
                       type="button"
-                      onClick={() => setAvatarPath(preset)}
-                      className={`w-11 h-11 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
-                        avatarPath === preset ? 'border-emerald-600 ring-2 ring-emerald-300 scale-105' : 'border-transparent hover:opacity-80'
-                      }`}
+                      onClick={() => {
+                        if (customAvatarUrl.trim()) {
+                          setAvatarPath(customAvatarUrl.trim());
+                          setCustomAvatarUrl('');
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shrink-0"
                     >
-                      <img src={preset} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
+                      Apply
                     </button>
-                  ))}
+                  </div>
+                </div>
+
+                {/* 3. Preset Avatars */}
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-600">Or select an official avatar preset:</span>
+                  <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+                    {AVATAR_PRESETS.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setAvatarPath(preset)}
+                        className={`w-10 h-10 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                          avatarPath === preset ? 'border-emerald-600 ring-2 ring-emerald-300 scale-105' : 'border-transparent hover:opacity-80'
+                        }`}
+                      >
+                        <img src={preset} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

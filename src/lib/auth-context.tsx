@@ -123,6 +123,7 @@ interface AuthContextType {
     avatarPath?: string;
     contactPreferences?: { email: boolean; in_app: boolean };
   }) => Promise<{ success: boolean; error?: string }>;
+  uploadAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
 
   // Onboarding state
   needsOnboarding: boolean;
@@ -1161,6 +1162,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const uploadAvatar = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+    try {
+      if (!file) {
+        return { success: false, error: 'No image file was selected.' };
+      }
+
+      if (!file.type.startsWith('image/')) {
+        return { success: false, error: 'Unsupported format. Please select an image file (PNG, JPG, WEBP).' };
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        return { success: false, error: 'Image size exceeds maximum limit of 5MB.' };
+      }
+
+      setIsLoading(true);
+      const supabase = createClient();
+      let publicUrl = '';
+
+      if (supabase && user?.id) {
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const sanitized = file.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const filePath = `${user.id}/${Date.now()}_${sanitized}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.warn('Storage bucket upload notice, falling back to data URL:', uploadError.message);
+          publicUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        } else {
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          publicUrl = urlData.publicUrl;
+        }
+      } else {
+        publicUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const saveRes = await updateUserProfile({ avatarPath: publicUrl });
+      setIsLoading(false);
+      if (!saveRes.success) {
+        return { success: false, error: saveRes.error };
+      }
+
+      return { success: true, url: publicUrl };
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error('Error in uploadAvatar:', err);
+      return { success: false, error: err?.message || 'Failed to upload image' };
+    }
+  };
+
   const signOut = async () => {
     const supabase = createClient();
     if (supabase) {
@@ -1240,6 +1306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         approveMembership,
         rejectMembership,
         updateUserProfile,
+        uploadAvatar,
         needsOnboarding,
         setNeedsOnboarding,
         updateProfileOnboarding,

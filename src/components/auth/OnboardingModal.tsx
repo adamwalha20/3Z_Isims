@@ -11,6 +11,7 @@ import {
   X,
   ArrowRight,
   ShieldAlert,
+  Camera,
 } from 'lucide-react';
 
 const SUGGESTED_SKILLS = [
@@ -27,7 +28,7 @@ const SUGGESTED_SKILLS = [
 ];
 
 export default function OnboardingModal() {
-  const { user, needsOnboarding, setNeedsOnboarding, updateProfileOnboarding, departments } = useAuth();
+  const { user, needsOnboarding, setNeedsOnboarding, updateProfileOnboarding, departments, uploadAvatar } = useAuth();
 
   const [studentId, setStudentId] = useState(user?.student_id || '');
   const [studyField, setStudyField] = useState(user?.study_field || 'L2 DSI — Software Development');
@@ -36,7 +37,17 @@ export default function OnboardingModal() {
   const [customSkill, setCustomSkill] = useState('');
   const [bio, setBio] = useState(user?.bio || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPhoto(true);
+    await uploadAvatar(file);
+    setIsUploadingPhoto(false);
+    e.target.value = '';
+  };
 
   if (!needsOnboarding) return null;
 
@@ -118,6 +129,41 @@ export default function OnboardingModal() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Optional Profile Picture Upload */}
+          <div className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+            <div className="relative shrink-0">
+              <img
+                src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                alt="Profile photo"
+                className="w-12 h-12 rounded-xl object-cover ring-2 ring-emerald-500 shadow-xs"
+              />
+              {isUploadingPhoto && (
+                <div className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center text-white">
+                  <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-slate-800">Profile Picture</div>
+              <div className="text-[11px] text-slate-500 truncate">Upload a picture for your digital member badge</div>
+            </div>
+            <label
+              htmlFor="onboarding-avatar-file"
+              className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>{isUploadingPhoto ? 'Uploading...' : 'Choose Photo'}</span>
+              <input
+                id="onboarding-avatar-file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={isUploadingPhoto}
+              />
+            </label>
+          </div>
+
           {/* Student ID & Field of Study */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

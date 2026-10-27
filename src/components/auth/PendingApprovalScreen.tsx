@@ -15,13 +15,15 @@ import {
   Sparkles,
   Save,
   X,
+  Camera,
 } from 'lucide-react';
 
 export default function PendingApprovalScreen() {
-  const { user, signOut, updateUserProfile } = useAuth();
+  const { user, signOut, updateUserProfile, uploadAvatar } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Edit form state
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -30,6 +32,15 @@ export default function PendingApprovalScreen() {
   const [bio, setBio] = useState(user?.bio || '');
   const [skills, setSkills] = useState<string[]>(user?.skills || ['Climate Action', 'Innovation']);
   const [newSkill, setNewSkill] = useState('');
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    await uploadAvatar(file);
+    setIsUploading(false);
+    e.target.value = '';
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -114,11 +125,34 @@ export default function PendingApprovalScreen() {
             </div>
 
             <div className="flex items-center gap-3.5">
-              <img
-                src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-                alt="Avatar"
-                className="w-14 h-14 rounded-2xl object-cover ring-2 ring-emerald-400 shrink-0"
-              />
+              <div className="relative shrink-0">
+                <img
+                  src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                  alt="Avatar"
+                  className="w-14 h-14 rounded-2xl object-cover ring-2 ring-emerald-400 shrink-0"
+                />
+                {isUploading ? (
+                  <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center text-white">
+                    <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="pending-avatar-upload"
+                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white text-emerald-900 flex items-center justify-center ring-2 ring-emerald-700 shadow-xs cursor-pointer hover:scale-110 transition-transform"
+                    title="Upload profile picture"
+                  >
+                    <Camera className="w-3 h-3 text-emerald-800" />
+                    <input
+                      id="pending-avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="text-base font-black truncate">{user?.full_name}</div>
                 <div className="text-xs text-emerald-200 font-mono">{user?.student_id || 'Matricule Pending'}</div>
