@@ -55,7 +55,25 @@ export default function AdminGovernancePage() {
         </div>
 
         {/* Quick Admin Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            href="/admin/roles"
+            className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 hover:border-emerald-300 transition-colors flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-800 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Bureau Mandates</h3>
+                <p className="text-xs text-slate-500">10 official positions</p>
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 text-[10px] font-bold">
+              10 Roles
+            </span>
+          </Link>
+
           <Link
             href="/admin/members"
             className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 hover:border-emerald-300 transition-colors flex items-center justify-between gap-3"

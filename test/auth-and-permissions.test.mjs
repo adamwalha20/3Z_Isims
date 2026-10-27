@@ -77,6 +77,75 @@ describe('ZEC Campus Hub — Role & Permission Rules', () => {
   });
 });
 
+describe('ZEC Campus Hub — Functional Bureau Positions & Permissions', () => {
+  function canManageFinances(role, position) {
+    return role === 'admin' || position === 'treasurer';
+  }
+
+  function canViewFinancialLedger(role, position) {
+    return role === 'admin' || role === 'bureau' || position === 'treasurer' || position === 'vice_president';
+  }
+
+  function canReviewRecruitment(role, position) {
+    return role === 'admin' || position === 'hr_manager';
+  }
+
+  function canManagePartnerships(role, position) {
+    return role === 'admin' || role === 'bureau' || position === 'partnerships_sponsorship_manager';
+  }
+
+  test('Only Treasurer and Admin can manage financial entries and disburse funds', () => {
+    assert.equal(canManageFinances('bureau', 'treasurer'), true);
+    assert.equal(canManageFinances('admin', 'none'), true);
+    assert.equal(canManageFinances('bureau', 'events_manager'), false);
+    assert.equal(canManageFinances('member', 'none'), false);
+  });
+
+  test('Ordinary members cannot view private financial ledger records', () => {
+    assert.equal(canViewFinancialLedger('member', 'none'), false);
+    assert.equal(canViewFinancialLedger('bureau', 'vice_president'), true);
+    assert.equal(canViewFinancialLedger('bureau', 'treasurer'), true);
+  });
+
+  test('Only HR Manager and Admin can review student recruitment applications', () => {
+    assert.equal(canReviewRecruitment('bureau', 'hr_manager'), true);
+    assert.equal(canReviewRecruitment('admin', 'none'), true);
+    assert.equal(canReviewRecruitment('bureau', 'marketing_design_manager'), false);
+    assert.equal(canReviewRecruitment('member', 'none'), false);
+  });
+
+  test('Partnerships Manager can update sponsor pipeline stages and commitments', () => {
+    assert.equal(canManagePartnerships('bureau', 'partnerships_sponsorship_manager'), true);
+    assert.equal(canManagePartnerships('member', 'none'), false);
+  });
+});
+
+describe('ZEC Campus Hub — Financial Ledger & Cashflow Invariants', () => {
+  test('Calculates net operating balance from approved entries only', () => {
+    const transactions = [
+      { amount: 2500, type: 'income', status: 'approved' },
+      { amount: 1800, type: 'income', status: 'approved' },
+      { amount: 450, type: 'expense', status: 'approved' },
+      { amount: 320, type: 'expense', status: 'approved' },
+      { amount: 600, type: 'expense', status: 'pending' }, // Pending approval should not reduce cash
+    ];
+
+    const approvedIncome = transactions
+      .filter((t) => t.type === 'income' && t.status === 'approved')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const approvedExpense = transactions
+      .filter((t) => t.type === 'expense' && t.status === 'approved')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const netCash = approvedIncome - approvedExpense;
+
+    assert.equal(approvedIncome, 4300);
+    assert.equal(approvedExpense, 770);
+    assert.equal(netCash, 3530);
+  });
+});
+
 describe('ZEC Campus Hub — Event Registration & Capacity Logic', () => {
   test('Prevents registration when event is at full capacity', () => {
     const event = { capacity: 60, registrations_count: 60 };

@@ -239,3 +239,122 @@ export interface AuditLog {
   created_at: string;
   actor?: Profile;
 }
+
+// ------------------------------------------------------------------------------
+// Bureau Positions & Role-Specific Workspaces
+// ------------------------------------------------------------------------------
+
+export type BureauPositionKey =
+  | 'vice_president'
+  | 'secretary_general'
+  | 'treasurer'
+  | 'hr_manager'
+  | 'marketing_design_manager'
+  | 'sustainable_campus_manager'
+  | 'communication_engagement_manager'
+  | 'events_manager'
+  | 'project_manager'
+  | 'partnerships_sponsorship_manager';
+
+export interface BureauPosition {
+  id: string;
+  key: BureauPositionKey;
+  display_name: string;
+  description?: string | null;
+  initial_holder?: string | null;
+  created_at: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  amount: number;
+  currency: string;
+  transaction_type: 'income' | 'expense';
+  category: 'sponsorship' | 'university_subsidy' | 'membership_fees' | 'logistics' | 'catering' | 'equipment' | 'marketing_print' | 'prizes' | 'misc';
+  description: string;
+  date: string;
+  related_event_id?: string | null;
+  related_project_id?: string | null;
+  created_by?: string | null;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  receipt_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Budget {
+  id: string;
+  title: string;
+  category: string;
+  planned_amount: number;
+  currency: string;
+  period: string;
+  related_event_id?: string | null;
+  created_at: string;
+}
+
+export interface Partner {
+  id: string;
+  organization_name: string;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  pipeline_stage: 'prospect' | 'contacted' | 'meeting_scheduled' | 'proposal_sent' | 'negotiation' | 'confirmed' | 'declined' | 'archived';
+  sponsorship_amount_tnd: number;
+  deliverables: string[];
+  notes?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MarketingCampaign {
+  id: string;
+  title: string;
+  platform: 'instagram' | 'linkedin' | 'facebook' | 'tiktok' | 'posters' | 'all';
+  status: 'idea' | 'brief_ready' | 'in_production' | 'in_review' | 'approved' | 'published';
+  caption_draft?: string | null;
+  planned_date?: string | null;
+  asset_url?: string | null;
+  assigned_creator_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SustainabilityInitiative {
+  id: string;
+  title: string;
+  category: 'waste_reduction' | 'carbon_offset' | 'tree_planting' | 'energy_efficiency' | 'circular_economy' | 'awareness';
+  status: 'proposed' | 'active' | 'milestone_reached' | 'completed';
+  target_metric: number;
+  current_metric: number;
+  metric_unit: string;
+  calculation_method?: string | null;
+  lead_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Decision {
+  id: string;
+  meeting_id?: string | null;
+  title: string;
+  details?: string | null;
+  status: 'adopted' | 'under_execution' | 'completed' | 'deferred';
+  related_task_id?: string | null;
+  decided_at: string;
+}
+
+export interface RecruitmentApplication {
+  id: string;
+  full_name: string;
+  student_id: string;
+  email: string;
+  phone?: string | null;
+  study_field: string;
+  department_preference: string;
+  status: 'submitted' | 'interview_scheduled' | 'accepted' | 'waitlisted' | 'declined';
+  hr_notes?: string | null;
+  reviewed_by?: string | null;
+  created_at: string;
+}

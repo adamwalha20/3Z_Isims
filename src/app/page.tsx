@@ -21,9 +21,18 @@ import {
   Award,
   Sparkles,
 } from 'lucide-react';
+import {
+  BureauPositionSelector,
+  VicePresidentCockpit,
+  TreasurerCockpit,
+  HrManagerCockpit,
+  MarketingCockpit,
+  SustainableCampusCockpit,
+  PartnershipsCockpit,
+} from '@/components/dashboard/BureauWorkspaces';
 
 export default function DashboardPage() {
-  const { user, activeRole, tasks, projects, events, announcements, toggleTaskDone, addTask } = useAuth();
+  const { user, activeRole, activeBureauPosition, tasks, projects, events, announcements, toggleTaskDone, addTask } = useAuth();
   const [countdown, setCountdown] = useState(30);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
@@ -295,6 +304,22 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+        </section>
+
+        {/* =========================================================================
+            2. ROLE-BASED WORKSPACE SELECTOR & TAILORED COCKPIT
+        ========================================================================= */}
+        <section className="w-full">
+          <BureauPositionSelector />
+
+          {/* Dynamic Cockpits for each functional bureau officer */}
+          {activeBureauPosition === 'vice_president' && <VicePresidentCockpit />}
+          {activeBureauPosition === 'secretary_general' && <VicePresidentCockpit />}
+          {activeBureauPosition === 'treasurer' && <TreasurerCockpit />}
+          {activeBureauPosition === 'hr_manager' && <HrManagerCockpit />}
+          {activeBureauPosition === 'marketing_design_manager' && <MarketingCockpit />}
+          {activeBureauPosition === 'sustainable_campus_manager' && <SustainableCampusCockpit />}
+          {activeBureauPosition === 'partnerships_sponsorship_manager' && <PartnershipsCockpit />}
         </section>
 
         {/* =========================================================================

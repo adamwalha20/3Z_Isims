@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function AppHeader() {
-  const { user, activeRole, setActiveRole, notifications, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
+  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, notifications, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
@@ -26,6 +26,24 @@ export default function AppHeader() {
     { key: 'lead', label: 'Department Lead', desc: 'Manage Training & Innovation unit', icon: 'stars' },
     { key: 'member', label: 'Active Member', desc: 'Student view, assigned tasks & badge pass', icon: 'person' },
   ];
+
+  const bureauPositionList = [
+    { key: 'vice_president', label: 'Vice President (Heba)', icon: 'shield_with_heart' },
+    { key: 'secretary_general', label: 'Secretary Gen (Nawress)', icon: 'history_edu' },
+    { key: 'treasurer', label: 'Treasurer (Ahmed Bahri)', icon: 'payments' },
+    { key: 'hr_manager', label: 'HR Manager (Med Aziz)', icon: 'badge' },
+    { key: 'marketing_design_manager', label: 'Marketing & Design (Sa)', icon: 'palette' },
+    { key: 'sustainable_campus_manager', label: 'Sustainable Campus (Oussema)', icon: 'eco' },
+    { key: 'events_manager', label: 'Events Manager (Chaima)', icon: 'event' },
+    { key: 'project_manager', label: 'Project Manager (Ayoub)', icon: 'rocket_launch' },
+    { key: 'partnerships_sponsorship_manager', label: 'Partnerships Lead', icon: 'handshake' },
+    { key: 'all', label: 'All Bureau Modules', icon: 'dashboard' },
+  ];
+
+  const currentDisplayTitle =
+    activeRole === 'bureau' && activeBureauPosition !== 'all'
+      ? activeBureauPosition.replace(/_/g, ' ')
+      : `${activeRole} role`;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe bg-[#f4f9f6]/95 backdrop-blur-xl border-b border-emerald-900/10 shadow-xs">
@@ -53,24 +71,27 @@ export default function AppHeader() {
           <button
             onClick={() => setShowRoleDropdown(!showRoleDropdown)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-900 text-xs font-bold transition-all shadow-xs"
-            title="Click to simulate different access roles"
+            title="Click to simulate different access roles and functional bureau positions"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="capitalize">{activeRole} Role</span>
-            <ChevronDown className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="capitalize truncate max-w-[140px] sm:max-w-none">{currentDisplayTitle}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
           </button>
 
           {showRoleDropdown && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50">
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 max-h-[80vh] overflow-y-auto no-scrollbar">
               <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Switch Operational View
+                Security Role Mode
               </div>
               {roleOptions.map((role) => (
                 <button
                   key={role.key}
                   onClick={() => {
                     setActiveRole(role.key);
-                    setShowRoleDropdown(false);
+                    if (role.key !== 'bureau') {
+                      setActiveBureauPosition('all');
+                      setShowRoleDropdown(false);
+                    }
                   }}
                   className={`w-full text-left p-2 rounded-xl flex items-center gap-2.5 transition-colors ${
                     activeRole === role.key ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
@@ -83,6 +104,31 @@ export default function AppHeader() {
                   </div>
                 </button>
               ))}
+
+              {/* Functional Bureau Positions Switcher */}
+              <div className="px-2 pt-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-2">
+                Bureau Position Workspaces
+              </div>
+              <div className="grid grid-cols-1 gap-1">
+                {bureauPositionList.map((bp) => (
+                  <button
+                    key={bp.key}
+                    onClick={() => {
+                      setActiveRole('bureau');
+                      setActiveBureauPosition(bp.key as any);
+                      setShowRoleDropdown(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 text-xs transition-colors ${
+                      activeBureauPosition === bp.key
+                        ? 'bg-emerald-700 text-white font-bold'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{bp.icon}</span>
+                    <span className="truncate">{bp.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

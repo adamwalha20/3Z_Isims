@@ -62,6 +62,7 @@ export default function BottomNav() {
       items: [
         { label: 'Digital Pass & Profile', href: '/profile', icon: 'qr_code_2', desc: 'Student ID, NFC pass & settings' },
         { label: 'Bureau Administration', href: '/admin', icon: 'admin_panel_settings', desc: 'Membership approval & audit logs', badge: activeRole === 'admin' || activeRole === 'bureau' ? 'Admin' : undefined },
+        { label: 'Bureau Mandates (10 Roles)', href: '/admin/roles', icon: 'shield_person', desc: 'Manage 10 officer responsibilities' },
         { label: 'Sign In', href: '/login', icon: 'login', desc: 'Switch user session' },
         { label: 'Student Registration', href: '/signup', icon: 'person_add', desc: 'Onboard new member application', highlight: true },
       ],

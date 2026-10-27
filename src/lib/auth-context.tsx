@@ -13,6 +13,14 @@ import {
   DocumentItem,
   Department,
   AuditLog,
+  BureauPositionKey,
+  FinancialTransaction,
+  Budget,
+  Partner,
+  MarketingCampaign,
+  SustainabilityInitiative,
+  Decision,
+  RecruitmentApplication,
 } from '@/types/database.types';
 import {
   INITIAL_USER,
@@ -26,19 +34,31 @@ import {
   INITIAL_DEPARTMENTS,
   INITIAL_MEMBERS,
   INITIAL_AUDIT_LOGS,
+  OFFICIAL_BUREAU_MEMBERS,
+  INITIAL_FINANCIAL_TRANSACTIONS,
+  INITIAL_BUDGETS,
+  INITIAL_PARTNERS,
+  INITIAL_MARKETING_CAMPAIGNS,
+  INITIAL_SUSTAINABILITY_INITIATIVES,
+  INITIAL_DECISIONS,
+  INITIAL_RECRUITMENT_APPLICATIONS,
+  BureauMemberAssignment,
 } from '@/lib/mock-data';
 import { createClient } from '@/lib/supabase/client';
 
 export type ActiveRole = 'admin' | 'bureau' | 'lead' | 'member';
+export type ActiveBureauPosition = 'all' | BureauPositionKey;
 
 interface AuthContextType {
   user: Profile | null;
   activeRole: ActiveRole;
   setActiveRole: (role: ActiveRole) => void;
+  activeBureauPosition: ActiveBureauPosition;
+  setActiveBureauPosition: (pos: ActiveBureauPosition) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   isLiveSupabase: boolean;
-  
+
   // Data store state
   tasks: Task[];
   projects: Project[];
@@ -50,8 +70,18 @@ interface AuthContextType {
   departments: Department[];
   members: Profile[];
   auditLogs: AuditLog[];
-  
-  // Interactive mutations
+
+  // Role-Specific Bureau Workspaces
+  bureauMembers: BureauMemberAssignment[];
+  transactions: FinancialTransaction[];
+  budgets: Budget[];
+  partners: Partner[];
+  campaigns: MarketingCampaign[];
+  initiatives: SustainabilityInitiative[];
+  decisions: Decision[];
+  recruitmentApps: RecruitmentApplication[];
+
+  // Core interactive mutations
   toggleTaskDone: (taskId: string) => void;
   addTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
@@ -63,7 +93,21 @@ interface AuthContextType {
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'created_at'>) => void;
   addDocument: (doc: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => void;
   addMeeting: (meeting: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>) => void;
-  
+
+  // Role-Specific Workspaces mutations
+  addTransaction: (tx: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => void;
+  approveTransaction: (id: string, status: 'approved' | 'rejected') => void;
+  addBudget: (bgt: Omit<Budget, 'id' | 'created_at'>) => void;
+  addPartner: (partner: Omit<Partner, 'id' | 'created_at' | 'updated_at'>) => void;
+  updatePartnerStage: (id: string, stage: Partner['pipeline_stage']) => void;
+  addCampaign: (camp: Omit<MarketingCampaign, 'id' | 'created_at' | 'updated_at'>) => void;
+  updateCampaignStatus: (id: string, status: MarketingCampaign['status']) => void;
+  addInitiative: (init: Omit<SustainabilityInitiative, 'id' | 'created_at' | 'updated_at'>) => void;
+  updateInitiativeProgress: (id: string, current: number) => void;
+  addDecision: (dec: Omit<Decision, 'id' | 'decided_at'>) => void;
+  updateApplicationStatus: (id: string, status: RecruitmentApplication['status'], notes?: string) => void;
+  assignBureauPosition: (positionKey: string, memberName: string) => void;
+
   // Auth operations
   signIn: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (data: {
@@ -83,11 +127,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(INITIAL_USER);
   const [activeRole, setActiveRole] = useState<ActiveRole>('bureau');
+  const [activeBureauPosition, setActiveBureauPosition] = useState<ActiveBureauPosition>('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLiveSupabase, setIsLiveSupabase] = useState<boolean>(false);
 
-  // In-memory data store with localStorage hydration
+  // Core data store
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
@@ -99,6 +144,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Profile[]>(INITIAL_MEMBERS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
+  // Role-Specific Workspaces state
+  const [bureauMembers, setBureauMembers] = useState<BureauMemberAssignment[]>(OFFICIAL_BUREAU_MEMBERS);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>(INITIAL_FINANCIAL_TRANSACTIONS);
+  const [budgets, setBudgets] = useState<Budget[]>(INITIAL_BUDGETS);
+  const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
+  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>(INITIAL_MARKETING_CAMPAIGNS);
+  const [initiatives, setInitiatives] = useState<SustainabilityInitiative[]>(INITIAL_SUSTAINABILITY_INITIATIVES);
+  const [decisions, setDecisions] = useState<Decision[]>(INITIAL_DECISIONS);
+  const [recruitmentApps, setRecruitmentApps] = useState<RecruitmentApplication[]>(INITIAL_RECRUITMENT_APPLICATIONS);
+
   // Check Supabase client initialization
   useEffect(() => {
     const supabase = createClient();
@@ -107,7 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
           setIsAuthenticated(true);
-          // Fetch real profile or use initial fallback
           supabase
             .from('profiles')
             .select('*')
@@ -153,7 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setTasks((prev) => [newTask, ...prev]);
 
-    // Record audit log
     setAuditLogs((prev) => [
       {
         id: `log-${Date.now()}`,
@@ -220,7 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleChecklistItem = (eventId: string, itemIndex: number) => {
-    // Interactive event checklist toggle
+    // Check item
   };
 
   const markNotificationRead = (notificationId: string) => {
@@ -268,6 +321,139 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setMeetings((prev) => [meet, ...prev]);
   };
+
+  // ----------------------------------------------------------------------------
+  // Role-Specific Workspaces Mutations
+  // ----------------------------------------------------------------------------
+
+  const addTransaction = (txData: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => {
+    const now = new Date().toISOString();
+    const newTx: FinancialTransaction = {
+      ...txData,
+      id: `tx-${Date.now()}`,
+      created_at: now,
+      updated_at: now,
+      created_by: user?.id,
+    };
+    setTransactions((prev) => [newTx, ...prev]);
+
+    setAuditLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        actor_id: user?.id,
+        action: 'FINANCE_TRANSACTION_RECORD',
+        entity_type: 'financial_transactions',
+        entity_id: newTx.id,
+        metadata: { amount: newTx.amount, type: newTx.transaction_type, category: newTx.category },
+        created_at: now,
+        actor: user || INITIAL_USER,
+      },
+      ...prev,
+    ]);
+  };
+
+  const approveTransaction = (id: string, status: 'approved' | 'rejected') => {
+    setTransactions((prev) =>
+      prev.map((tx) => (tx.id === id ? { ...tx, approval_status: status, updated_at: new Date().toISOString() } : tx))
+    );
+  };
+
+  const addBudget = (bgtData: Omit<Budget, 'id' | 'created_at'>) => {
+    const newBgt: Budget = {
+      ...bgtData,
+      id: `bgt-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    setBudgets((prev) => [newBgt, ...prev]);
+  };
+
+  const addPartner = (partnerData: Omit<Partner, 'id' | 'created_at' | 'updated_at'>) => {
+    const now = new Date().toISOString();
+    const newPartner: Partner = {
+      ...partnerData,
+      id: `partner-${Date.now()}`,
+      created_at: now,
+      updated_at: now,
+      created_by: user?.id,
+    };
+    setPartners((prev) => [newPartner, ...prev]);
+  };
+
+  const updatePartnerStage = (id: string, stage: Partner['pipeline_stage']) => {
+    setPartners((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, pipeline_stage: stage, updated_at: new Date().toISOString() } : p))
+    );
+  };
+
+  const addCampaign = (campData: Omit<MarketingCampaign, 'id' | 'created_at' | 'updated_at'>) => {
+    const now = new Date().toISOString();
+    const newCamp: MarketingCampaign = {
+      ...campData,
+      id: `mkt-${Date.now()}`,
+      created_at: now,
+      updated_at: now,
+      assigned_creator_id: user?.id,
+    };
+    setCampaigns((prev) => [newCamp, ...prev]);
+  };
+
+  const updateCampaignStatus = (id: string, status: MarketingCampaign['status']) => {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status, updated_at: new Date().toISOString() } : c))
+    );
+  };
+
+  const addInitiative = (initData: Omit<SustainabilityInitiative, 'id' | 'created_at' | 'updated_at'>) => {
+    const now = new Date().toISOString();
+    const newInit: SustainabilityInitiative = {
+      ...initData,
+      id: `sust-${Date.now()}`,
+      created_at: now,
+      updated_at: now,
+      lead_id: user?.id,
+    };
+    setInitiatives((prev) => [newInit, ...prev]);
+  };
+
+  const updateInitiativeProgress = (id: string, current: number) => {
+    setInitiatives((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              current_metric: current,
+              status: current >= i.target_metric ? 'completed' : i.status,
+              updated_at: new Date().toISOString(),
+            }
+          : i
+      )
+    );
+  };
+
+  const addDecision = (decData: Omit<Decision, 'id' | 'decided_at'>) => {
+    const newDec: Decision = {
+      ...decData,
+      id: `dec-${Date.now()}`,
+      decided_at: new Date().toISOString(),
+    };
+    setDecisions((prev) => [newDec, ...prev]);
+  };
+
+  const updateApplicationStatus = (id: string, status: RecruitmentApplication['status'], notes?: string) => {
+    setRecruitmentApps((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status, hr_notes: notes || app.hr_notes } : app))
+    );
+  };
+
+  const assignBureauPosition = (positionKey: string, memberName: string) => {
+    setBureauMembers((prev) =>
+      prev.map((bm) => (bm.position_key === positionKey ? { ...bm, member_name: memberName } : bm))
+    );
+  };
+
+  // ----------------------------------------------------------------------------
+  // Auth Operations
+  // ----------------------------------------------------------------------------
 
   const signIn = async (email: string, pass: string) => {
     setIsLoading(true);
@@ -321,7 +507,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (authData.user) {
-        // Upsert profile and membership
         try {
           await supabase.from('profiles').upsert({
             id: authData.user.id,
@@ -420,6 +605,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         activeRole,
         setActiveRole,
+        activeBureauPosition,
+        setActiveBureauPosition,
         isAuthenticated,
         isLoading,
         isLiveSupabase,
@@ -433,6 +620,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         departments,
         members,
         auditLogs,
+        bureauMembers,
+        transactions,
+        budgets,
+        partners,
+        campaigns,
+        initiatives,
+        decisions,
+        recruitmentApps,
         toggleTaskDone,
         addTask,
         updateTask,
@@ -444,6 +639,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         addAnnouncement,
         addDocument,
         addMeeting,
+        addTransaction,
+        approveTransaction,
+        addBudget,
+        addPartner,
+        updatePartnerStage,
+        addCampaign,
+        updateCampaignStatus,
+        addInitiative,
+        updateInitiativeProgress,
+        addDecision,
+        updateApplicationStatus,
+        assignBureauPosition,
         signIn,
         signUp,
         signOut,
