@@ -991,19 +991,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const approveMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
     if (supabase) {
-      const { error } = await supabase
+      const { data: updated, error: updateErr } = await supabase
         .from('club_memberships')
-        .upsert(
-          {
+        .update({
+          membership_status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select();
+
+      if (updateErr) {
+        return { success: false, error: updateErr.message };
+      }
+
+      if (!updated || updated.length === 0) {
+        const { error: insertErr } = await supabase
+          .from('club_memberships')
+          .insert({
             user_id: userId,
             membership_status: 'active',
             updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
-
-      if (error) {
-        return { success: false, error: error.message };
+          });
+        if (insertErr) {
+          return { success: false, error: insertErr.message };
+        }
       }
     }
 
@@ -1036,19 +1047,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const rejectMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
     if (supabase) {
-      const { error } = await supabase
+      const { data: updated, error: updateErr } = await supabase
         .from('club_memberships')
-        .upsert(
-          {
+        .update({
+          membership_status: 'suspended',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select();
+
+      if (updateErr) {
+        return { success: false, error: updateErr.message };
+      }
+
+      if (!updated || updated.length === 0) {
+        const { error: insertErr } = await supabase
+          .from('club_memberships')
+          .insert({
             user_id: userId,
             membership_status: 'suspended',
             updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
-
-      if (error) {
-        return { success: false, error: error.message };
+          });
+        if (insertErr) {
+          return { success: false, error: insertErr.message };
+        }
       }
     }
 
