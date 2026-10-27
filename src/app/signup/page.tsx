@@ -33,13 +33,7 @@ const SUGGESTED_SKILLS = [
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle, isLoading, isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      window.location.href = '/';
-    }
-  }, [isAuthenticated]);
+  const { signUp, signInWithGoogle, isLoading } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');

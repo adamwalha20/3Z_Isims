@@ -155,11 +155,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(INITIAL_USER);
+  const [user, setUser] = useState<Profile | null>(null);
   const [activeRole, setActiveRole] = useState<ActiveRole>('bureau');
   const [activeBureauPosition, setActiveBureauPosition] = useState<ActiveBureauPosition>('all');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [isApproved, setIsApproved] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isApproved, setIsApproved] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLiveSupabase, setIsLiveSupabase] = useState<boolean>(false);
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
@@ -189,7 +189,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check Supabase client initialization & load live profiles, roles, and bureau assignments
   useEffect(() => {
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase) {
+      setUser(INITIAL_USER);
+      setIsAuthenticated(true);
+      setIsApproved(true);
+      return;
+    }
 
     setIsLiveSupabase(true);
 
@@ -262,6 +267,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setActiveRole('member');
             }
           }
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
         }
 
         // 3. Fetch all registered members and memberships from Supabase
@@ -335,6 +343,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setIsAuthenticated(true);
         loadUserData();
+      } else {
+        setIsAuthenticated(false);
+        setIsApproved(false);
+        setUser(null);
       }
     });
 

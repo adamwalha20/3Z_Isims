@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/reset-password') ||
     request.nextUrl.pathname.startsWith('/auth');
 
-  if (!user && !isAuthRoute && request.nextUrl.pathname !== '/') {
+  if (!user && !isAuthRoute) {
     // When live credentials exist, redirect unauthenticated users
     const url = request.nextUrl.clone();
     url.pathname = '/login';
