@@ -7,8 +7,15 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/';
 
   const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
   const isLocalEnv = process.env.NODE_ENV === 'development';
-  const redirectBase = !isLocalEnv && forwardedHost ? `https://${forwardedHost}` : origin;
+
+  let redirectBase = origin;
+  if (!isLocalEnv && forwardedHost) {
+    redirectBase = `${forwardedProto}://${forwardedHost}`;
+  } else if (!isLocalEnv && process.env.NEXT_PUBLIC_SITE_URL) {
+    redirectBase = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+  }
 
   if (code) {
     const supabase = await createClient();
@@ -23,3 +30,4 @@ export async function GET(request: Request) {
   // Return user to login if oauth code exchange fails
   return NextResponse.redirect(`${redirectBase}/login?error=oauth_failed`);
 }
+

@@ -872,12 +872,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const getAuthRedirectUrl = (path: string = '/auth/callback') => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      return `${window.location.origin}${path}`;
+    }
+    if (process.env.NEXT_PUBLIC_SITE_URL) {
+      return `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}${path}`;
+    }
+    if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+      return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}${path}`;
+    }
+    return path;
+  };
+
   const signInWithGoogle = async () => {
     setIsLoading(true);
     const supabase = createClient();
     if (supabase) {
       try {
-        const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '/auth/callback';
+        const redirectUrl = getAuthRedirectUrl('/auth/callback');
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -925,6 +938,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         password: data.password,
         options: {
+          emailRedirectTo: getAuthRedirectUrl('/auth/callback'),
           data: {
             full_name: data.fullName,
             student_id: data.studentId,
@@ -1264,7 +1278,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     const supabase = createClient();
     if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getAuthRedirectUrl('/reset-password'),
+      });
       if (error) return { success: false, error: error.message };
       return { success: true };
     }
