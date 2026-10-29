@@ -1024,3 +1024,70 @@ export const INITIAL_RECRUITMENT_APPLICATIONS: any[] = [
     created_at: '2026-10-20T09:00:00Z',
   },
 ];
+
+export const INITIAL_XP_RULES: any[] = [
+  { id: 'rule-01', action_type: 'task_standard', points: 10, is_active: true, requires_verification: true, description: 'Standard task completed and verified' },
+  { id: 'rule-02', action_type: 'task_high_priority', points: 20, is_active: true, requires_verification: true, description: 'High-priority or urgent task completed and verified' },
+  { id: 'rule-03', action_type: 'project_milestone', points: 30, is_active: true, requires_verification: true, description: 'Major project milestone completed and verified' },
+  { id: 'rule-04', action_type: 'event_participation', points: 15, is_active: true, requires_verification: true, description: 'Verified participation in an eligible club event' },
+  { id: 'rule-05', action_type: 'initiative_contribution', points: 10, is_active: true, requires_verification: true, description: 'Verified contribution to a campus sustainability initiative' },
+];
+
+export const INITIAL_MEMBER_XP: any[] = [
+  { user_id: 'usr-admin-001', total_xp: 320, completed_tasks_count: 14, updated_at: '2026-10-28T12:00:00Z' },
+  { user_id: 'usr-amira-002', total_xp: 210, completed_tasks_count: 9, updated_at: '2026-10-28T11:00:00Z' },
+  { user_id: 'usr-sarah-003', total_xp: 450, completed_tasks_count: 18, updated_at: '2026-10-28T10:00:00Z' },
+  { user_id: 'usr-karim-004', total_xp: 140, completed_tasks_count: 6, updated_at: '2026-10-27T16:00:00Z' },
+  { user_id: 'usr-mariem-005', total_xp: 85, completed_tasks_count: 4, updated_at: '2026-10-27T14:00:00Z' },
+  { user_id: 'usr-aziz-006', total_xp: 60, completed_tasks_count: 3, updated_at: '2026-10-26T15:00:00Z' },
+];
+
+export const INITIAL_XP_TRANSACTIONS: any[] = [
+  {
+    id: 'tx-001',
+    user_id: 'usr-admin-001',
+    points: 20,
+    reason: 'Verified task completion: Finalize EcoHack ISIMS sponsorship dossier',
+    source_type: 'task',
+    source_id: 'task-001',
+    idempotency_key: 'task_task-001_usr-admin-001',
+    awarded_by: 'usr-sarah-003',
+    created_at: '2026-10-27T15:00:00Z',
+  },
+  {
+    id: 'tx-002',
+    user_id: 'usr-sarah-003',
+    points: 30,
+    reason: 'Major project milestone: EcoHack 2024 Launch',
+    source_type: 'milestone',
+    source_id: 'proj-ecohack',
+    idempotency_key: 'milestone_proj-ecohack_sarah',
+    awarded_by: 'usr-admin-001',
+    created_at: '2026-10-26T12:00:00Z',
+  },
+  {
+    id: 'tx-003',
+    user_id: 'usr-amira-002',
+    points: 15,
+    reason: 'Verified participation in Climate Summit 2024',
+    source_type: 'event',
+    source_id: 'evt-summit',
+    idempotency_key: 'evt_summit_amira',
+    awarded_by: 'usr-admin-001',
+    created_at: '2026-10-25T17:00:00Z',
+  },
+];
+
+export const INITIAL_MEMBER_ACHIEVEMENTS: any[] = [
+  { id: 'ach-01', user_id: 'usr-admin-001', achievement_key: 'first_task', awarded_at: '2026-10-10T10:00:00Z', metadata: { title: 'First Step', description: 'Completed first verified task', icon: 'flag' } },
+  { id: 'ach-02', user_id: 'usr-admin-001', achievement_key: 'five_tasks', awarded_at: '2026-10-18T10:00:00Z', metadata: { title: 'Consistent Contributor', description: 'Completed 5 verified tasks', icon: 'stars' } },
+  { id: 'ach-03', user_id: 'usr-admin-001', achievement_key: 'ten_tasks', awarded_at: '2026-10-25T10:00:00Z', metadata: { title: 'Task Champion', description: 'Completed 10 verified tasks', icon: 'military_tech' } },
+  { id: 'ach-04', user_id: 'usr-admin-001', achievement_key: 'dedicated_member', awarded_at: '2026-10-28T12:00:00Z', metadata: { title: 'Dedicated Member', description: 'Reached 300+ XP', icon: 'workspace_premium' } },
+  { id: 'ach-05', user_id: 'usr-sarah-003', achievement_key: 'first_task', awarded_at: '2026-10-12T10:00:00Z', metadata: { title: 'First Step', description: 'Completed first verified task', icon: 'flag' } },
+  { id: 'ach-06', user_id: 'usr-sarah-003', achievement_key: 'five_tasks', awarded_at: '2026-10-19T10:00:00Z', metadata: { title: 'Consistent Contributor', description: 'Completed 5 verified tasks', icon: 'stars' } },
+  { id: 'ach-07', user_id: 'usr-sarah-003', achievement_key: 'ten_tasks', awarded_at: '2026-10-24T10:00:00Z', metadata: { title: 'Task Champion', description: 'Completed 10 verified tasks', icon: 'military_tech' } },
+  { id: 'ach-08', user_id: 'usr-sarah-003', achievement_key: 'dedicated_member', awarded_at: '2026-10-27T10:00:00Z', metadata: { title: 'Dedicated Member', description: 'Reached 300+ XP', icon: 'workspace_premium' } },
+  { id: 'ach-09', user_id: 'usr-amira-002', achievement_key: 'first_task', awarded_at: '2026-10-14T10:00:00Z', metadata: { title: 'First Step', description: 'Completed first verified task', icon: 'flag' } },
+  { id: 'ach-10', user_id: 'usr-amira-002', achievement_key: 'five_tasks', awarded_at: '2026-10-22T10:00:00Z', metadata: { title: 'Consistent Contributor', description: 'Completed 5 verified tasks', icon: 'stars' } },
+];
+

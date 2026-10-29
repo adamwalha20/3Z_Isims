@@ -820,3 +820,244 @@ export function PartnershipsCockpit() {
     </div>
   );
 }
+
+// ==============================================================================
+// 8. SECRETARY GENERAL WORKSPACE (Nawress)
+// ==============================================================================
+
+export function SecretaryGeneralCockpit() {
+  const { meetings, decisions, documents, bureauMembers } = useAuth();
+  const secMember = bureauMembers.find((bm) => bm.position_key === 'secretary_general')?.member_name || 'Unassigned';
+  const isVacant = secMember === 'Unassigned';
+
+  const upcomingMeetings = meetings.filter((m) => new Date(m.starts_at) >= new Date());
+  const pendingActions = decisions.filter((d) => d.status === 'under_execution');
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-blue-50/40 rounded-3xl border border-blue-900/15 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-blue-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-blue-800 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">history_edu</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">Secretary General Governance Register</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                {secMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Official assemblies (PV), compliance memory & administrative decisions register</p>
+          </div>
+        </div>
+
+        <Link
+          href="/meetings"
+          className="px-3 py-1.5 rounded-xl bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Schedule Assembly</span>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Scheduled Assemblies</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">{meetings.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{upcomingMeetings.length} upcoming assemblies</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Adopted Decisions</span>
+          <div className="text-2xl font-black text-blue-800 mt-1">{decisions.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{pendingActions.length} under active execution</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Archived Documents</span>
+          <div className="text-2xl font-black text-emerald-800 mt-1">{documents.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Charters, PVs & runbooks</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// 9. EVENTS MANAGER WORKSPACE (Chaima Besbes)
+// ==============================================================================
+
+export function EventsManagerCockpit() {
+  const { events, bureauMembers } = useAuth();
+  const evtMember = bureauMembers.find((bm) => bm.position_key === 'events_manager')?.member_name || 'Unassigned';
+  const isVacant = evtMember === 'Unassigned';
+
+  const upcoming = events.filter((e) => new Date(e.starts_at) >= new Date());
+  const totalRegistrations = events.reduce((acc, e) => acc + (e.registrations_count || 0), 0);
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-emerald-50/40 rounded-3xl border border-emerald-900/15 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-emerald-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">event</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">Events & Logistics Operations</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                {evtMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Summits, workshops, equipment bookings & attendee check-in pass operations</p>
+          </div>
+        </div>
+
+        <Link
+          href="/events"
+          className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>New Event Runbook</span>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Active Events</span>
+          <div className="text-2xl font-black text-emerald-900 mt-1">{events.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{upcoming.length} scheduled</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Check-In Roster</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">{totalRegistrations}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Verified attendees across club</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">QR Check-In Pass</span>
+          <div className="text-2xl font-black text-emerald-700 mt-1">Ready</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Amphitheater scanners active</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// 10. PROJECT MANAGER WORKSPACE (Ayoub)
+// ==============================================================================
+
+export function ProjectManagerCockpit() {
+  const { projects, tasks, bureauMembers } = useAuth();
+  const pmMember = bureauMembers.find((bm) => bm.position_key === 'project_manager')?.member_name || 'Unassigned';
+  const isVacant = pmMember === 'Unassigned';
+
+  const activeProjects = projects.filter((p) => p.status === 'active');
+  const blockedTasks = tasks.filter((t) => t.status === 'blocked');
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-sky-50/40 rounded-3xl border border-sky-900/15 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-sky-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-sky-800 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">rocket_launch</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">3Z Lab Project Portfolio Oversight</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}`}>
+                {pmMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Incubated initiatives, milestone retrospectives & task sprint delivery</p>
+          </div>
+        </div>
+
+        <Link
+          href="/projects"
+          className="px-3 py-1.5 rounded-xl bg-sky-800 hover:bg-sky-900 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>New Project Initiative</span>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Portfolio</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">{projects.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{activeProjects.length} active initiatives</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Sprint Blockers</span>
+          <div className="text-2xl font-black text-rose-600 mt-1">{blockedTasks.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Tasks requiring dependency resolution</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Club Sprints</span>
+          <div className="text-2xl font-black text-sky-800 mt-1">{tasks.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{tasks.filter((t) => t.status === 'done').length} verified completed</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// 11. COMMUNICATION & ENGAGEMENT MANAGER (drvcou)
+// ==============================================================================
+
+export function CommsEngagementCockpit() {
+  const { announcements, bureauMembers } = useAuth();
+  const commsMember = bureauMembers.find((bm) => bm.position_key === 'communication_engagement_manager')?.member_name || 'Unassigned';
+  const isVacant = commsMember === 'Unassigned';
+
+  const published = announcements.filter((a) => a.status === 'published');
+  const pinned = announcements.filter((a) => a.is_pinned);
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-amber-50/40 rounded-3xl border border-amber-900/15 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-amber-700 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">campaign</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">Communication & Member Engagement</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-amber-100 text-amber-900'}`}>
+                {commsMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Internal club broadcasts, member engagement notifications & official circulars</p>
+          </div>
+        </div>
+
+        <Link
+          href="/announcements"
+          className="px-3 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>New Announcement</span>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Circulars</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">{announcements.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">{published.length} actively broadcast</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Pinned Notices</span>
+          <div className="text-2xl font-black text-amber-700 mt-1">{pinned.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">High priority bulletin notices</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Audience Scope</span>
+          <div className="text-2xl font-black text-emerald-800 mt-1">Club-Wide</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">All active ISIMS chapter members</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+

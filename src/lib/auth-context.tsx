@@ -21,6 +21,10 @@ import {
   SustainabilityInitiative,
   Decision,
   RecruitmentApplication,
+  MemberXp,
+  XpTransaction,
+  XpRule,
+  MemberAchievement,
 } from '@/types/database.types';
 import {
   INITIAL_USER,
@@ -42,6 +46,10 @@ import {
   INITIAL_SUSTAINABILITY_INITIATIVES,
   INITIAL_DECISIONS,
   INITIAL_RECRUITMENT_APPLICATIONS,
+  INITIAL_MEMBER_XP,
+  INITIAL_XP_RULES,
+  INITIAL_XP_TRANSACTIONS,
+  INITIAL_MEMBER_ACHIEVEMENTS,
   BureauMemberAssignment,
 } from '@/lib/mock-data';
 import { createClient } from '@/lib/supabase/client';
@@ -55,6 +63,7 @@ interface AuthContextType {
   setActiveRole: (role: ActiveRole) => void;
   activeBureauPosition: ActiveBureauPosition;
   setActiveBureauPosition: (pos: ActiveBureauPosition) => void;
+  userBureauPositions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
   isLiveSupabase: boolean;
@@ -72,6 +81,13 @@ interface AuthContextType {
   members: Profile[];
   auditLogs: AuditLog[];
 
+  // XP & Member Ranking Architecture
+  memberXpList: MemberXp[];
+  currentUserXp: MemberXp | null;
+  xpTransactions: XpTransaction[];
+  xpRules: XpRule[];
+  userAchievements: MemberAchievement[];
+
   // Role-Specific Bureau Workspaces
   bureauMembers: BureauMemberAssignment[];
   transactions: FinancialTransaction[];
@@ -84,6 +100,11 @@ interface AuthContextType {
 
   // Core interactive mutations
   toggleTaskDone: (taskId: string) => void;
+  submitTaskForVerification: (taskId: string) => Promise<{ success: boolean; status?: string; error?: string }>;
+  verifyTask: (taskId: string, approved: boolean, reason?: string) => Promise<{ success: boolean; status?: string; points?: number; error?: string }>;
+  adminAdjustXp: (userId: string, points: number, reason: string) => Promise<{ success: boolean; error?: string }>;
+  updateXpRule: (ruleId: string, points: number, isActive: boolean, requiresVerification: boolean) => Promise<{ success: boolean; error?: string }>;
+  refreshXpData: () => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   addProject: (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => void;
@@ -159,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [activeRole, setActiveRole] = useState<ActiveRole>('bureau');
   const [activeBureauPosition, setActiveBureauPosition] = useState<ActiveBureauPosition>('all');
+  const [userBureauPositions, setUserBureauPositions] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isApproved, setIsApproved] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -177,6 +199,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Profile[]>(INITIAL_MEMBERS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
+  // XP & Member Ranking state
+  const [memberXpList, setMemberXpList] = useState<MemberXp[]>(INITIAL_MEMBER_XP);
+  const [xpTransactions, setXpTransactions] = useState<XpTransaction[]>(INITIAL_XP_TRANSACTIONS);
+  const [xpRules, setXpRules] = useState<XpRule[]>(INITIAL_XP_RULES);
+  const [userAchievements, setUserAchievements] = useState<MemberAchievement[]>(INITIAL_MEMBER_ACHIEVEMENTS);
+
   // Role-Specific Workspaces state
   const [bureauMembers, setBureauMembers] = useState<BureauMemberAssignment[]>(OFFICIAL_BUREAU_MEMBERS);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>(INITIAL_FINANCIAL_TRANSACTIONS);
@@ -187,7 +215,239 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [decisions, setDecisions] = useState<Decision[]>(INITIAL_DECISIONS);
   const [recruitmentApps, setRecruitmentApps] = useState<RecruitmentApplication[]>(INITIAL_RECRUITMENT_APPLICATIONS);
 
-  // Check Supabase client initialization & load live profiles, roles, and bureau assignments
+  const currentUserXp = memberXpList.find((mxp) => mxp.user_id === user?.id) || {
+    user_id: user?.id || 'usr-default',
+    total_xp: 0,
+    completed_tasks_count: 0,
+    updated_at: '2026-01-01T00:00:00.000Z',
+  };
+
+  const loadUserData = async () => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setIsAuthenticated(true);
+
+        // 1. Fetch user profile and membership
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        const { data: userMembership } = await supabase
+          .from('club_memberships')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        const currentEmail = session.user.email || profile?.email || '';
+        const isAdam = currentEmail.toLowerCase() === 'adamwalha20@gmail.com';
+
+        const approved = isAdam || userMembership?.membership_status === 'active';
+        setIsApproved(approved);
+
+        if (!userMembership) {
+          await supabase.from('club_memberships').insert({
+            user_id: session.user.id,
+            membership_status: isAdam ? 'active' : 'pending',
+          });
+        }
+
+        if (profile) {
+          setUser({
+            ...INITIAL_USER,
+            ...profile,
+            email: currentEmail,
+            membership: userMembership || {
+              id: `mem-${session.user.id}`,
+              user_id: session.user.id,
+              membership_status: isAdam ? 'active' : 'pending',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          });
+
+          if (!profile.student_id || !profile.study_field || !profile.skills || (profile.skills as string[]).length === 0) {
+            setNeedsOnboarding(true);
+          }
+        }
+
+        // 2. Fetch user's assigned role
+        let assignedRole: ActiveRole = 'member';
+        if (isAdam) {
+          assignedRole = 'admin';
+        } else {
+          const { data: roleRecords } = await supabase
+            .from('user_roles')
+            .select('role_id, roles(key, display_name)')
+            .eq('user_id', session.user.id);
+
+          if (roleRecords && roleRecords.length > 0) {
+            const roleKey = (roleRecords[0].roles as any)?.key;
+            if (roleKey === 'admin') assignedRole = 'admin';
+            else if (roleKey === 'bureau') assignedRole = 'bureau';
+            else assignedRole = 'member';
+          }
+        }
+        setActiveRole(assignedRole);
+
+        // 3. Fetch user's functional bureau positions
+        const { data: userPosData } = await supabase
+          .from('user_bureau_positions')
+          .select('position_id, bureau_positions(key, display_name)')
+          .eq('user_id', session.user.id);
+
+        const myPositions: string[] = (userPosData || [])
+          .map((p: any) => p.bureau_positions?.key)
+          .filter(Boolean);
+        setUserBureauPositions(myPositions);
+
+        if (assignedRole === 'bureau' && myPositions.length > 0) {
+          setActiveBureauPosition(myPositions[0] as any);
+        } else if (assignedRole === 'admin') {
+          setActiveBureauPosition('all');
+        }
+
+        // 4. Fetch user's achievements
+        const { data: dbAch } = await supabase
+          .from('member_achievements')
+          .select('*')
+          .eq('user_id', session.user.id);
+        if (dbAch && dbAch.length > 0) {
+          setUserAchievements(dbAch);
+        }
+
+        // 5. Fetch user's notifications
+        const { data: dbNotifs } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('recipient_id', session.user.id)
+          .order('created_at', { ascending: false });
+        if (dbNotifs && dbNotifs.length > 0) {
+          setNotifications(dbNotifs);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+
+      // 6. Fetch club-wide profiles & memberships
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data: allMemberships } = await supabase
+        .from('club_memberships')
+        .select('*');
+
+      if (allProfiles && allProfiles.length > 0) {
+        const { data: allRoles } = await supabase
+          .from('user_roles')
+          .select('user_id, roles(key, display_name)');
+
+        const formatted: Profile[] = allProfiles.map((p) => {
+          const userRole = allRoles?.find((r) => r.user_id === p.id);
+          const rKey = (userRole?.roles as any)?.key || 'member';
+          const mem = allMemberships?.find((m) => m.user_id === p.id);
+          return {
+            ...p,
+            roles: [{ id: `role-${rKey}`, key: rKey, display_name: rKey.toUpperCase() }],
+            membership: mem || {
+              id: `mem-${p.id}`,
+              user_id: p.id,
+              membership_status: p.email?.toLowerCase() === 'adamwalha20@gmail.com' ? 'active' : 'pending',
+              created_at: p.created_at,
+              updated_at: p.updated_at,
+            },
+          };
+        });
+        setMembers(formatted);
+      }
+
+      // 7. Fetch all bureau positions & assigned officers
+      const { data: posData } = await supabase
+        .from('bureau_positions')
+        .select(`
+          id, key, display_name, description,
+          user_bureau_positions (
+            user_id,
+            profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
+          )
+        `);
+
+      if (posData && posData.length > 0) {
+        const mappedBureau: BureauMemberAssignment[] = posData.map((bp: any) => {
+          const assignment = bp.user_bureau_positions?.[0];
+          const assignedProfile = assignment?.profiles;
+          return {
+            position_key: bp.key,
+            position_name: bp.display_name,
+            member_name: assignedProfile?.full_name || 'Unassigned',
+            avatar: assignedProfile?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+            department: bp.display_name,
+            email: assignedProfile ? `${assignedProfile.full_name.toLowerCase().replace(/\s+/g, '.')}@isims.tn` : 'bureau@isims.tn',
+          };
+        });
+        setBureauMembers(mappedBureau);
+      }
+
+      // 8. Fetch live tasks with assignees
+      const { data: dbTasks } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          department:departments(*),
+          project:projects(*),
+          creator:profiles!tasks_creator_id_fkey(*),
+          task_assignees(user_id, profiles(*))
+        `)
+        .order('created_at', { ascending: false });
+
+      if (dbTasks && dbTasks.length > 0) {
+        const mappedTasks: Task[] = dbTasks.map((t: any) => ({
+          ...t,
+          assignees: t.task_assignees?.map((ta: any) => ta.profiles).filter(Boolean) || [],
+        }));
+        setTasks(mappedTasks);
+      }
+
+      // 9. Fetch XP leaderboard data
+      const { data: dbXp } = await supabase
+        .from('member_xp')
+        .select('*, profile:profiles(*)')
+        .order('total_xp', { ascending: false });
+      if (dbXp && dbXp.length > 0) {
+        setMemberXpList(dbXp);
+      }
+
+      // 10. Fetch XP rules
+      const { data: dbRules } = await supabase
+        .from('xp_rules')
+        .select('*')
+        .order('points', { ascending: true });
+      if (dbRules && dbRules.length > 0) {
+        setXpRules(dbRules);
+      }
+
+      // 11. Fetch XP transactions
+      const { data: dbTx } = await supabase
+        .from('xp_transactions')
+        .select('*, user:profiles!xp_transactions_user_id_fkey(*)')
+        .order('created_at', { ascending: false });
+      if (dbTx && dbTx.length > 0) {
+        setXpTransactions(dbTx);
+      }
+    } catch (err) {
+      console.error('Error fetching Supabase auth, tasks & XP data:', err);
+    }
+  };
+
+  // Check Supabase client initialization & load data
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) {
@@ -198,146 +458,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsLiveSupabase(true);
-
-    const loadUserData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setIsAuthenticated(true);
-
-          // 1. Fetch user's profile and membership status
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          const { data: userMembership } = await supabase
-            .from('club_memberships')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          const currentEmail = session.user.email || profile?.email || '';
-          const isAdam = currentEmail.toLowerCase() === 'adamwalha20@gmail.com';
-
-          const approved = isAdam || userMembership?.membership_status === 'active';
-          setIsApproved(approved);
-
-          if (!userMembership) {
-            await supabase.from('club_memberships').insert({
-              user_id: session.user.id,
-              membership_status: isAdam ? 'active' : 'pending',
-            });
-          }
-
-          if (profile) {
-            setUser({
-              ...INITIAL_USER,
-              ...profile,
-              email: currentEmail,
-              membership: userMembership || {
-                id: `mem-${session.user.id}`,
-                user_id: session.user.id,
-                membership_status: isAdam ? 'active' : 'pending',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-            });
-
-            // If skills or student_id are missing, prompt onboarding
-            if (!profile.student_id || !profile.study_field || !profile.skills || (profile.skills as string[]).length === 0) {
-              setNeedsOnboarding(true);
-            }
-          }
-
-          if (isAdam) {
-            setActiveRole('admin');
-          } else {
-            // 2. Fetch user's assigned role
-            const { data: roleRecords } = await supabase
-              .from('user_roles')
-              .select('role_id, roles(key, display_name)')
-              .eq('user_id', session.user.id);
-
-            if (roleRecords && roleRecords.length > 0) {
-              const roleKey = (roleRecords[0].roles as any)?.key;
-              if (roleKey === 'bureau') setActiveRole('bureau');
-              else setActiveRole('member');
-            } else {
-              setActiveRole('member');
-            }
-          }
-        } else {
-          setIsAuthenticated(false);
-          setUser(null);
-        }
-
-        // 3. Fetch all registered members and memberships from Supabase
-        const { data: allProfiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        const { data: allMemberships } = await supabase
-          .from('club_memberships')
-          .select('*');
-
-        if (allProfiles && allProfiles.length > 0) {
-          const { data: allRoles } = await supabase
-            .from('user_roles')
-            .select('user_id, roles(key, display_name)');
-
-          const formatted: Profile[] = allProfiles.map((p) => {
-            const userRole = allRoles?.find((r) => r.user_id === p.id);
-            const rKey = (userRole?.roles as any)?.key || 'member';
-            const mem = allMemberships?.find((m) => m.user_id === p.id);
-            return {
-              ...p,
-              roles: [{ id: `role-${rKey}`, key: rKey, display_name: rKey.toUpperCase() }],
-              membership: mem || {
-                id: `mem-${p.id}`,
-                user_id: p.id,
-                membership_status: p.email?.toLowerCase() === 'adamwalha20@gmail.com' ? 'active' : 'pending',
-                created_at: p.created_at,
-                updated_at: p.updated_at,
-              },
-            };
-          });
-          setMembers(formatted);
-        }
-
-        // 4. Fetch all bureau positions & assigned officers
-        const { data: posData } = await supabase
-          .from('bureau_positions')
-          .select(`
-            id, key, display_name, description,
-            user_bureau_positions (
-              user_id,
-              profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
-            )
-          `);
-
-        if (posData && posData.length > 0) {
-          const mappedBureau: BureauMemberAssignment[] = posData.map((bp: any) => {
-            const assignment = bp.user_bureau_positions?.[0];
-            const assignedProfile = assignment?.profiles;
-            return {
-              position_key: bp.key,
-              position_name: bp.display_name,
-              member_name: assignedProfile?.full_name || 'Unassigned',
-              avatar: assignedProfile?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-              department: bp.display_name,
-              email: assignedProfile ? `${assignedProfile.full_name.toLowerCase().replace(/\s+/g, '.')}@isims.tn` : 'bureau@isims.tn',
-            };
-          });
-          setBureauMembers(mappedBureau);
-        }
-      } catch (err) {
-        console.error('Error fetching Supabase auth & bureau data:', err);
-      }
-    };
-
     loadUserData();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -356,25 +476,254 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const toggleTaskDone = (taskId: string) => {
+  const refreshXpData = async () => {
+    await loadUserData();
+  };
+
+  // Member Task Submission RPC
+  const submitTaskForVerification = async (taskId: string): Promise<{ success: boolean; status?: string; error?: string }> => {
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        const { data, error } = await supabase.rpc('submit_task_for_verification', { p_task_id: taskId });
+        if (error) {
+          console.error('Error in submit_task_for_verification RPC:', error);
+          return { success: false, error: error.message };
+        }
+        await loadUserData();
+        return { success: true, status: data?.status };
+      }
+    }
+
+    // Mock fallback
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
-          const nextStatus = t.status === 'done' ? 'todo' : 'done';
-          const completedAt = nextStatus === 'done' ? new Date().toISOString() : null;
           return {
             ...t,
-            status: nextStatus,
-            completed_at: completedAt,
-            checklist_done: nextStatus === 'done' ? (t.checklist_total || 1) : 0,
+            status: 'waiting_verification',
+            updated_at: new Date().toISOString(),
           };
         }
         return t;
       })
     );
+    return { success: true, status: 'waiting_verification' };
   };
 
-  const addTask = (newTaskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+  // Task Verification Review RPC (Bureau Officers & Admins)
+  const verifyTask = async (
+    taskId: string,
+    approved: boolean,
+    reason?: string
+  ): Promise<{ success: boolean; status?: string; points?: number; error?: string }> => {
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        const { data, error } = await supabase.rpc('verify_task', {
+          p_task_id: taskId,
+          p_approved: approved,
+          p_rejection_reason: reason || null,
+        });
+        if (error) {
+          console.error('Error in verify_task RPC:', error);
+          return { success: false, error: error.message };
+        }
+        await loadUserData();
+        return { success: true, status: data?.status, points: data?.points_awarded };
+      }
+    }
+
+    // Mock fallback
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          return {
+            ...t,
+            status: approved ? 'done' : 'todo',
+            completed_at: approved ? new Date().toISOString() : null,
+            verified_by: user?.id || null,
+            verified_at: approved ? new Date().toISOString() : null,
+            rejection_reason: approved ? null : (reason || 'Verification rejected'),
+            xp_awarded: approved,
+            updated_at: new Date().toISOString(),
+          };
+        }
+        return t;
+      })
+    );
+
+    if (approved) {
+      const taskObj = tasks.find((t) => t.id === taskId);
+      const points = taskObj?.priority === 'urgent' || taskObj?.priority === 'high' ? 20 : 10;
+      setMemberXpList((prev) =>
+        prev.map((m) =>
+          m.user_id === user?.id
+            ? { ...m, total_xp: m.total_xp + points, completed_tasks_count: m.completed_tasks_count + 1 }
+            : m
+        )
+      );
+      setXpTransactions((prev) => [
+        {
+          id: `tx-${Date.now()}`,
+          user_id: user?.id || 'usr-default',
+          points,
+          reason: `Verified task completion: ${taskObj?.title || 'Task'}`,
+          source_type: 'task',
+          source_id: taskId,
+          idempotency_key: `task_${taskId}_${user?.id}`,
+          awarded_by: user?.id,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
+    return { success: true, status: approved ? 'done' : 'todo' };
+  };
+
+  // Admin Manual XP Adjustment RPC
+  const adminAdjustXp = async (
+    userId: string,
+    points: number,
+    reason: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    if (!isUserAdmin) {
+      return { success: false, error: 'Unauthorized: Only administrators can adjust XP.' };
+    }
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase.rpc('admin_adjust_xp', {
+          p_user_id: userId,
+          p_points: points,
+          p_reason: reason,
+        });
+        if (error) {
+          console.error('Error in admin_adjust_xp RPC:', error);
+          return { success: false, error: error.message };
+        }
+        await loadUserData();
+        return { success: true };
+      }
+    }
+
+    // Mock fallback
+    setMemberXpList((prev) => {
+      const existing = prev.find((m) => m.user_id === userId);
+      if (existing) {
+        return prev.map((m) =>
+          m.user_id === userId ? { ...m, total_xp: Math.max(0, m.total_xp + points) } : m
+        );
+      }
+      return [
+        ...prev,
+        {
+          user_id: userId,
+          total_xp: Math.max(0, points),
+          completed_tasks_count: 0,
+          updated_at: new Date().toISOString(),
+        },
+      ];
+    });
+
+    setXpTransactions((prev) => [
+      {
+        id: `tx-adj-${Date.now()}`,
+        user_id: userId,
+        points,
+        reason: `Admin Adjustment: ${reason}`,
+        source_type: 'adjustment',
+        idempotency_key: `adj_${Date.now()}_${Math.random()}`,
+        awarded_by: user?.id,
+        created_at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+
+    return { success: true };
+  };
+
+  // XP Rule Modification (Admin Only)
+  const updateXpRule = async (
+    ruleId: string,
+    points: number,
+    isActive: boolean,
+    requiresVerification: boolean
+  ): Promise<{ success: boolean; error?: string }> => {
+    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    if (!isUserAdmin) {
+      return { success: false, error: 'Unauthorized: Only administrators can configure XP rules.' };
+    }
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase
+          .from('xp_rules')
+          .update({ points, is_active: isActive, requires_verification: requiresVerification })
+          .eq('id', ruleId);
+
+        if (error) {
+          console.error('Error updating xp_rules:', error);
+          return { success: false, error: error.message };
+        }
+        await loadUserData();
+        return { success: true };
+      }
+    }
+
+    setXpRules((prev) =>
+      prev.map((r) =>
+        r.id === ruleId
+          ? { ...r, points, is_active: isActive, requires_verification: requiresVerification, updated_at: new Date().toISOString() }
+          : r
+      )
+    );
+    return { success: true };
+  };
+
+  // Toggle task done (routes through verification workflow for members)
+  const toggleTaskDone = async (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    // If task requires verification and is not yet done, submit for verification
+    if (target.status === 'todo' || target.status === 'in_progress') {
+      await submitTaskForVerification(taskId);
+      return;
+    }
+
+    // If bureau/admin is toggling directly
+    if (activeRole === 'admin' || activeRole === 'bureau') {
+      if (target.status === 'waiting_verification') {
+        await verifyTask(taskId, true);
+        return;
+      }
+      const nextStatus = target.status === 'done' ? 'todo' : 'done';
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: nextStatus,
+                completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
+              }
+            : t
+        )
+      );
+    }
+  };
+
+  // Strict Task Creation: Members CANNOT create tasks
+  const addTask = async (newTaskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    if (activeRole === 'member' && !isUserAdmin) {
+      console.error('Access Denied: Ordinary members cannot create tasks.');
+      return;
+    }
+
     const now = new Date().toISOString();
     const newTask: Task = {
       ...newTaskData,
@@ -383,7 +732,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updated_at: now,
       creator: user || INITIAL_USER,
       assignees: newTaskData.assignees || [user || INITIAL_USER],
+      requires_verification: newTaskData.requires_verification ?? true,
+      xp_awarded: false,
     };
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert({
+            title: newTaskData.title,
+            description: newTaskData.description || null,
+            project_id: newTaskData.project_id || null,
+            department_id: newTaskData.department_id || null,
+            creator_id: user?.id,
+            status: newTaskData.status || 'todo',
+            priority: newTaskData.priority || 'medium',
+            due_at: newTaskData.due_at || null,
+            requires_verification: newTaskData.requires_verification ?? true,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          if (newTaskData.assignees && newTaskData.assignees.length > 0) {
+            const assigneeRows = newTaskData.assignees.map((a) => ({
+              task_id: data.id,
+              user_id: a.id,
+              assigned_by: user?.id,
+            }));
+            await supabase.from('task_assignees').insert(assigneeRows);
+          }
+          await loadUserData();
+          return;
+        }
+      }
+    }
+
     setTasks((prev) => [newTask, ...prev]);
 
     setAuditLogs((prev) => [
@@ -1296,11 +1682,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setActiveRole,
         activeBureauPosition,
         setActiveBureauPosition,
+        userBureauPositions,
         isAuthenticated,
         isApproved,
         isLoading,
         isLiveSupabase,
-        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com',
+        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin',
         tasks,
         projects,
         events,
@@ -1311,6 +1698,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         departments,
         members,
         auditLogs,
+        memberXpList,
+        currentUserXp,
+        xpTransactions,
+        xpRules,
+        userAchievements,
         bureauMembers,
         transactions,
         budgets,
@@ -1320,6 +1712,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         decisions,
         recruitmentApps,
         toggleTaskDone,
+        submitTaskForVerification,
+        verifyTask,
+        adminAdjustXp,
+        updateXpRule,
+        refreshXpData,
         addTask,
         updateTask,
         addProject,

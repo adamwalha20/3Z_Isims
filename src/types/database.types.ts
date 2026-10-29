@@ -2,7 +2,7 @@ export type MembershipStatus = 'pending' | 'active' | 'suspended' | 'departed';
 export type GlobalRoleKey = 'admin' | 'bureau' | 'member';
 export type DepartmentRole = 'lead' | 'contributor';
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
-export type TaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
+export type TaskStatus = 'todo' | 'in_progress' | 'waiting_verification' | 'blocked' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
 export type AttendanceStatus = 'unknown' | 'present' | 'absent' | 'excused';
@@ -104,6 +104,11 @@ export interface Task {
   priority: TaskPriority;
   due_at?: string | null;
   completed_at?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  rejection_reason?: string | null;
+  requires_verification?: boolean;
+  xp_awarded?: boolean;
   created_at: string;
   updated_at: string;
   project?: Project;
@@ -359,3 +364,78 @@ export interface RecruitmentApplication {
   reviewed_by?: string | null;
   created_at: string;
 }
+
+// ==============================================================================
+// XP & Member Ranking Architecture
+// ==============================================================================
+
+export interface MemberXp {
+  user_id: string;
+  total_xp: number;
+  completed_tasks_count: number;
+  updated_at: string;
+  profile?: Profile;
+}
+
+export interface XpTransaction {
+  id: string;
+  user_id: string;
+  points: number;
+  reason: string;
+  source_type: 'task' | 'milestone' | 'event' | 'initiative' | 'adjustment';
+  source_id?: string | null;
+  idempotency_key: string;
+  awarded_by?: string | null;
+  created_at: string;
+  user?: Profile;
+  awarder?: Profile;
+}
+
+export interface XpRule {
+  id: string;
+  action_type: string;
+  points: number;
+  is_active: boolean;
+  requires_verification: boolean;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemberAchievement {
+  id: string;
+  user_id: string;
+  achievement_key: string;
+  awarded_at: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+    icon?: string;
+  };
+}
+
+export interface RankLevel {
+  name: string;
+  minXp: number;
+  maxXp: number | null;
+  badgeColor: string;
+  icon: string;
+}
+
+export const RANK_LEVELS: RankLevel[] = [
+  { name: 'New Member', minXp: 0, maxXp: 49, badgeColor: 'bg-slate-100 text-slate-700 border-slate-200', icon: 'eco' },
+  { name: 'Active Member', minXp: 50, maxXp: 149, badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: 'stars' },
+  { name: 'Contributor', minXp: 150, maxXp: 299, badgeColor: 'bg-teal-100 text-teal-800 border-teal-200', icon: 'bolt' },
+  { name: 'Dedicated Member', minXp: 300, maxXp: 499, badgeColor: 'bg-sky-100 text-sky-800 border-sky-200', icon: 'military_tech' },
+  { name: 'Club Champion', minXp: 500, maxXp: null, badgeColor: 'bg-amber-100 text-amber-900 border-amber-300', icon: 'workspace_premium' },
+];
+
+export function getRankLevel(xp: number): RankLevel {
+  for (let i = RANK_LEVELS.length - 1; i >= 0; i--) {
+    if (xp >= RANK_LEVELS[i].minXp) {
+      return RANK_LEVELS[i];
+    }
+  }
+  return RANK_LEVELS[0];
+}
+

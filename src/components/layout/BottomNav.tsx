@@ -28,37 +28,44 @@ export default function BottomNav() {
   const { user, activeRole } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Quick primary tabs for the bar
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+
+  // Quick primary tabs for the bar matching simple general navigation: Home, Tasks, Ranking, Events
   const primaryTabs = [
     { label: 'Home', href: '/', icon: 'home' },
     { label: 'Tasks', href: '/tasks', icon: 'check_box' },
-    { label: '3Z Lab', href: '/projects', icon: 'rocket_launch' },
+    { label: 'Ranking', href: '/ranking', icon: 'trophy' },
     { label: 'Events', href: '/events', icon: 'calendar_month' },
   ];
 
   // All pages grouped for the expanded mobile drawer
   const navigationSections = [
     {
-      title: 'Operations Hub',
+      title: 'Member Workspace',
       items: [
         { label: 'Dashboard & Pass', href: '/', icon: 'home', desc: 'Scoreboard, digital pass & priority tasks', badge: 'Live' },
-        { label: 'Task Management', href: '/tasks', icon: 'check_box', desc: 'Board & list view, dispatch & status' },
-        { label: '3Z Lab Projects', href: '/projects', icon: 'rocket_launch', desc: 'Incubation portfolio & milestones' },
+        { label: 'Task Management', href: '/tasks', icon: 'check_box', desc: 'Assigned tasks & verification status' },
+        { label: 'XP Ranking & Leaderboard', href: '/ranking', icon: 'trophy', desc: 'Member ranking, badges & XP history', badge: 'XP' },
         { label: 'Calendar & Events', href: '/events', icon: 'calendar_month', desc: 'Summits, workshops & QR check-in' },
-        { label: 'Assemblies & PVs', href: '/meetings', icon: 'groups', desc: 'Official minutes & action items' },
+        { label: 'Announcements', href: '/announcements', icon: 'campaign', desc: 'Official chapter broadcasts & circulars' },
       ],
     },
+    ...(isBureauOrAdmin
+      ? [
+          {
+            title: 'Bureau Operations',
+            items: [
+              { label: '3Z Lab Projects', href: '/projects', icon: 'rocket_launch', desc: 'Incubation portfolio & milestones' },
+              { label: 'Assemblies & PVs', href: '/meetings', icon: 'groups', desc: 'Official minutes & action items' },
+              { label: 'Department Units', href: '/departments', icon: 'domain', desc: 'Training & Innovation, Comms, Logistics' },
+              { label: 'Document Vault', href: '/documents', icon: 'folder_open', desc: 'Charters, templates & safe storage' },
+              { label: 'Members Directory', href: '/members', icon: 'badge', desc: 'Student roster & Handover Vault' },
+            ],
+          },
+        ]
+      : []),
     {
-      title: 'Coordination & Memory',
-      items: [
-        { label: 'Announcements', href: '/announcements', icon: 'campaign', desc: 'Bureau broadcasts & pinned circulars' },
-        { label: 'Members Directory', href: '/members', icon: 'badge', desc: 'Student roster & Handover Vault' },
-        { label: 'Department Units', href: '/departments', icon: 'domain', desc: 'Training & Innovation, Comms, Logistics' },
-        { label: 'Document Vault', href: '/documents', icon: 'folder_open', desc: 'Charters, templates & safe storage' },
-      ],
-    },
-    {
-      title: 'Account & Bureau Governance',
+      title: 'Account & Administration',
       items: [
         { label: 'Digital Pass & Profile', href: '/profile', icon: 'qr_code_2', desc: 'Student ID, NFC pass & settings' },
         ...(user?.email?.toLowerCase() === 'adamwalha20@gmail.com'

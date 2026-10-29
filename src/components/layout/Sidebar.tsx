@@ -18,21 +18,29 @@ import {
   UserCheck,
   Settings,
   HelpCircle,
+  Trophy,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { activeRole, user } = useAuth();
-  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const { activeRole, user, isAdmin } = useAuth();
+  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
 
-  const navLinks = [
+  // General Navigation for all members
+  const coreNavLinks = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { label: 'My Tasks', href: '/tasks', icon: CheckSquare, badge: 'Active' },
-    { label: '3Z Lab Projects', href: '/projects', icon: Rocket },
+    { label: 'My Tasks', href: '/tasks', icon: CheckSquare, badge: 'Tasks' },
+    { label: 'Ranking & Leaderboard', href: '/ranking', icon: Trophy, badge: 'XP' },
     { label: 'Calendar & Events', href: '/events', icon: Calendar },
-    { label: 'Meetings & PV', href: '/meetings', icon: FileText },
     { label: 'Announcements', href: '/announcements', icon: Megaphone },
-    { label: 'Documents & Handover', href: '/documents', icon: FolderLock },
+  ];
+
+  // Role-restricted management modules (Bureau & Admin only)
+  const bureauNavLinks = [
+    { label: '3Z Lab Projects', href: '/projects', icon: Rocket },
+    { label: 'Meetings & PV', href: '/meetings', icon: FileText },
+    { label: 'Document Vault', href: '/documents', icon: FolderLock },
     { label: 'Departments', href: '/departments', icon: Layers },
     { label: 'Members Directory', href: '/members', icon: Users },
   ];
@@ -58,9 +66,9 @@ export default function Sidebar() {
       {/* Navigation Groups */}
       <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
         <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Workspace Operations
+          Chapter Hub
         </div>
-        {navLinks.map((item) => {
+        {coreNavLinks.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (
@@ -86,9 +94,38 @@ export default function Sidebar() {
           );
         })}
 
-        {/* Administration Section (Available only to adamwalha20@gmail.com) */}
+        {/* Bureau Operations (Visible to Bureau Officers & Admins) */}
+        {isBureauOrAdmin && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1">
+            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+              <span>Bureau Modules</span>
+            </div>
+            {bureauNavLinks.map((item) => {
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-900 font-bold border border-emerald-200/70 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Administration Section (Available only to Admins) */}
         {isSuperAdmin && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-1">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1">
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1">
               <span>Admin & Controls</span>
             </div>
