@@ -81,16 +81,31 @@ export default function DashboardPage() {
   }, []);
 
   // Compute User XP & Rank
-  const myXpData = memberXpList.find((mxp) => mxp.user_id === user?.id) || {
-    user_id: user?.id || 'usr-default',
-    total_xp: 0,
-    completed_tasks_count: 0,
-    updated_at: '2026-01-01T00:00:00.000Z',
-  };
+  const currentUserId = user?.id || 'usr-admin-001';
+  const myXpData = memberXpList.find((mxp) => mxp.user_id === user?.id) ||
+    memberXpList.find((mxp) => mxp.user_id === currentUserId) || {
+      user_id: currentUserId,
+      total_xp: 0,
+      completed_tasks_count: 0,
+      updated_at: '2026-01-01T00:00:00.000Z',
+    };
 
   const myRankLevel = getRankLevel(myXpData.total_xp);
   const sortedLeaderboard = [...memberXpList].sort((a, b) => b.total_xp - a.total_xp);
-  const myLeaderboardRank = sortedLeaderboard.findIndex((m) => m.user_id === user?.id) + 1 || 1;
+  const myLeaderboardRank = sortedLeaderboard.findIndex((m) => m.user_id === (user?.id || currentUserId)) + 1 || 1;
+
+  // Deduplicate and filter badges for current user
+  const myAchievements = React.useMemo(() => {
+    const userFiltered = userAchievements.filter(
+      (ach) => !ach.user_id || ach.user_id === user?.id || (!user && ach.user_id === currentUserId)
+    );
+    const seen = new Set<string>();
+    return userFiltered.filter((ach) => {
+      if (seen.has(ach.achievement_key)) return false;
+      seen.add(ach.achievement_key);
+      return true;
+    });
+  }, [userAchievements, user, currentUserId]);
 
   // Calculate XP progress to next level
   const currentLevelIndex = RANK_LEVELS.findIndex((lvl) => lvl.name === myRankLevel.name);
@@ -101,7 +116,9 @@ export default function DashboardPage() {
 
   // Filter tasks for member vs bureau
   const isAssignee = (t: Task) =>
-    t.assignees?.some((a) => a.id === user?.id) || t.creator_id === user?.id;
+    t.assignees?.some((a) => a.id === user?.id || a.id === currentUserId) ||
+    t.creator_id === user?.id ||
+    t.creator_id === currentUserId;
 
   const memberTasks = tasks.filter((t) => {
     const matchesUser = activeRole === 'admin' ? true : isAssignee(t);
@@ -289,10 +306,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs flex-wrap gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-bold text-slate-400 uppercase">Earned Badges:</span>
-              {userAchievements.length > 0 ? (
-                userAchievements.map((ach) => (
+              {myAchievements.length > 0 ? (
+                myAchievements.map((ach) => (
                   <span
-                    key={ach.achievement_key}
+                    key={ach.id || `${ach.user_id || 'usr'}-${ach.achievement_key}`}
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-900 text-[10px] font-bold border border-emerald-200"
                   >
                     <Sparkles className="w-3 h-3 text-amber-500" />

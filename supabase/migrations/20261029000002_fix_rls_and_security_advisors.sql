@@ -60,3 +60,4 @@ REVOKE EXECUTE ON FUNCTION public.admin_adjust_xp(UUID, INT, TEXT) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.submit_task_for_verification(UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.verify_task(UUID, BOOLEAN, TEXT) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.check_member_achievements(UUID) FROM anon;
+

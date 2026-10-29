@@ -56,8 +56,11 @@ export default function TasksPage() {
   const [rejectionNote, setRejectionNote] = useState('');
 
   // Check if task is assigned to current user
+  const currentUserId = user?.id || 'usr-admin-001';
   const isMyTask = (t: Task) =>
-    t.assignees?.some((a) => a.id === user?.id) || t.creator_id === user?.id;
+    t.assignees?.some((a) => a.id === user?.id || a.id === currentUserId) ||
+    t.creator_id === user?.id ||
+    t.creator_id === currentUserId;
 
   // Filter tasks based on role, search & status filters
   const filteredTasks = tasks.filter((t) => {

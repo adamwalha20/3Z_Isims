@@ -57,6 +57,9 @@ import { createClient } from '@/lib/supabase/client';
 export type ActiveRole = 'admin' | 'bureau' | 'lead' | 'member';
 export type ActiveBureauPosition = 'all' | BureauPositionKey;
 
+const isUuid = (id?: string | null): boolean =>
+  typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 interface AuthContextType {
   user: Profile | null;
   activeRole: ActiveRole;
@@ -203,7 +206,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberXpList, setMemberXpList] = useState<MemberXp[]>(INITIAL_MEMBER_XP);
   const [xpTransactions, setXpTransactions] = useState<XpTransaction[]>(INITIAL_XP_TRANSACTIONS);
   const [xpRules, setXpRules] = useState<XpRule[]>(INITIAL_XP_RULES);
-  const [userAchievements, setUserAchievements] = useState<MemberAchievement[]>(INITIAL_MEMBER_ACHIEVEMENTS);
+  const [userAchievements, setUserAchievements] = useState<MemberAchievement[]>(() =>
+    INITIAL_MEMBER_ACHIEVEMENTS.filter((a) => a.user_id === INITIAL_USER.id)
+  );
 
   // Role-Specific Workspaces state
   const [bureauMembers, setBureauMembers] = useState<BureauMemberAssignment[]>(OFFICIAL_BUREAU_MEMBERS);
@@ -319,6 +324,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('user_id', session.user.id);
         if (dbAch && dbAch.length > 0) {
           setUserAchievements(dbAch);
+        } else {
+          setUserAchievements([]);
         }
 
         // 5. Fetch user's notifications
@@ -333,6 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setIsAuthenticated(false);
         setUser(null);
+        setUserAchievements(INITIAL_MEMBER_ACHIEVEMENTS.filter((a) => a.user_id === INITIAL_USER.id));
       }
 
       // 6. Fetch club-wide profiles & memberships
@@ -482,16 +490,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Member Task Submission RPC
   const submitTaskForVerification = async (taskId: string): Promise<{ success: boolean; status?: string; error?: string }> => {
-    if (isLiveSupabase) {
+    if (isLiveSupabase && isUuid(taskId)) {
       const supabase = createClient();
       if (supabase) {
-        const { data, error } = await supabase.rpc('submit_task_for_verification', { p_task_id: taskId });
-        if (error) {
-          console.error('Error in submit_task_for_verification RPC:', error);
-          return { success: false, error: error.message };
+        try {
+          const { data, error } = await supabase.rpc('submit_task_for_verification', { p_task_id: taskId });
+          if (!error) {
+            await loadUserData();
+            return { success: true, status: data?.status };
+          }
+          console.warn('submit_task_for_verification failed on live db, updating locally:', error.message);
+        } catch (e: any) {
+          console.warn('submit_task_for_verification RPC error:', e?.message);
         }
-        await loadUserData();
-        return { success: true, status: data?.status };
       }
     }
 
@@ -517,20 +528,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     approved: boolean,
     reason?: string
   ): Promise<{ success: boolean; status?: string; points?: number; error?: string }> => {
-    if (isLiveSupabase) {
+    if (isLiveSupabase && isUuid(taskId)) {
       const supabase = createClient();
       if (supabase) {
-        const { data, error } = await supabase.rpc('verify_task', {
-          p_task_id: taskId,
-          p_approved: approved,
-          p_rejection_reason: reason || null,
-        });
-        if (error) {
-          console.error('Error in verify_task RPC:', error);
-          return { success: false, error: error.message };
+        try {
+          const { data, error } = await supabase.rpc('verify_task', {
+            p_task_id: taskId,
+            p_approved: approved,
+            p_rejection_reason: reason || null,
+          });
+          if (!error) {
+            await loadUserData();
+            return { success: true, status: data?.status, points: data?.points_awarded };
+          }
+          console.warn('verify_task failed on live db, updating locally:', error.message);
+        } catch (e: any) {
+          console.warn('verify_task RPC error:', e?.message);
         }
-        await loadUserData();
-        return { success: true, status: data?.status, points: data?.points_awarded };
       }
     }
 
@@ -556,9 +570,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (approved) {
       const taskObj = tasks.find((t) => t.id === taskId);
       const points = taskObj?.priority === 'urgent' || taskObj?.priority === 'high' ? 20 : 10;
+      const targetUserId = taskObj?.creator_id || user?.id || 'usr-default';
       setMemberXpList((prev) =>
         prev.map((m) =>
-          m.user_id === user?.id
+          m.user_id === targetUserId
             ? { ...m, total_xp: m.total_xp + points, completed_tasks_count: m.completed_tasks_count + 1 }
             : m
         )
@@ -566,12 +581,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setXpTransactions((prev) => [
         {
           id: `tx-${Date.now()}`,
-          user_id: user?.id || 'usr-default',
+          user_id: targetUserId,
           points,
           reason: `Verified task completion: ${taskObj?.title || 'Task'}`,
           source_type: 'task',
           source_id: taskId,
-          idempotency_key: `task_${taskId}_${user?.id}`,
+          idempotency_key: `task_${taskId}_${targetUserId}_${Date.now()}`,
           awarded_by: user?.id,
           created_at: new Date().toISOString(),
         },
@@ -592,20 +607,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Unauthorized: Only administrators can adjust XP.' };
     }
 
-    if (isLiveSupabase) {
+    if (isLiveSupabase && isUuid(userId)) {
       const supabase = createClient();
       if (supabase) {
-        const { error } = await supabase.rpc('admin_adjust_xp', {
-          p_user_id: userId,
-          p_points: points,
-          p_reason: reason,
-        });
-        if (error) {
-          console.error('Error in admin_adjust_xp RPC:', error);
-          return { success: false, error: error.message };
+        try {
+          const { error } = await supabase.rpc('admin_adjust_xp', {
+            p_user_id: userId,
+            p_points: points,
+            p_reason: reason,
+          });
+          if (!error) {
+            await loadUserData();
+            return { success: true };
+          }
+          console.warn('admin_adjust_xp failed on live db, updating locally:', error.message);
+        } catch (e: any) {
+          console.warn('admin_adjust_xp RPC error:', e?.message);
         }
-        await loadUserData();
-        return { success: true };
       }
     }
 
@@ -657,20 +675,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Unauthorized: Only administrators can configure XP rules.' };
     }
 
-    if (isLiveSupabase) {
+    if (isLiveSupabase && isUuid(ruleId)) {
       const supabase = createClient();
       if (supabase) {
-        const { error } = await supabase
-          .from('xp_rules')
-          .update({ points, is_active: isActive, requires_verification: requiresVerification })
-          .eq('id', ruleId);
+        try {
+          const { error } = await supabase
+            .from('xp_rules')
+            .update({ points, is_active: isActive, requires_verification: requiresVerification })
+            .eq('id', ruleId);
 
-        if (error) {
-          console.error('Error updating xp_rules:', error);
-          return { success: false, error: error.message };
+          if (!error) {
+            await loadUserData();
+            return { success: true };
+          }
+          console.warn('updateXpRule failed on live db, updating locally:', error.message);
+        } catch (e: any) {
+          console.warn('updateXpRule error:', e?.message);
         }
-        await loadUserData();
-        return { success: true };
       }
     }
 
@@ -738,34 +759,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (isLiveSupabase) {
       const supabase = createClient();
-      if (supabase) {
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert({
-            title: newTaskData.title,
-            description: newTaskData.description || null,
-            project_id: newTaskData.project_id || null,
-            department_id: newTaskData.department_id || null,
-            creator_id: user?.id,
-            status: newTaskData.status || 'todo',
-            priority: newTaskData.priority || 'medium',
-            due_at: newTaskData.due_at || null,
-            requires_verification: newTaskData.requires_verification ?? true,
-          })
-          .select()
-          .single();
+      if (supabase && user?.id && isUuid(user.id)) {
+        try {
+          const { data, error } = await supabase
+            .from('tasks')
+            .insert({
+              title: newTaskData.title,
+              description: newTaskData.description || null,
+              project_id: isUuid(newTaskData.project_id) ? newTaskData.project_id : null,
+              department_id: isUuid(newTaskData.department_id) ? newTaskData.department_id : null,
+              creator_id: user.id,
+              status: newTaskData.status || 'todo',
+              priority: newTaskData.priority || 'medium',
+              due_at: newTaskData.due_at || null,
+              requires_verification: newTaskData.requires_verification ?? true,
+            })
+            .select()
+            .single();
 
-        if (!error && data) {
-          if (newTaskData.assignees && newTaskData.assignees.length > 0) {
-            const assigneeRows = newTaskData.assignees.map((a) => ({
-              task_id: data.id,
-              user_id: a.id,
-              assigned_by: user?.id,
-            }));
-            await supabase.from('task_assignees').insert(assigneeRows);
+          if (!error && data) {
+            if (newTaskData.assignees && newTaskData.assignees.length > 0) {
+              const assigneeRows = newTaskData.assignees
+                .filter((a) => isUuid(a.id))
+                .map((a) => ({
+                  task_id: data.id,
+                  user_id: a.id,
+                  assigned_by: user.id,
+                }));
+              if (assigneeRows.length > 0) {
+                await supabase.from('task_assignees').insert(assigneeRows);
+              }
+            }
+            await loadUserData();
+            return;
           }
-          await loadUserData();
-          return;
+        } catch (e: any) {
+          console.warn('addTask failed on live db, adding locally:', e?.message);
         }
       }
     }
@@ -1044,14 +1073,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Error clearing previous bureau position:', delErr);
           }
 
-          if (finalUserId) {
+          if (finalUserId && isUuid(finalUserId)) {
             // Assign new member
             const { error: insErr } = await supabase
               .from('user_bureau_positions')
               .insert({
                 position_id: pos.id,
                 user_id: finalUserId,
-                assigned_by: user?.id || null,
+                assigned_by: user?.id && isUuid(user.id) ? user.id : null,
               });
 
             if (insErr) {
@@ -1107,7 +1136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserRole = async (userId: string, roleKey: 'admin' | 'bureau' | 'member'): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
-    if (supabase) {
+    if (supabase && isUuid(userId)) {
       try {
         const { data: roleRow } = await supabase.from('roles').select('id').eq('key', roleKey).single();
         if (roleRow) {
@@ -1115,7 +1144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.from('user_roles').insert({
             user_id: userId,
             role_id: roleRow.id,
-            assigned_by: user?.id || null,
+            assigned_by: user?.id && isUuid(user.id) ? user.id : null,
           });
         }
       } catch (err: any) {
@@ -1426,7 +1455,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const approveMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
-    if (supabase) {
+    if (supabase && isUuid(userId)) {
       const { data: updated, error: updateErr } = await supabase
         .from('club_memberships')
         .update({
@@ -1482,7 +1511,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const rejectMembership = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
-    if (supabase) {
+    if (supabase && isUuid(userId)) {
       const { data: updated, error: updateErr } = await supabase
         .from('club_memberships')
         .update({
@@ -1558,7 +1587,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (updates.contactPreferences !== undefined) dbUpdates.contact_preferences = updates.contactPreferences;
     dbUpdates.updated_at = new Date().toISOString();
 
-    if (supabase && user?.id) {
+    if (supabase && user?.id && isUuid(user.id)) {
       const { error } = await supabase
         .from('profiles')
         .update(dbUpdates)
@@ -1604,7 +1633,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const supabase = createClient();
       let publicUrl = '';
 
-      if (supabase && user?.id) {
+      if (supabase && user?.id && isUuid(user.id)) {
         const fileExt = file.name.split('.').pop() || 'jpg';
         const sanitized = file.name.replace(/[^a-zA-Z0-9]/g, '_');
         const filePath = `${user.id}/${Date.now()}_${sanitized}.${fileExt}`;
@@ -1658,7 +1687,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setIsAuthenticated(false);
     setUser(null);
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      window.location.assign('/login');
+    }
   };
 
   const resetPassword = async (email: string) => {
