@@ -216,3 +216,4 @@ test('ZEC Campus Hub — Member Email Preferences & Opt-Out Invariants', async (
     assert.equal(shouldSendTaskEmail, true, 'Task email delivery should proceed');
   });
 });
+

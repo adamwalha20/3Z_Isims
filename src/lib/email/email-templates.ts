@@ -211,3 +211,4 @@ Institut Supérieur d'Informatique et de Multimédia de Sfax
 
   return { subject, html, text };
 }
+
