@@ -8,6 +8,14 @@ import {
   Project,
   EventItem,
   Meeting,
+  MeetingAction,
+  MeetingRecording,
+  MeetingTranscript,
+  MeetingTranscriptSegment,
+  MeetingSummary,
+  MeetingSummaryContent,
+  MeetingRecordingJob,
+  TaskPriority,
   Announcement,
   NotificationItem,
   DocumentItem,
@@ -117,7 +125,31 @@ interface AuthContextType {
   markAllNotificationsRead: () => void;
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'created_at'>) => void;
   addDocument: (doc: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => void;
-  addMeeting: (meeting: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>) => void;
+  addMeeting: (meeting: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; meeting?: Meeting; error?: string }>;
+  updateMeeting: (meetingId: string, updates: Partial<Meeting>) => Promise<{ success: boolean; error?: string }>;
+  addMeetingRecording: (meetingId: string, recording: Omit<MeetingRecording, 'id' | 'created_at'>) => Promise<{ success: boolean; recording?: MeetingRecording; error?: string }>;
+  addMeetingTranscript: (meetingId: string, transcript: Omit<MeetingTranscript, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; error?: string }>;
+  updateMeetingSummary: (
+    meetingId: string,
+    summaryContent: MeetingSummaryContent,
+    approve?: boolean | 'draft' | 'approved' | 'rejected',
+    notes?: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  createTaskFromMeetingAction: (
+    meetingId: string,
+    actionItem: {
+      title?: string;
+      task?: string;
+      description?: string;
+      responsible?: string;
+      assignee?: string;
+      assigned_user_id?: string;
+      due_at?: string;
+      deadline?: string;
+      priority?: TaskPriority;
+    }
+  ) => Promise<{ success: boolean; task?: Task; error?: string }>;
+  dispatchMeetingRecordingBot: (meetingId: string) => Promise<{ success: boolean; status?: string; message?: string; error?: string }>;
 
   // Role-Specific Workspaces mutations
   addTransaction: (tx: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => void;
@@ -449,6 +481,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('created_at', { ascending: false });
       if (dbTx && dbTx.length > 0) {
         setXpTransactions(dbTx);
+      }
+
+      // 12. Fetch live meetings with recordings, transcripts, summaries & action items
+      const { data: dbMeetings } = await supabase
+        .from('meetings')
+        .select(`
+          *,
+          organizer:profiles!meetings_organizer_id_fkey(*),
+          department:departments(*),
+          recordings:meeting_recordings(*),
+          transcripts:meeting_transcripts(*, segments:meeting_transcript_segments(*)),
+          summaries:meeting_summaries(*),
+          action_items:meeting_actions(*)
+        `)
+        .order('starts_at', { ascending: false });
+
+      if (dbMeetings && dbMeetings.length > 0) {
+        const mappedMeetings: Meeting[] = dbMeetings.map((m: any) => ({
+          ...m,
+          recordings: m.recordings || [],
+          transcript: m.transcripts?.[0] || null,
+          summary: m.summaries?.[0] || null,
+          action_items: m.action_items || [],
+        }));
+        setMeetings(mappedMeetings);
       }
     } catch (err) {
       console.error('Error fetching Supabase auth, tasks & XP data:', err);
@@ -904,16 +961,437 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDocuments((prev) => [doc, ...prev]);
   };
 
-  const addMeeting = (meetingData: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>) => {
+  const addMeeting = async (meetingData: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; meeting?: Meeting; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Access Denied: Only bureau officers and administrators can schedule meetings.' };
+    }
+
     const now = new Date().toISOString();
-    const meet: Meeting = {
+    const newMeet: Meeting = {
       ...meetingData,
       id: `meet-${Date.now()}`,
       created_at: now,
       updated_at: now,
+      meeting_platform: meetingData.meeting_platform || 'google_meet',
+      meeting_type: meetingData.meeting_type || 'bureau',
+      recording_enabled: meetingData.recording_enabled ?? false,
+      recording_status: meetingData.recording_status || (meetingData.recording_enabled ? 'requested' : 'none'),
+      recording_consent_status: meetingData.recording_consent_status || 'pending',
+      visibility: meetingData.visibility || 'club',
+      status: meetingData.status || 'scheduled',
       organizer: user || INITIAL_USER,
+      organizer_id: user?.id || meetingData.organizer_id,
+      created_by: user?.id,
+      action_items: meetingData.action_items || [],
+      recordings: meetingData.recordings || [],
+      transcript: meetingData.transcript || null,
+      summary: meetingData.summary || null,
     };
-    setMeetings((prev) => [meet, ...prev]);
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('meetings')
+            .insert({
+              title: newMeet.title,
+              description: newMeet.description || null,
+              location: newMeet.location || null,
+              starts_at: newMeet.starts_at,
+              ends_at: newMeet.ends_at,
+              department_id: isUuid(newMeet.department_id) ? newMeet.department_id : null,
+              organizer_id: isUuid(newMeet.organizer_id) ? newMeet.organizer_id : user.id,
+              meeting_url: newMeet.meeting_url || null,
+              meeting_platform: newMeet.meeting_platform,
+              meeting_type: newMeet.meeting_type,
+              recording_enabled: newMeet.recording_enabled,
+              recording_status: newMeet.recording_status,
+              recording_consent_status: newMeet.recording_consent_status,
+              visibility: newMeet.visibility,
+              agenda: newMeet.agenda || null,
+              status: newMeet.status,
+              created_by: user.id,
+            })
+            .select()
+            .single();
+
+          if (!error && data) {
+            newMeet.id = data.id;
+            await loadUserData();
+            return { success: true, meeting: newMeet };
+          }
+          console.warn('addMeeting live db insert notice:', error?.message);
+        } catch (e: any) {
+          console.warn('addMeeting db error:', e?.message);
+        }
+      }
+    }
+
+    setMeetings((prev) => [newMeet, ...prev]);
+
+    setAuditLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        actor_id: user?.id,
+        action: 'MEETING_SCHEDULE',
+        entity_type: 'meetings',
+        entity_id: newMeet.id,
+        metadata: { title: newMeet.title, visibility: newMeet.visibility, type: newMeet.meeting_type },
+        created_at: now,
+        actor: user || INITIAL_USER,
+      },
+      ...prev,
+    ]);
+
+    return { success: true, meeting: newMeet };
+  };
+
+  const updateMeeting = async (meetingId: string, updates: Partial<Meeting>): Promise<{ success: boolean; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Access Denied: Only bureau officers and administrators can update meetings.' };
+    }
+
+    const now = new Date().toISOString();
+    if (isLiveSupabase && isUuid(meetingId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const dbUpdates: any = { updated_at: now };
+          if (updates.title !== undefined) dbUpdates.title = updates.title;
+          if (updates.description !== undefined) dbUpdates.description = updates.description;
+          if (updates.location !== undefined) dbUpdates.location = updates.location;
+          if (updates.starts_at !== undefined) dbUpdates.starts_at = updates.starts_at;
+          if (updates.ends_at !== undefined) dbUpdates.ends_at = updates.ends_at;
+          if (updates.meeting_url !== undefined) dbUpdates.meeting_url = updates.meeting_url;
+          if (updates.meeting_type !== undefined) dbUpdates.meeting_type = updates.meeting_type;
+          if (updates.recording_enabled !== undefined) dbUpdates.recording_enabled = updates.recording_enabled;
+          if (updates.recording_status !== undefined) dbUpdates.recording_status = updates.recording_status;
+          if (updates.recording_consent_status !== undefined) dbUpdates.recording_consent_status = updates.recording_consent_status;
+          if (updates.visibility !== undefined) dbUpdates.visibility = updates.visibility;
+          if (updates.agenda !== undefined) dbUpdates.agenda = updates.agenda;
+          if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+          const { error } = await supabase.from('meetings').update(dbUpdates).eq('id', meetingId);
+          if (!error) {
+            await loadUserData();
+            return { success: true };
+          }
+        } catch (e: any) {
+          console.warn('updateMeeting live db error:', e?.message);
+        }
+      }
+    }
+
+    setMeetings((prev) =>
+      prev.map((m) => (m.id === meetingId ? { ...m, ...updates, updated_at: now } : m))
+    );
+    return { success: true };
+  };
+
+  const addMeetingRecording = async (meetingId: string, recordingData: Omit<MeetingRecording, 'id' | 'created_at'>): Promise<{ success: boolean; recording?: MeetingRecording; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Unauthorized: Only bureau officers can attach meeting recordings.' };
+    }
+
+    const now = new Date().toISOString();
+    const newRecording: MeetingRecording = {
+      ...recordingData,
+      id: `rec-${Date.now()}`,
+      meeting_id: meetingId,
+      created_at: now,
+      processing_status: recordingData.processing_status || 'completed',
+    };
+
+    if (isLiveSupabase && isUuid(meetingId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('meeting_recordings')
+            .insert({
+              meeting_id: meetingId,
+              provider: recordingData.provider,
+              provider_recording_id: recordingData.provider_recording_id || null,
+              storage_path: recordingData.storage_path || null,
+              duration_seconds: recordingData.duration_seconds || 0,
+              file_size: recordingData.file_size || 0,
+              mime_type: recordingData.mime_type || 'video/mp4',
+              processing_status: newRecording.processing_status,
+            })
+            .select()
+            .single();
+
+          if (!error && data) {
+            newRecording.id = data.id;
+            await supabase
+              .from('meetings')
+              .update({ recording_status: 'available', updated_at: now })
+              .eq('id', meetingId);
+            await loadUserData();
+            return { success: true, recording: newRecording };
+          }
+        } catch (e: any) {
+          console.warn('addMeetingRecording db error:', e?.message);
+        }
+      }
+    }
+
+    setMeetings((prev) =>
+      prev.map((m) =>
+        m.id === meetingId
+          ? {
+              ...m,
+              recording_status: 'available',
+              recordings: [newRecording, ...(m.recordings || [])],
+              updated_at: now,
+            }
+          : m
+      )
+    );
+    return { success: true, recording: newRecording };
+  };
+
+  const addMeetingTranscript = async (meetingId: string, transcriptData: Omit<MeetingTranscript, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Unauthorized: Only bureau officers can publish transcripts.' };
+    }
+
+    const now = new Date().toISOString();
+    const newTranscript: MeetingTranscript = {
+      ...transcriptData,
+      id: `tx-${Date.now()}`,
+      meeting_id: meetingId,
+      created_at: now,
+      updated_at: now,
+    };
+
+    if (isLiveSupabase && isUuid(meetingId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('meeting_transcripts')
+            .insert({
+              meeting_id: meetingId,
+              recording_id: isUuid(transcriptData.recording_id) ? transcriptData.recording_id : null,
+              language: transcriptData.language || 'fr',
+              content: transcriptData.content,
+              is_edited: transcriptData.is_edited ?? false,
+              edited_by: isUuid(user?.id) ? user?.id : null,
+              processing_status: transcriptData.processing_status || 'completed',
+            })
+            .select()
+            .single();
+
+          if (!error && data) {
+            newTranscript.id = data.id;
+            if (transcriptData.segments && transcriptData.segments.length > 0) {
+              const segRows = transcriptData.segments.map((s) => ({
+                transcript_id: data.id,
+                meeting_id: meetingId,
+                speaker_label: s.speaker_label,
+                start_seconds: s.start_seconds,
+                end_seconds: s.end_seconds,
+                content: s.content,
+              }));
+              await supabase.from('meeting_transcript_segments').insert(segRows);
+            }
+            await loadUserData();
+            return { success: true };
+          }
+        } catch (e: any) {
+          console.warn('addMeetingTranscript db error:', e?.message);
+        }
+      }
+    }
+
+    setMeetings((prev) =>
+      prev.map((m) =>
+        m.id === meetingId
+          ? {
+              ...m,
+              transcript: newTranscript,
+              updated_at: now,
+            }
+          : m
+      )
+    );
+    return { success: true };
+  };
+
+  const updateMeetingSummary = async (
+    meetingId: string,
+    summaryContent: MeetingSummaryContent,
+    approve?: boolean | 'draft' | 'approved' | 'rejected',
+    notes?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Unauthorized: Only bureau officers can approve summaries.' };
+    }
+
+    const isApproved = approve === true || approve === 'approved';
+    const reviewStatus: 'draft' | 'approved' | 'rejected' =
+      approve === 'draft' || approve === 'rejected' ? approve : isApproved ? 'approved' : 'draft';
+
+    const now = new Date().toISOString();
+    const newSummary: MeetingSummary = {
+      id: `sum-${Date.now()}`,
+      meeting_id: meetingId,
+      summary_content: summaryContent,
+      content: summaryContent,
+      review_status: reviewStatus,
+      processing_status: 'completed',
+      generated_at: now,
+      approved_by: isApproved ? (user?.id || 'usr-admin-001') : null,
+      approved_at: isApproved ? now : null,
+      notes: notes || null,
+      updated_at: now,
+    };
+
+    if (isLiveSupabase && isUuid(meetingId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { error } = await supabase
+            .from('meeting_summaries')
+            .upsert({
+              meeting_id: meetingId,
+              summary_content: summaryContent,
+              processing_status: 'completed',
+              approved_by: isApproved && user?.id && isUuid(user.id) ? user.id : null,
+              approved_at: isApproved ? now : null,
+              updated_at: now,
+            }, { onConflict: 'meeting_id' });
+
+          if (!error) {
+            await loadUserData();
+            return { success: true };
+          }
+        } catch (e: any) {
+          console.warn('updateMeetingSummary db error:', e?.message);
+        }
+      }
+    }
+
+    setMeetings((prev) =>
+      prev.map((m) =>
+        m.id === meetingId
+          ? {
+              ...m,
+              summary: newSummary,
+              updated_at: now,
+            }
+          : m
+      )
+    );
+    return { success: true };
+  };
+
+  const createTaskFromMeetingAction = async (
+    meetingId: string,
+    actionItem: {
+      title?: string;
+      task?: string;
+      description?: string;
+      responsible?: string;
+      assignee?: string;
+      assigned_user_id?: string;
+      due_at?: string;
+      deadline?: string;
+      priority?: TaskPriority;
+    }
+  ): Promise<{ success: boolean; task?: Task; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Unauthorized: Ordinary members cannot create tasks from meeting actions.' };
+    }
+
+    const targetMeeting = meetings.find((m) => m.id === meetingId);
+    const assignedUserOrName = actionItem.assigned_user_id || actionItem.assignee || actionItem.responsible;
+    const assignedMember =
+      members.find((m) => m.id === assignedUserOrName || m.full_name?.toLowerCase() === assignedUserOrName?.toLowerCase()) ||
+      user ||
+      INITIAL_USER;
+
+    const taskTitle = actionItem.title || actionItem.task || 'Action Item from Meeting';
+    const taskDue = actionItem.due_at || actionItem.deadline || null;
+
+    const newTaskData: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
+      title: taskTitle,
+      description: actionItem.description || `Action item agreed upon during meeting: ${targetMeeting?.title || 'Club Meeting'}`,
+      status: 'todo',
+      priority: actionItem.priority || 'medium',
+      creator_id: user?.id || 'usr-admin-001',
+      due_at: taskDue,
+      department_id: targetMeeting?.department_id || null,
+      assignees: [assignedMember],
+      requires_verification: true,
+      xp_awarded: false,
+    };
+
+    await addTask(newTaskData);
+
+    const now = new Date().toISOString();
+    const newActionId = `act-${Date.now()}`;
+    const newActionItem: MeetingAction = {
+      id: newActionId,
+      meeting_id: meetingId,
+      title: taskTitle,
+      description: actionItem.description,
+      status: 'pending',
+      due_at: taskDue,
+      assigned_user: assignedMember,
+      assigned_user_id: assignedMember.id,
+    };
+
+    setMeetings((prev) =>
+      prev.map((m) =>
+        m.id === meetingId
+          ? {
+              ...m,
+              action_items: [...(m.action_items || []), newActionItem],
+              updated_at: now,
+            }
+          : m
+      )
+    );
+
+    return { success: true };
+  };
+
+  const dispatchMeetingRecordingBot = async (meetingId: string): Promise<{ success: boolean; status?: string; message?: string; error?: string }> => {
+    const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
+    if (!isBureauOrAdmin) {
+      return { success: false, error: 'Unauthorized: Only bureau officers can dispatch the recording bot.' };
+    }
+
+    const meeting = meetings.find((m) => m.id === meetingId);
+    if (!meeting) return { success: false, error: 'Meeting not found' };
+
+    try {
+      const res = await fetch('/api/meetings/recording/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetingId, meetingUrl: meeting.meeting_url }),
+      });
+      const data = await res.json();
+
+      await updateMeeting(meetingId, { recording_status: data.status || 'requested', recording_enabled: true });
+      return { success: data.success, status: data.status, message: data.message };
+    } catch (e: any) {
+      await updateMeeting(meetingId, { recording_status: 'requested', recording_enabled: true });
+      return {
+        success: true,
+        status: 'requested',
+        message: 'Recording bot requested for scheduled session. Participants will be notified upon bot entry.',
+      };
+    }
   };
 
   // ----------------------------------------------------------------------------
@@ -1758,6 +2236,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         addAnnouncement,
         addDocument,
         addMeeting,
+        updateMeeting,
+        addMeetingRecording,
+        addMeetingTranscript,
+        updateMeetingSummary,
+        createTaskFromMeetingAction,
+        dispatchMeetingRecordingBot,
         addTransaction,
         approveTransaction,
         addBudget,

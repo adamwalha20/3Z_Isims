@@ -150,6 +150,128 @@ export interface EventItem {
   user_registered?: boolean;
 }
 
+export type MeetingType =
+  | 'bureau'
+  | 'department'
+  | 'general'
+  | 'project'
+  | 'event_prep'
+  | 'other'
+  | 'General Club Meeting'
+  | 'Bureau Meeting'
+  | 'Department Meeting'
+  | 'Project Meeting'
+  | 'Event Preparation Meeting'
+  | 'Other';
+export type MeetingStatus = 'scheduled' | 'live' | 'processing' | 'completed' | 'cancelled';
+export type MeetingVisibility = 'club' | 'department' | 'confidential' | 'restricted' | 'public';
+export type RecordingStatus = 'none' | 'requested' | 'live' | 'processing' | 'available' | 'failed';
+export type RecordingConsentStatus = 'pending' | 'obtained' | 'exempt' | 'declined';
+export type RecordingProvider =
+  | 'upload'
+  | 'google_drive'
+  | 'manual_upload'
+  | 'google_meet_import'
+  | 'recall_ai'
+  | 'meeting_baas'
+  | 'custom_bot';
+
+export interface MeetingRecording {
+  id: string;
+  meeting_id: string;
+  provider: RecordingProvider;
+  provider_recording_id?: string | null;
+  storage_path?: string | null;
+  duration_seconds: number;
+  file_size?: number;
+  file_size_bytes?: number;
+  file_name?: string;
+  storage_bucket?: string;
+  playback_url?: string | null;
+  mime_type?: string;
+  processing_status?: 'uploading' | 'processing' | 'completed' | 'failed' | 'available';
+  status?: 'uploading' | 'processing' | 'completed' | 'failed' | 'available';
+  created_at?: string;
+  completed_at?: string | null;
+}
+
+export interface MeetingTranscriptSegment {
+  id?: string;
+  transcript_id?: string;
+  meeting_id?: string;
+  speaker_label: string;
+  start_seconds: number;
+  end_seconds: number;
+  content: string;
+  created_at?: string;
+}
+
+export interface MeetingTranscript {
+  id: string;
+  meeting_id: string;
+  recording_id?: string | null;
+  language: string;
+  content?: string;
+  full_text?: string;
+  is_edited?: boolean;
+  edited_by?: string | null;
+  processing_status?: 'processing' | 'completed' | 'failed' | 'ready';
+  status?: 'processing' | 'completed' | 'failed' | 'ready';
+  created_at?: string;
+  updated_at?: string;
+  segments?: MeetingTranscriptSegment[];
+}
+
+export interface MeetingSummaryItem {
+  title?: string;
+  task?: string;
+  responsible?: string;
+  assignee?: string;
+  deadline?: string;
+  transcript_timestamp?: string;
+}
+
+export interface MeetingSummaryContent {
+  overview: string;
+  key_topics: string[];
+  important_updates: string[];
+  decisions_made?: string[];
+  decisions?: string[];
+  problems_and_challenges?: string[];
+  challenges?: string[];
+  pending_questions?: string[];
+  questions?: string[];
+  action_items: MeetingSummaryItem[];
+  next_steps: string[];
+}
+
+export interface MeetingSummary {
+  id: string;
+  meeting_id: string;
+  summary_content?: MeetingSummaryContent;
+  content?: MeetingSummaryContent;
+  processing_status?: 'generating' | 'completed' | 'failed' | 'unavailable';
+  review_status?: 'draft' | 'approved' | 'rejected';
+  notes?: string | null;
+  generated_at?: string;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  updated_at?: string;
+  approver?: Profile;
+}
+
+export interface MeetingRecordingJob {
+  id: string;
+  meeting_id: string;
+  provider: RecordingProvider;
+  external_job_id?: string | null;
+  status: 'requested' | 'bot_joining' | 'recording' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  idempotency_key: string;
+  error_message?: string | null;
+  started_at: string;
+  completed_at?: string | null;
+}
+
 export interface Meeting {
   id: string;
   title: string;
@@ -159,12 +281,31 @@ export interface Meeting {
   location?: string | null;
   starts_at: string;
   ends_at: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  meeting_url?: string | null;
+  meeting_platform?: string;
+  meeting_type?: MeetingType;
+  recording_enabled?: boolean;
+  recording_status?: RecordingStatus;
+  recording_consent_status?: RecordingConsentStatus;
+  visibility?: MeetingVisibility;
+  agenda?: string | null;
+  status?: MeetingStatus;
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
-  department?: Department;
-  organizer?: Profile;
+  department?: Department | string;
+  organizer?: Profile | string;
   minutes?: string | null;
+  participant_ids?: string[];
   action_items?: MeetingAction[];
+  recordings?: MeetingRecording[];
+  transcript?: MeetingTranscript | null;
+  transcripts?: MeetingTranscript[];
+  summary?: MeetingSummary | null;
+  recording_jobs?: MeetingRecordingJob[];
 }
 
 export interface MeetingAction {

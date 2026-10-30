@@ -31,6 +31,7 @@ export default function Sidebar() {
   const coreNavLinks = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'My Tasks', href: '/tasks', icon: CheckSquare, badge: 'Tasks' },
+    { label: 'Smart Meetings', href: '/meetings', icon: FileText, badge: 'Archive' },
     { label: 'Ranking & Leaderboard', href: '/ranking', icon: Trophy, badge: 'XP' },
     { label: 'Calendar & Events', href: '/events', icon: Calendar },
     { label: 'Announcements', href: '/announcements', icon: Megaphone },
@@ -39,7 +40,6 @@ export default function Sidebar() {
   // Role-restricted management modules (Bureau & Admin only)
   const bureauNavLinks = [
     { label: '3Z Lab Projects', href: '/projects', icon: Rocket },
-    { label: 'Meetings & PV', href: '/meetings', icon: FileText },
     { label: 'Document Vault', href: '/documents', icon: FolderLock },
     { label: 'Departments', href: '/departments', icon: Layers },
     { label: 'Members Directory', href: '/members', icon: Users },
