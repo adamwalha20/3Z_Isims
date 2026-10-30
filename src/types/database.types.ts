@@ -336,15 +336,85 @@ export interface Announcement {
   is_read?: boolean;
 }
 
+export type NotificationCategory =
+  | 'meetings'
+  | 'tasks'
+  | 'deadlines'
+  | 'projects'
+  | 'events'
+  | 'announcements'
+  | 'member_activity'
+  | 'xp_achievements'
+  | 'bureau_updates'
+  | 'system_alerts';
+
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+
 export interface NotificationItem {
   id: string;
   recipient_id: string;
-  type: string;
+  recipient_user_id?: string;
+  type?: string;
+  category: NotificationCategory;
   title: string;
-  body: string;
+  body?: string;
+  description?: string;
   target_type?: string | null;
+  related_entity_type?: string | null;
   target_id?: string | null;
+  related_entity_id?: string | null;
+  destination_url: string;
+  is_read?: boolean;
   read_at?: string | null;
+  priority?: NotificationPriority;
+  expires_at?: string | null;
+  created_at: string;
+}
+
+export interface EmailPreferences {
+  id: string;
+  user_id: string;
+  meeting_reminders_enabled: boolean;
+  task_emails_enabled: boolean;
+  event_emails_enabled: boolean;
+  announcement_emails_enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type ReminderType = '48h' | 'morning_8am' | '1h' | 'urgent' | 'cancellation' | 'reschedule';
+export type ScheduledReminderStatus = 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
+
+export interface ScheduledEmailReminder {
+  id: string;
+  meeting_id: string;
+  recipient_user_id: string;
+  reminder_type: ReminderType;
+  scheduled_at: string;
+  status: ScheduledReminderStatus;
+  idempotency_key: string;
+  attempts: number;
+  last_attempt_at?: string | null;
+  sent_at?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  updated_at: string;
+  meeting?: Meeting;
+  recipient?: Profile;
+}
+
+export interface EmailDeliveryLog {
+  id: string;
+  recipient_user_id: string;
+  meeting_id?: string | null;
+  reminder_id?: string | null;
+  email_type: string;
+  recipient_email: string;
+  subject: string;
+  provider_message_id?: string | null;
+  delivery_status: 'sent' | 'delivered' | 'failed' | 'bounced' | 'simulated';
+  error_message?: string | null;
+  sent_at: string;
   created_at: string;
 }
 

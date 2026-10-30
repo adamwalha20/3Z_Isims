@@ -18,6 +18,9 @@ import {
   TaskPriority,
   Announcement,
   NotificationItem,
+  NotificationCategory,
+  NotificationPriority,
+  EmailPreferences,
   DocumentItem,
   Department,
   AuditLog,
@@ -87,6 +90,10 @@ interface AuthContextType {
   meetings: Meeting[];
   announcements: Announcement[];
   notifications: NotificationItem[];
+  unreadNotificationCount: number;
+  emailPreferences: EmailPreferences | null;
+  updateEmailPreferences: (prefs: Partial<EmailPreferences>) => Promise<{ success: boolean; error?: string }>;
+  createInAppNotification: (notif: Omit<NotificationItem, 'id' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
   documents: DocumentItem[];
   departments: Department[];
   members: Profile[];
@@ -123,6 +130,8 @@ interface AuthContextType {
   toggleChecklistItem: (eventId: string, itemIndex: number) => void;
   markNotificationRead: (notificationId: string) => void;
   markAllNotificationsRead: () => void;
+  deleteNotification: (notificationId: string) => void;
+  clearAllNotifications: () => void;
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'created_at'>) => void;
   addDocument: (doc: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => void;
   addMeeting: (meeting: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; meeting?: Meeting; error?: string }>;
@@ -229,6 +238,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [meetings, setMeetings] = useState<Meeting[]>(INITIAL_MEETINGS);
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [emailPreferences, setEmailPreferences] = useState<EmailPreferences | null>({
+    id: 'pref-default',
+    user_id: INITIAL_USER.id,
+    meeting_reminders_enabled: true,
+    task_emails_enabled: true,
+    event_emails_enabled: true,
+    announcement_emails_enabled: true,
+  });
+  const unreadNotificationCount = notifications.filter((n) => !n.is_read && !n.read_at).length;
   const [documents, setDocuments] = useState<DocumentItem[]>(INITIAL_DOCUMENTS);
   const [departments] = useState<Department[]>(INITIAL_DEPARTMENTS);
   const [members, setMembers] = useState<Profile[]>(INITIAL_MEMBERS);
@@ -364,10 +382,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: dbNotifs } = await supabase
           .from('notifications')
           .select('*')
-          .eq('recipient_id', session.user.id)
+          .or(`recipient_id.eq.${session.user.id},recipient_user_id.eq.${session.user.id}`)
           .order('created_at', { ascending: false });
         if (dbNotifs && dbNotifs.length > 0) {
-          setNotifications(dbNotifs);
+          setNotifications(dbNotifs as unknown as NotificationItem[]);
+        }
+
+        // 6. Fetch user's email preferences
+        const { data: dbPrefs } = await supabase
+          .from('email_preferences')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        if (dbPrefs) {
+          setEmailPreferences(dbPrefs as unknown as EmailPreferences);
+        } else {
+          setEmailPreferences({
+            id: `pref-${session.user.id}`,
+            user_id: session.user.id,
+            meeting_reminders_enabled: true,
+            task_emails_enabled: true,
+            event_emails_enabled: true,
+            announcement_emails_enabled: true,
+          });
         }
       } else {
         setIsAuthenticated(false);
@@ -536,8 +573,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Realtime notifications listener
+    const notifsChannel = supabase
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newItem = payload.new as NotificationItem;
+            setNotifications((prev) => {
+              if (prev.some((n) => n.id === newItem.id)) return prev;
+              return [newItem, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedItem = payload.new as NotificationItem;
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === updatedItem.id ? { ...n, ...updatedItem } : n))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id;
+            if (deletedId) {
+              setNotifications((prev) => prev.filter((n) => n.id !== deletedId));
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       subscription?.unsubscribe();
+      supabase.removeChannel(notifsChannel);
     };
   }, []);
 
@@ -927,15 +993,166 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check item
   };
 
-  const markNotificationRead = (notificationId: string) => {
+  const markNotificationRead = async (notificationId: string) => {
+    const now = new Date().toISOString();
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n))
+      prev.map((n) => (n.id === notificationId ? { ...n, is_read: true, read_at: now } : n))
     );
+
+    if (isLiveSupabase && isUuid(notificationId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('notifications')
+            .update({ is_read: true, read_at: now })
+            .eq('id', notificationId);
+        } catch (e: any) {
+          console.warn('markNotificationRead DB warning:', e?.message);
+        }
+      }
+    }
   };
 
-  const markAllNotificationsRead = () => {
+  const markAllNotificationsRead = async () => {
     const now = new Date().toISOString();
-    setNotifications((prev) => prev.map((n) => ({ ...n, read_at: now })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true, read_at: now })));
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('notifications')
+            .update({ is_read: true, read_at: now })
+            .or(`recipient_user_id.eq.${user.id},recipient_id.eq.${user.id}`);
+        } catch (e: any) {
+          console.warn('markAllNotificationsRead DB warning:', e?.message);
+        }
+      }
+    }
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+
+    if (isLiveSupabase && isUuid(notificationId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase.from('notifications').delete().eq('id', notificationId);
+        } catch (e: any) {
+          console.warn('deleteNotification DB warning:', e?.message);
+        }
+      }
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    setNotifications([]);
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('notifications')
+            .delete()
+            .or(`recipient_user_id.eq.${user.id},recipient_id.eq.${user.id}`);
+        } catch (e: any) {
+          console.warn('clearAllNotifications DB warning:', e?.message);
+        }
+      }
+    }
+  };
+
+  const createInAppNotification = async (
+    notifData: Omit<NotificationItem, 'id' | 'created_at'>
+  ): Promise<{ success: boolean; error?: string }> => {
+    const now = new Date().toISOString();
+    const targetUserId = notifData.recipient_user_id || notifData.recipient_id || user?.id || 'usr-default';
+    const newNotif: NotificationItem = {
+      ...notifData,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      recipient_id: targetUserId,
+      recipient_user_id: targetUserId,
+      created_at: now,
+      is_read: false,
+      priority: notifData.priority || 'normal',
+      category: notifData.category || 'system_alerts',
+      destination_url: notifData.destination_url || '/notifications',
+      body: notifData.body || notifData.description || '',
+      description: notifData.description || notifData.body || '',
+    };
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('notifications')
+            .insert({
+              recipient_user_id: isUuid(targetUserId) ? targetUserId : null,
+              recipient_id: isUuid(targetUserId) ? targetUserId : null,
+              title: newNotif.title,
+              description: newNotif.description,
+              body: newNotif.body,
+              category: newNotif.category,
+              priority: newNotif.priority,
+              related_entity_type: newNotif.related_entity_type || null,
+              target_type: newNotif.related_entity_type || null,
+              related_entity_id: newNotif.related_entity_id || null,
+              target_id: newNotif.related_entity_id && isUuid(newNotif.related_entity_id) ? newNotif.related_entity_id : null,
+              destination_url: newNotif.destination_url,
+              is_read: false,
+              expires_at: newNotif.expires_at || null,
+            })
+            .select()
+            .single();
+
+          if (!error && data) {
+            setNotifications((prev) => [data as unknown as NotificationItem, ...prev]);
+            return { success: true };
+          }
+        } catch (e: any) {
+          console.warn('createInAppNotification DB warning:', e?.message);
+        }
+      }
+    }
+
+    setNotifications((prev) => [newNotif, ...prev]);
+    return { success: true };
+  };
+
+  const updateEmailPreferences = async (
+    prefs: Partial<EmailPreferences>
+  ): Promise<{ success: boolean; error?: string }> => {
+    setEmailPreferences((prev) => (prev ? { ...prev, ...prefs, updated_at: new Date().toISOString() } : null));
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const payload = {
+            user_id: user.id,
+            ...prefs,
+            updated_at: new Date().toISOString(),
+          };
+          const { error } = await supabase
+            .from('email_preferences')
+            .upsert(payload, { onConflict: 'user_id' });
+
+          if (error) {
+            console.warn('updateEmailPreferences DB warning:', error.message);
+            return { success: false, error: error.message };
+          }
+          return { success: true };
+        } catch (err: any) {
+          return { success: false, error: err?.message };
+        }
+      }
+    }
+    return { success: true };
   };
 
   const addAnnouncement = (newAnn: Omit<Announcement, 'id' | 'created_at'>) => {
@@ -947,6 +1164,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       is_read: true,
     };
     setAnnouncements((prev) => [ann, ...prev]);
+
+    // Dispatch in-app notification to all active members
+    members.forEach((m) => {
+      if (m.id !== user?.id) {
+        createInAppNotification({
+          recipient_id: m.id,
+          recipient_user_id: m.id,
+          title: `Announcement: ${ann.title}`,
+          description: ann.body.substring(0, 120) + (ann.body.length > 120 ? '...' : ''),
+          body: ann.body.substring(0, 120),
+          category: 'announcements',
+          priority: ann.is_pinned ? 'high' : 'normal',
+          destination_url: '/announcements',
+          related_entity_type: 'announcements',
+          related_entity_id: ann.id,
+        });
+      }
+    });
   };
 
   const addDocument = (docData: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -1020,6 +1255,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!error && data) {
             newMeet.id = data.id;
             await loadUserData();
+            
+            // Dispatch in-app notifications
+            members.forEach((m) => {
+              if (m.id !== user?.id) {
+                createInAppNotification({
+                  recipient_id: m.id,
+                  recipient_user_id: m.id,
+                  title: `New Meeting: ${newMeet.title}`,
+                  description: `Scheduled for ${new Date(newMeet.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.`,
+                  body: `Scheduled for ${new Date(newMeet.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.`,
+                  category: 'meetings',
+                  priority: 'normal',
+                  destination_url: `/meetings/${newMeet.id}`,
+                  related_entity_type: 'meetings',
+                  related_entity_id: newMeet.id,
+                });
+              }
+            });
+
+            // Trigger email reminder scheduling
+            try {
+              fetch('/api/meetings/schedule-reminders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'schedule', meetingId: newMeet.id, meetingData: newMeet }),
+              }).catch(() => {});
+            } catch {}
+
             return { success: true, meeting: newMeet };
           }
           console.warn('addMeeting live db insert notice:', error?.message);
@@ -1030,6 +1293,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setMeetings((prev) => [newMeet, ...prev]);
+
+    // Dispatch in-app notifications in mock/offline mode
+    members.forEach((m) => {
+      if (m.id !== user?.id) {
+        createInAppNotification({
+          recipient_id: m.id,
+          recipient_user_id: m.id,
+          title: `New Meeting: ${newMeet.title}`,
+          description: `Scheduled for ${new Date(newMeet.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.`,
+          body: `Scheduled for ${new Date(newMeet.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.`,
+          category: 'meetings',
+          priority: 'normal',
+          destination_url: `/meetings/${newMeet.id}`,
+          related_entity_type: 'meetings',
+          related_entity_id: newMeet.id,
+        });
+      }
+    });
 
     setAuditLogs((prev) => [
       {
@@ -1077,6 +1358,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { error } = await supabase.from('meetings').update(dbUpdates).eq('id', meetingId);
           if (!error) {
             await loadUserData();
+            
+            // Trigger notifications and reminder adjustments
+            if (updates.status === 'cancelled') {
+              members.forEach((m) => {
+                if (m.id !== user?.id) {
+                  createInAppNotification({
+                    recipient_id: m.id,
+                    recipient_user_id: m.id,
+                    title: `Meeting Cancelled: ${updates.title || 'Club Meeting'}`,
+                    description: `The meeting scheduled has been cancelled by the organizer.`,
+                    body: `The meeting scheduled has been cancelled by the organizer.`,
+                    category: 'meetings',
+                    priority: 'urgent',
+                    destination_url: `/meetings/${meetingId}`,
+                    related_entity_type: 'meetings',
+                    related_entity_id: meetingId,
+                  });
+                }
+              });
+              try {
+                fetch('/api/meetings/schedule-reminders', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'cancel', meetingId }),
+                }).catch(() => {});
+              } catch {}
+            } else if (updates.starts_at || updates.meeting_url || updates.location) {
+              members.forEach((m) => {
+                if (m.id !== user?.id) {
+                  createInAppNotification({
+                    recipient_id: m.id,
+                    recipient_user_id: m.id,
+                    title: `Meeting Updated: ${updates.title || 'Club Meeting'}`,
+                    description: `Schedule or Google Meet link updated. Click to check details.`,
+                    body: `Schedule or Google Meet link updated. Click to check details.`,
+                    category: 'meetings',
+                    priority: 'high',
+                    destination_url: `/meetings/${meetingId}`,
+                    related_entity_type: 'meetings',
+                    related_entity_id: meetingId,
+                  });
+                }
+              });
+              try {
+                fetch('/api/meetings/schedule-reminders', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'reschedule', meetingId }),
+                }).catch(() => {});
+              } catch {}
+            }
+
             return { success: true };
           }
         } catch (e: any) {
@@ -1336,6 +1669,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     await addTask(newTaskData);
+
+    // Notify assigned member specifically about the meeting action item
+    if (assignedMember?.id && assignedMember.id !== user?.id) {
+      createInAppNotification({
+        recipient_id: assignedMember.id,
+        recipient_user_id: assignedMember.id,
+        title: `Action Item Assigned: ${taskTitle}`,
+        description: `You were assigned an action item from "${targetMeeting?.title || 'Club Meeting'}".`,
+        body: `You were assigned an action item from "${targetMeeting?.title || 'Club Meeting'}".`,
+        category: 'tasks',
+        priority: actionItem.priority === 'urgent' || actionItem.priority === 'high' ? 'high' : 'normal',
+        destination_url: `/meetings/${meetingId}#actions`,
+        related_entity_type: 'meetings',
+        related_entity_id: meetingId,
+      });
+    }
 
     const now = new Date().toISOString();
     const newActionId = `act-${Date.now()}`;
@@ -2203,6 +2552,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         meetings,
         announcements,
         notifications,
+        unreadNotificationCount,
+        emailPreferences,
+        updateEmailPreferences,
+        createInAppNotification,
+        deleteNotification,
+        clearAllNotifications,
         documents,
         departments,
         members,

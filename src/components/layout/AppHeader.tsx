@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth, ActiveRole } from '@/lib/auth-context';
+import { NotificationItem } from '@/types/database.types';
 import {
   Bell,
   Shield,
@@ -11,15 +13,51 @@ import {
   ExternalLink,
   LogOut,
   ChevronDown,
+  Calendar,
+  CheckSquare,
+  Sparkles,
+  Megaphone,
+  Award,
+  AlertTriangle,
 } from 'lucide-react';
 
 export default function AppHeader() {
-  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
+  const router = useRouter();
+  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const unreadCount = unreadNotificationCount ?? notifications.filter((n) => !n.is_read && !n.read_at).length;
   const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+
+  const handleNotificationClick = (n: NotificationItem) => {
+    markNotificationRead(n.id);
+    setShowNotifPanel(false);
+    if (n.destination_url) {
+      router.push(n.destination_url);
+    }
+  };
+
+  const getCategoryIcon = (category?: string) => {
+    switch (category) {
+      case 'meetings':
+        return <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      case 'tasks':
+      case 'deadlines':
+        return <CheckSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+      case 'events':
+        return <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+      case 'announcements':
+        return <Megaphone className="w-3.5 h-3.5 text-purple-600 shrink-0" />;
+      case 'xp_achievements':
+        return <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+      case 'system_alerts':
+      case 'bureau_updates':
+        return <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />;
+      default:
+        return <Bell className="w-3.5 h-3.5 text-slate-500 shrink-0" />;
+    }
+  };
 
   const allRoleOptions: { key: ActiveRole; label: string; desc: string; icon: string }[] = [
     { key: 'bureau', label: 'Bureau Officer', desc: 'Full operational & publishing privileges', icon: 'verified_user' },
@@ -188,38 +226,98 @@ export default function AppHeader() {
 
             {/* Notifications Panel */}
             {showNotifPanel && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 z-50">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="absolute right-0 top-full mt-2 w-84 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs text-slate-900">Notifications</span>
-                    {unreadCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                    <span className="font-extrabold text-xs text-slate-900">Notifications</span>
+                    {unreadCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
                         {unreadCount} new
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        All caught up
                       </span>
                     )}
                   </div>
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllNotificationsRead}
-                      className="text-[10px] font-bold text-emerald-700 hover:underline"
+                      className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 transition-colors"
                     >
                       Mark all read
                     </button>
                   )}
                 </div>
-                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pt-2 no-scrollbar">
-                  {notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      onClick={() => markNotificationRead(n.id)}
-                      className={`p-2 rounded-xl text-left transition-colors cursor-pointer ${
-                        !n.read_at ? 'bg-emerald-50/70 border border-emerald-100' : 'bg-slate-50'
-                      }`}
-                    >
-                      <div className="text-[11px] font-bold text-slate-900">{n.title}</div>
-                      <div className="text-[10px] text-slate-600 line-clamp-2 mt-0.5">{n.body}</div>
+
+                <div className="flex flex-col gap-1.5 max-h-80 overflow-y-auto pt-2.5 no-scrollbar">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400">
+                      No notifications yet
                     </div>
-                  ))}
+                  ) : (
+                    notifications.slice(0, 10).map((n) => {
+                      const isUnread = !n.is_read && !n.read_at;
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className={`p-2.5 rounded-2xl text-left transition-all cursor-pointer flex items-start gap-2.5 group ${
+                            isUnread
+                              ? 'bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-100'
+                              : 'hover:bg-slate-50 border border-transparent'
+                          }`}
+                        >
+                          <div className="p-1.5 rounded-xl bg-white shadow-xs shrink-0 mt-0.5">
+                            {getCategoryIcon(n.category)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-800 transition-colors">
+                                {n.title}
+                              </span>
+                              {n.priority === 'urgent' && (
+                                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold uppercase animate-pulse shrink-0">
+                                  Urgent
+                                </span>
+                              )}
+                              {n.priority === 'high' && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold uppercase shrink-0">
+                                  High
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 leading-snug">
+                              {n.description || n.body}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 font-medium">
+                              <span className="capitalize">{n.category?.replace('_', ' ') || 'Notification'}</span>
+                              <span>•</span>
+                              <span>
+                                {n.created_at
+                                  ? new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                                  : 'Recently'}
+                              </span>
+                            </div>
+                          </div>
+                          {isUnread && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0 mt-2"></span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="pt-2.5 mt-2 border-t border-slate-100">
+                  <Link
+                    href="/notifications"
+                    onClick={() => setShowNotifPanel(false)}
+                    className="w-full text-center py-2 px-3 rounded-2xl bg-slate-50 hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-100 hover:border-emerald-200"
+                  >
+                    <span>Open Notification Center</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-emerald-700" />
+                  </Link>
                 </div>
               </div>
             )}

@@ -29,7 +29,7 @@ const AVATAR_PRESETS = [
 ];
 
 export default function ProfilePage() {
-  const { user, activeRole, signOut, updateUserProfile, uploadAvatar } = useAuth();
+  const { user, activeRole, signOut, updateUserProfile, uploadAvatar, emailPreferences, updateEmailPreferences } = useAuth();
 
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [studentId, setStudentId] = useState(user?.student_id || '');
@@ -458,27 +458,71 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Notification Preferences */}
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
-              <span className="text-xs font-bold text-slate-700">Notification Preferences</span>
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={emailNotifs}
-                  onChange={(e) => setEmailNotifs(e.target.checked)}
-                  className="rounded text-emerald-700"
-                />
-                <span>Email summaries for meetings & official announcements</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={inAppNotifs}
-                  onChange={(e) => setInAppNotifs(e.target.checked)}
-                  className="rounded text-emerald-700"
-                />
-                <span>Instant in-app alerts on new task assignments</span>
-              </label>
+            {/* Automated Email & Notification Preferences */}
+            <div className="flex flex-col gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800">Automated Email & Notification Channels</span>
+                  <p className="text-[11px] text-slate-500">Fine-tune transactional email deliveries sent to your registered address.</p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold">
+                  Africa/Tunis Time
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <label className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={emailPreferences?.meeting_reminders_enabled ?? true}
+                    onChange={(e) => updateEmailPreferences({ meeting_reminders_enabled: e.target.checked })}
+                    className="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Meeting Reminders</span>
+                    <span className="text-[10px] text-slate-500 leading-tight block">48h advance, 08:00 AM meeting day & 1h urgent notice.</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={emailPreferences?.task_emails_enabled ?? true}
+                    onChange={(e) => updateEmailPreferences({ task_emails_enabled: e.target.checked })}
+                    className="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Task Assignments</span>
+                    <span className="text-[10px] text-slate-500 leading-tight block">Instant alerts when tasks are assigned, verified, or rejected.</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={emailPreferences?.event_emails_enabled ?? true}
+                    onChange={(e) => updateEmailPreferences({ event_emails_enabled: e.target.checked })}
+                    className="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Club Events</span>
+                    <span className="text-[10px] text-slate-500 leading-tight block">Updates on climate summits, green tech workshops & schedules.</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={emailPreferences?.announcement_emails_enabled ?? true}
+                    onChange={(e) => updateEmailPreferences({ announcement_emails_enabled: e.target.checked })}
+                    className="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Official Announcements</span>
+                    <span className="text-[10px] text-slate-500 leading-tight block">Crucial club announcements and executive updates.</span>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Action Buttons */}

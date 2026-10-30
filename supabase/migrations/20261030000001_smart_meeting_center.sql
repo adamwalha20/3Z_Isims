@@ -336,3 +336,4 @@ WITH CHECK (
   bucket_id = 'meeting-recordings' AND
   public.is_bureau(auth.uid())
 );
+

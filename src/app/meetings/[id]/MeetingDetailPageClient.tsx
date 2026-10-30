@@ -813,3 +813,4 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
     </AppShell>
   );
 }
+
