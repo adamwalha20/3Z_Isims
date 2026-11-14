@@ -413,8 +413,8 @@ export default function AdminNotificationsPage() {
                 <span className="font-bold text-slate-900">08:00 AM Tunis Time</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Cron Schedule</span>
-                <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700">*/15 * * * *</span>
+                <span className="text-slate-500">Vercel Cron Schedule</span>
+                <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700">0 7 * * * (08:00 AM Tunis)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Concurrency Safety</span>
