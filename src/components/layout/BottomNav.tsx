@@ -44,10 +44,11 @@ export default function BottomNav() {
       title: 'Member Workspace',
       items: [
         { label: 'Dashboard & Pass', href: '/', icon: 'home', desc: 'Scoreboard, digital pass & priority tasks', badge: 'Live' },
+        { label: 'QR Attendance & Sessions', href: '/attendance', icon: 'qr_code_scanner', desc: 'Personal QR pass, check-ins & physical sessions', badge: 'QR' },
         { label: 'Task Management', href: '/tasks', icon: 'check_box', desc: 'Assigned tasks & verification status' },
         { label: 'Smart Meetings & Archive', href: '/meetings', icon: 'groups', desc: 'Google Meet, recordings, transcripts & summaries', badge: 'Hub' },
         { label: 'XP Ranking & Leaderboard', href: '/ranking', icon: 'trophy', desc: 'Member ranking, badges & XP history', badge: 'XP' },
-        { label: 'Calendar & Events', href: '/events', icon: 'calendar_month', desc: 'Summits, workshops & QR check-in' },
+        { label: 'Calendar & Events', href: '/events', icon: 'calendar_month', desc: 'Summits, workshops & in-person check-in' },
         { label: 'Announcements', href: '/announcements', icon: 'campaign', desc: 'Official chapter broadcasts & circulars' },
       ],
     },
@@ -56,6 +57,8 @@ export default function BottomNav() {
           {
             title: 'Bureau Operations',
             items: [
+              { label: 'Attendance Scanner', href: '/attendance/scanner', icon: 'camera_alt', desc: 'Scan member QR passes & verify arrival', badge: 'Live' },
+              { label: 'Bureau Attendance Analytics', href: '/admin/attendance', icon: 'analytics', desc: '10 Bureau positions attendance metrics' },
               { label: '3Z Lab Projects', href: '/projects', icon: 'rocket_launch', desc: 'Incubation portfolio & milestones' },
               { label: 'Department Units', href: '/departments', icon: 'domain', desc: 'Training & Innovation, Comms, Logistics' },
               { label: 'Document Vault', href: '/documents', icon: 'folder_open', desc: 'Charters, templates & safe storage' },

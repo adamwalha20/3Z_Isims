@@ -418,6 +418,114 @@ export interface EmailDeliveryLog {
   created_at: string;
 }
 
+// ==============================================================================
+// PHYSICAL SESSIONS & SMART QR ATTENDANCE TYPES
+// ==============================================================================
+
+export type SessionType =
+  | 'training'
+  | 'workshop'
+  | 'conference'
+  | 'event'
+  | 'general_meeting'
+  | 'bureau_meeting'
+  | 'department_meeting'
+  | 'project_meeting'
+  | 'other';
+
+export type SessionAttendanceLifecycle = 'draft' | 'open' | 'paused' | 'closed' | 'finalized';
+
+export type AttendancePunctuality = 'present' | 'late' | 'pending_verification' | 'excused' | 'absent';
+
+export interface PhysicalSession {
+  id: string;
+  title: string;
+  description?: string | null;
+  session_type: SessionType;
+  date: string;
+  starts_at: string;
+  ends_at?: string | null;
+  location: string;
+  organizer_id?: string | null;
+  department_id?: string | null;
+  attendance_open_at?: string | null;
+  attendance_close_at?: string | null;
+  late_threshold_minutes: number;
+  attendance_status: SessionAttendanceLifecycle;
+  xp_on_time: number;
+  xp_late: number;
+  xp_full_session: number;
+  requires_checkout: boolean;
+  requires_manual_verification: boolean;
+  visibility: 'club' | 'bureau' | 'department' | 'confidential';
+  opened_by?: string | null;
+  closed_by?: string | null;
+  finalized_by?: string | null;
+  finalized_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  organizer?: Profile;
+  department?: Department;
+  attendance_records?: SessionAttendance[];
+  present_count?: number;
+  late_count?: number;
+  total_attendees?: number;
+}
+
+export interface MemberQRCredential {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  token_salt: string;
+  is_active: boolean;
+  created_at: string;
+  revoked_at?: string | null;
+  revoked_by?: string | null;
+}
+
+export interface SessionAttendance {
+  id: string;
+  session_id: string;
+  member_id: string;
+  checked_in_at: string;
+  checked_out_at?: string | null;
+  attendance_status: AttendancePunctuality;
+  verification_method: 'qr' | 'manual' | 'rfid';
+  verified_by?: string | null;
+  check_in_idempotency_key?: string | null;
+  xp_awarded: number;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  member?: Profile;
+  session?: PhysicalSession;
+  verifier?: Profile;
+}
+
+export interface AttendanceAuditLog {
+  id: string;
+  session_id: string;
+  member_id: string;
+  action: string;
+  old_value?: Record<string, any> | null;
+  new_value?: Record<string, any> | null;
+  performed_by?: string | null;
+  created_at: string;
+  performer?: Profile;
+  member?: Profile;
+}
+
+export interface BureauAttendanceStat {
+  position_key: string;
+  position_name: string;
+  total_members: number;
+  present_count: number;
+  late_count: number;
+  absent_count: number;
+  attendance_percentage: number;
+  average_attendance_percentage: number;
+}
+
 export interface DocumentItem {
   id: string;
   title: string;

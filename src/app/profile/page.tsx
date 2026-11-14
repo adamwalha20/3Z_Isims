@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import MemberQRCard from '@/components/attendance/MemberQRCard';
 import {
   User,
   Shield,
@@ -18,6 +20,8 @@ import {
   Camera,
   UploadCloud,
   Sparkles,
+  ArrowRight,
+  QrCode,
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
@@ -29,7 +33,7 @@ const AVATAR_PRESETS = [
 ];
 
 export default function ProfilePage() {
-  const { user, activeRole, signOut, updateUserProfile, uploadAvatar, emailPreferences, updateEmailPreferences } = useAuth();
+  const { user, activeRole, signOut, updateUserProfile, uploadAvatar, emailPreferences, updateEmailPreferences, userBureauPositions } = useAuth();
 
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [studentId, setStudentId] = useState(user?.student_id || '');
@@ -546,6 +550,25 @@ export default function ProfilePage() {
               </div>
             )}
           </form>
+        </section>
+
+        {/* My Attendance QR Card Section */}
+        <section className="bg-white rounded-3xl p-6 md:p-8 border border-emerald-900/10 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">My Attendance QR</h2>
+              <p className="text-xs text-slate-500">Official encrypted QR code for campus check-ins and session check-outs</p>
+            </div>
+            <Link
+              href="/attendance"
+              className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1"
+            >
+              <span>View History</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <MemberQRCard user={user} bureauPositions={userBureauPositions} />
         </section>
 
         {/* Sign Out Card */}

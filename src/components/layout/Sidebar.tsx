@@ -19,6 +19,9 @@ import {
   Settings,
   HelpCircle,
   Trophy,
+  QrCode,
+  Camera,
+  BarChart3,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -31,6 +34,7 @@ export default function Sidebar() {
   const coreNavLinks = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'My Tasks', href: '/tasks', icon: CheckSquare, badge: 'Tasks' },
+    { label: 'QR Attendance', href: '/attendance', icon: QrCode, badge: 'Pass' },
     { label: 'Smart Meetings', href: '/meetings', icon: FileText, badge: 'Archive' },
     { label: 'Ranking & Leaderboard', href: '/ranking', icon: Trophy, badge: 'XP' },
     { label: 'Calendar & Events', href: '/events', icon: Calendar },
@@ -39,6 +43,7 @@ export default function Sidebar() {
 
   // Role-restricted management modules (Bureau & Admin only)
   const bureauNavLinks = [
+    { label: 'Attendance Scanner', href: '/attendance/scanner', icon: Camera, badge: 'Live' },
     { label: '3Z Lab Projects', href: '/projects', icon: Rocket },
     { label: 'Document Vault', href: '/documents', icon: FolderLock },
     { label: 'Departments', href: '/departments', icon: Layers },
@@ -48,6 +53,7 @@ export default function Sidebar() {
   const adminLinks = [
     { label: 'Admin Governance', href: '/admin', icon: ShieldCheck },
     { label: 'Member Approvals', href: '/admin/members', icon: UserCheck },
+    { label: 'Bureau Attendance', href: '/admin/attendance', icon: BarChart3 },
   ];
 
   return (
