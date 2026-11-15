@@ -358,3 +358,4 @@ export const en = {
     tunisTimezone: 'Africa/Tunis (UTC+1)',
   },
 };
+

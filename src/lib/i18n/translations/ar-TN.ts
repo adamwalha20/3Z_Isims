@@ -358,3 +358,4 @@ export const arTN = {
     tunisTimezone: 'توقيت تونس (UTC+1)',
   },
 };
+

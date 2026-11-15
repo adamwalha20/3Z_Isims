@@ -14,3 +14,4 @@ CREATE INDEX IF NOT EXISTS idx_profiles_preferred_locale ON public.profiles(pref
 UPDATE public.profiles
 SET preferred_locale = 'en'
 WHERE preferred_locale IS NULL;
+

@@ -358,3 +358,4 @@ export const fr = {
     tunisTimezone: 'Heure de Tunis (UTC+1)',
   },
 };
+
