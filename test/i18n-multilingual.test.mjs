@@ -56,9 +56,9 @@ test('ZEC Campus Hub — Multilingual & Internationalization Engine', async (t) 
     assert.equal(LOCALES.fr.name, 'French');
     assert.equal(LOCALES.fr.flag, '🇫🇷');
 
-    // Tunisian Arabic RTL
+    // Tunisian Arabic (Preserves LTR layout sides so UI sides do not switch)
     assert.equal(LOCALES['ar-TN'].code, 'ar-TN');
-    assert.equal(LOCALES['ar-TN'].dir, 'rtl');
+    assert.equal(LOCALES['ar-TN'].dir, 'ltr');
     assert.equal(LOCALES['ar-TN'].name, 'Tunisian Arabic');
     assert.equal(LOCALES['ar-TN'].flag, '🇹🇳');
   });

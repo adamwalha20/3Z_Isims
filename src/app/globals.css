@@ -26,17 +26,16 @@
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    direction: ltr;
   }
 
-  [dir="rtl"], .rtl-mode {
+  /* Arabic Typography: Cairo font applied cleanly without flipping layout sides */
+  [lang="ar-TN"], .arabic-mode {
     font-family: 'Cairo', 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-    direction: rtl;
-    text-align: right;
   }
 
   [dir="ltr"] {
     direction: ltr;
-    text-align: left;
   }
 
   /* Keep tech identifiers, numbers, emails, tokens strictly LTR in RTL mode */

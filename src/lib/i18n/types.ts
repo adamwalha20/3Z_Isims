@@ -34,7 +34,7 @@ export const LOCALES: Record<Locale, LocaleConfig> = {
     name: 'Tunisian Arabic',
     nativeName: 'العربية التونسية',
     flag: '🇹🇳',
-    dir: 'rtl',
+    dir: 'ltr',
   },
 };
 

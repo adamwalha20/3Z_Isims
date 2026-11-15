@@ -69,7 +69,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-white border-e border-emerald-900/10 min-h-[calc(100vh-4rem)] pt-6 pb-8 px-3 shrink-0">
+    <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-emerald-900/10 min-h-[calc(100vh-4rem)] pt-6 pb-8 px-3 shrink-0">
       {/* Chapter Context Banner */}
       <div className="px-3 py-2.5 mb-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/60 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">

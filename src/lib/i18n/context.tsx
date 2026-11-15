@@ -34,16 +34,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Sync DOM attributes (lang, dir, class)
+  // Sync DOM attributes (lang, dir, class) - preserves side layout orientation
   const applyDomAttributes = useCallback((loc: Locale) => {
     if (typeof document === 'undefined') return;
     const dir = LOCALES[loc]?.dir || 'ltr';
     document.documentElement.lang = loc;
     document.documentElement.dir = dir;
 
-    if (dir === 'rtl') {
-      document.documentElement.classList.add('rtl-mode');
+    if (loc === 'ar-TN') {
+      document.documentElement.classList.add('arabic-mode');
+      document.documentElement.classList.remove('rtl-mode');
     } else {
+      document.documentElement.classList.remove('arabic-mode');
       document.documentElement.classList.remove('rtl-mode');
     }
   }, []);
