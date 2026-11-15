@@ -218,6 +218,14 @@ addBullet('Present (On Time)', 'Checked in before or within the configured late 
 addBullet('Late Arrival', 'Checked in after the threshold. Partial XP (+10 XP) is granted.');
 addBullet('Manual Fallback Search', 'If a student phone battery dies, the organizer can search the member by name or student ID and record manual attendance with verification.');
 
+addSectionTitle('6.3 Scanner Access Governance & Permissions');
+addParagraph('To preserve attendance integrity and prevent unauthorized XP awards, the Attendance Scanner module is strictly restricted to:');
+addBullet('President', 'Executive leader overseeing club activities.');
+addBullet('Vice President', 'Executive co-leader managing session logistics.');
+addBullet('Secretary General', 'Official administrative custodian of member attendance rolls.');
+addBullet('Club Administrator', 'Technical authority for system governance.');
+addParagraph('Other bureau department officers (such as Treasury, HR, Marketing, or Logistics) and general members are blocked from accessing or operating the camera scanner.');
+
 // ======================== CHAPTER 7 ========================
 addChapterHeader(7, 'Notifications & Email Automation');
 
@@ -312,3 +320,4 @@ doc.end();
 writeStream.on('finish', () => {
   console.log(`Successfully generated user manual PDF at: ${outputPath}`);
 });
+

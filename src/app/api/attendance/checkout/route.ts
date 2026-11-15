@@ -13,6 +13,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Strict Authorization: Only President, Vice President, Secretary General, and Administrator
+    const isSuperAdminEmail = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
+    const { data: roleRecords } = await supabase
+      .from('user_roles')
+      .select('roles(key)')
+      .eq('user_id', user.id);
+    const isAdmin = isSuperAdminEmail || roleRecords?.some((r: any) => r.roles?.key === 'admin');
+
+    const { data: userPosData } = await supabase
+      .from('user_bureau_positions')
+      .select('bureau_positions(key)')
+      .eq('user_id', user.id);
+
+    const positions: string[] = (userPosData || [])
+      .map((p: any) => p.bureau_positions?.key?.toLowerCase())
+      .filter(Boolean);
+
+    const allowedPositions = ['president', 'vice_president', 'secretary_general', 'secretary'];
+    const hasAuthorizedPosition = positions.some(
+      (pos) => allowedPositions.includes(pos) || pos.includes('secretary')
+    );
+
+    if (!isAdmin && !hasAuthorizedPosition) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Unauthorized: Only the President, Vice President, Secretary General, and Administrator can verify attendance checkout.',
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { sessionId, memberId } = body;
 

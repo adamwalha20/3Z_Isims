@@ -41,3 +41,4 @@ ON public.tasks(status, due_at);
 -- 5. Add index on scheduled_email_reminders for worker query optimization
 CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_status_scheduled_at 
 ON public.scheduled_email_reminders(status, scheduled_at);
+

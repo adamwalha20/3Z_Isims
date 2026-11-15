@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 import {
   X,
   ChevronRight,
@@ -25,10 +26,17 @@ import {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user, activeRole } = useAuth();
+  const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
+  const canScan = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   // Quick primary tabs for the bar matching simple general navigation: Home, Tasks, Ranking, Events
   const primaryTabs = [
@@ -57,7 +65,9 @@ export default function BottomNav() {
           {
             title: 'Bureau Operations',
             items: [
-              { label: 'Attendance Scanner', href: '/attendance/scanner', icon: 'camera_alt', desc: 'Scan member QR passes & verify arrival', badge: 'Live' },
+              ...(canScan
+                ? [{ label: 'Attendance Scanner', href: '/attendance/scanner', icon: 'camera_alt', desc: 'Scan member QR passes & verify arrival', badge: 'Live' }]
+                : []),
               { label: 'Bureau Attendance Analytics', href: '/admin/attendance', icon: 'analytics', desc: '10 Bureau positions attendance metrics' },
               { label: '3Z Lab Projects', href: '/projects', icon: 'rocket_launch', desc: 'Incubation portfolio & milestones' },
               { label: 'Department Units', href: '/departments', icon: 'domain', desc: 'Training & Innovation, Comms, Logistics' },

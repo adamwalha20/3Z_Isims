@@ -15,11 +15,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    // Check secretary or bureau/admin privileges
-    const { data: isAuth } = await supabase.rpc('is_bureau_or_admin', { user_uuid: user.id });
+    // Strict Authorization: Only President, Vice President, Secretary General, and Administrator can operate scanner
     const isSuperAdminEmail = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
-    if (!isAuth && !isSuperAdminEmail) {
-      return NextResponse.json({ success: false, error: 'Unauthorized: Only secretaries and bureau officers can scan attendance' }, { status: 403 });
+
+    // 1. Check if user has admin role
+    const { data: roleRecords } = await supabase
+      .from('user_roles')
+      .select('roles(key)')
+      .eq('user_id', user.id);
+    const isAdmin = isSuperAdminEmail || roleRecords?.some((r: any) => r.roles?.key === 'admin');
+
+    // 2. Check functional bureau positions (President, Vice President, Secretary General)
+    const { data: userPosData } = await supabase
+      .from('user_bureau_positions')
+      .select('bureau_positions(key)')
+      .eq('user_id', user.id);
+
+    const positions: string[] = (userPosData || [])
+      .map((p: any) => p.bureau_positions?.key?.toLowerCase())
+      .filter(Boolean);
+
+    const allowedPositions = ['president', 'vice_president', 'secretary_general', 'secretary'];
+    const hasAuthorizedPosition = positions.some(
+      (pos) => allowedPositions.includes(pos) || pos.includes('secretary')
+    );
+
+    if (!isAdmin && !hasAuthorizedPosition) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Unauthorized: The attendance scanner is strictly restricted to the President, Vice President, Secretary General, and Club Administrator.',
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

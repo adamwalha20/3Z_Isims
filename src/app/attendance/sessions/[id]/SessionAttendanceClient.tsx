@@ -28,10 +28,18 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatTunisDate, formatTunisTime } from '@/lib/email/timezone-utils';
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 
 export default function SessionAttendanceClient({ id: sessionId }: { id: string }) {
-  const { user, activeRole, isAdmin, bureauMembers, isLiveSupabase } = useAuth();
+  const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition, bureauMembers, isLiveSupabase } = useAuth();
   const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
+  const canScan = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   const [session, setSession] = useState<PhysicalSession | null>(null);
   const [attendanceList, setAttendanceList] = useState<SessionAttendance[]>([]);
@@ -215,7 +223,7 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
             <span>Back to Sessions</span>
           </Link>
 
-          {isBureauOrAdmin && (
+          {canScan && (
             <Link
               href="/attendance/scanner"
               className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { formatTunisTime } from '@/lib/email/timezone-utils';
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 
 interface ScanResultCard {
   success: boolean;
@@ -51,8 +52,14 @@ interface ScanResultCard {
 }
 
 export default function AttendanceScannerPage() {
-  const { user, activeRole, isAdmin, members } = useAuth();
-  const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
+  const { user, activeRole, isAdmin, members, userBureauPositions, activeBureauPosition } = useAuth();
+  const isAuthorized = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   // Session state
   const [sessions, setSessions] = useState<PhysicalSession[]>([]);
@@ -342,17 +349,25 @@ export default function AttendanceScannerPage() {
     );
   });
 
-  if (!isBureauOrAdmin) {
+  if (!isAuthorized) {
     return (
       <AppShell>
         <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
             <ShieldAlert className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-slate-900">Secretary Access Restricted</h2>
-          <p className="text-xs text-slate-500">
-            The in-person session scanner is reserved for authorized Club Secretaries, Bureau Officers, and System Administrators.
+          <h2 className="text-xl font-black text-slate-900">Attendance Scanner Access Restricted</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            The in-person session scanner is strictly reserved for the <strong>President</strong>, <strong>Vice President</strong>, <strong>Secretary General</strong>, and <strong>Club Administrator</strong>.
           </p>
+          <div className="pt-2">
+            <Link
+              href="/attendance"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+            >
+              <span>Back to Attendance Hub</span>
+            </Link>
+          </div>
         </div>
       </AppShell>
     );

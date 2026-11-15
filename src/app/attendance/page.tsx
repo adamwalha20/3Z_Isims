@@ -25,12 +25,20 @@ import {
 } from 'lucide-react';
 import { formatTunisDate, formatTunisTime } from '@/lib/email/timezone-utils';
 import { createClient } from '@/lib/supabase/client';
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 
 type ViewTab = 'qr' | 'history' | 'sessions';
 
 export default function AttendanceMainPage() {
-  const { user, activeRole, isAdmin, userBureauPositions } = useAuth();
+  const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
+  const canScan = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   const [activeTab, setActiveTab] = useState<ViewTab>('qr');
   const [sessions, setSessions] = useState<PhysicalSession[]>([]);
@@ -165,18 +173,20 @@ export default function AttendanceMainPage() {
             </div>
           </div>
 
-          {/* Quick Actions (Bureau / Admin) */}
+          {/* Quick Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {canScan && (
+              <Link
+                href="/attendance/scanner"
+                className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Open Scanner</span>
+              </Link>
+            )}
+
             {isBureauOrAdmin && (
               <>
-                <Link
-                  href="/attendance/scanner"
-                  className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Open Scanner</span>
-                </Link>
-
                 <Link
                   href="/admin/attendance"
                   className="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"

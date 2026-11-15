@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -27,9 +28,16 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { activeRole, user, isAdmin } = useAuth();
+  const { activeRole, user, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
   const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
+  const canScan = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   // General Navigation for all members
   const coreNavLinks = [
@@ -44,7 +52,7 @@ export default function Sidebar() {
 
   // Role-restricted management modules (Bureau & Admin only)
   const bureauNavLinks = [
-    { label: 'Attendance Scanner', href: '/attendance/scanner', icon: Camera, badge: 'Live' },
+    ...(canScan ? [{ label: 'Attendance Scanner', href: '/attendance/scanner', icon: Camera, badge: 'Live' }] : []),
     { label: '3Z Lab Projects', href: '/projects', icon: Rocket },
     { label: 'Document Vault', href: '/documents', icon: FolderLock },
     { label: 'Departments', href: '/departments', icon: Layers },

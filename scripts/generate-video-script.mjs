@@ -159,7 +159,7 @@ addScene(
   'Smart QR Attendance & Mobile Check-In',
   '4:15 – 5:30',
   'Switch to mobile recording. Go to Profile > "My Attendance QR". Then switch to the desk organizer view opening the Camera Scanner. Scan the QR code. Show green success badge: "Present (On Time) +15 XP".',
-  '"For physical sessions—like workshops at the Smart Green Lab or conferences in the auditorium—we use our Smart QR Attendance system.\n\nEvery member has a permanent personal QR pass in their profile. Simply pull up your QR code on your phone when arriving at the venue.\n\nThe organizer scans your code using the in-app scanner. The system evaluates your check-in time against the official start time in Africa/Tunis. If you arrive within the grace period, you are marked \'Present (On Time)\' and awarded full XP immediately.\n\nRunning late? Arriving past the threshold automatically records a Late status with adjusted XP. And if your phone battery dies, organizers can use the manual search fallback to verify your attendance without delays."',
+  '"For physical sessions—like workshops at the Smart Green Lab or conferences in the auditorium—we use our Smart QR Attendance system.\n\nEvery member has a permanent personal QR pass in their profile. Simply pull up your QR code on your phone when arriving at the venue.\n\nTo ensure institutional integrity, the Attendance Scanner is strictly accessible to only the Secretary General, Vice President, President, and Club Administrator. When an authorized officer scans your code, the system evaluates your arrival against the official start time in Africa/Tunis. If you arrive within the grace period, you are marked \'Present (On Time)\' and awarded full XP immediately.\n\nRunning late? Arriving past the threshold automatically records a Late status with adjusted XP. And if your phone battery dies, officers can use the manual search fallback to verify your attendance without delays."',
   'Side-by-side split screen: Member holding phone with QR code on the left, Desk scanner scanning and displaying instant green verification badge on the right.'
 );
 
@@ -212,3 +212,4 @@ doc.end();
 writeStream.on('finish', () => {
   console.log(`Successfully generated video script PDF at: ${outputPath}`);
 });
+

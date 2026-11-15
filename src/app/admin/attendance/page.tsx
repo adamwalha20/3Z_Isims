@@ -19,21 +19,33 @@ import {
   Filter,
 } from 'lucide-react';
 
+import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
+
 const OFFICIAL_POSITIONS = [
+  { key: 'president', label: 'President' },
   { key: 'vice_president', label: 'Vice President' },
   { key: 'secretary_general', label: 'Secretary General' },
   { key: 'treasurer', label: 'Treasurer' },
+  { key: 'training_innovation', label: 'Training & Innovation Manager' },
   { key: 'hr_manager', label: 'HR Manager' },
   { key: 'marketing_design_manager', label: 'Marketing & Design Manager' },
   { key: 'sustainable_campus_manager', label: 'Sustainable Campus Manager' },
+  { key: 'communication_engagement_manager', label: 'Communication & Engagement Manager' },
   { key: 'events_manager', label: 'Events Manager' },
   { key: 'project_manager', label: 'Project Manager' },
   { key: 'partnerships_sponsorship_manager', label: 'Partnerships & Sponsorship Lead' },
 ];
 
 export default function BureauAttendanceAnalyticsPage() {
-  const { user, activeRole, isAdmin, bureauMembers } = useAuth();
+  const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition, bureauMembers } = useAuth();
   const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
+  const canScan = canAccessAttendanceScanner({
+    activeRole,
+    isAdmin,
+    userEmail: user?.email,
+    userBureauPositions,
+    activeBureauPosition,
+  });
 
   const [sessions, setSessions] = useState<PhysicalSession[]>([]);
   const [selectedSessionFilter, setSelectedSessionFilter] = useState<string>('all');
@@ -148,13 +160,15 @@ export default function BureauAttendanceAnalyticsPage() {
             <span>Back to Attendance Hub</span>
           </Link>
 
-          <Link
-            href="/attendance/scanner"
-            className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>Open Scanner</span>
-          </Link>
+          {canScan && (
+            <Link
+              href="/attendance/scanner"
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Open Scanner</span>
+            </Link>
+          )}
         </div>
 
         {/* Header Banner */}

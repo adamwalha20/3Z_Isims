@@ -13,11 +13,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Must be bureau or admin
-    const { data: isAuth } = await supabase.rpc('is_bureau_or_admin', { user_uuid: user.id });
-    const isAdam = user.email?.toLowerCase() === 'adamwalha20@gmail.com';
-    if (!isAuth && !isAdam) {
-      return NextResponse.json({ success: false, error: 'Unauthorized: Only bureau officers and administrators can correct attendance records' }, { status: 403 });
+    // Strict Authorization: Only President, Vice President, Secretary General, and Administrator can correct attendance records
+    const isSuperAdminEmail = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
+    const { data: roleRecords } = await supabase
+      .from('user_roles')
+      .select('roles(key)')
+      .eq('user_id', user.id);
+    const isAdmin = isSuperAdminEmail || roleRecords?.some((r: any) => r.roles?.key === 'admin');
+
+    const { data: userPosData } = await supabase
+      .from('user_bureau_positions')
+      .select('bureau_positions(key)')
+      .eq('user_id', user.id);
+
+    const positions: string[] = (userPosData || [])
+      .map((p: any) => p.bureau_positions?.key?.toLowerCase())
+      .filter(Boolean);
+
+    const allowedPositions = ['president', 'vice_president', 'secretary_general', 'secretary'];
+    const hasAuthorizedPosition = positions.some(
+      (pos) => allowedPositions.includes(pos) || pos.includes('secretary')
+    );
+
+    if (!isAdmin && !hasAuthorizedPosition) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Unauthorized: Only the President, Vice President, Secretary General, and Administrator can correct attendance records.',
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
