@@ -108,3 +108,4 @@ test('ZEC Smart QR Attendance — Scanner Role & Position Permissions', async (t
     assert.equal(allowed, false);
   });
 });
+

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import {
   Activity,
   Database,
@@ -70,6 +71,7 @@ interface HealthReport {
 
 export default function AdminSystemHealthPage() {
   const { user, isAdmin, activeRole } = useAuth();
+  const { t } = useTranslation();
   const [report, setReport] = useState<HealthReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -163,10 +165,10 @@ export default function AdminSystemHealthPage() {
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">System Health & Telemetry</h1>
+                <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">{t('admin.healthTitle')}</h1>
                 {report && getStatusBadge(report.status)}
               </div>
-              <p className="text-xs text-slate-500">Live operational diagnostics across Supabase database, auth, storage, and workers</p>
+              <p className="text-xs text-slate-500">{t('admin.healthSubtitle')}</p>
             </div>
           </div>
 

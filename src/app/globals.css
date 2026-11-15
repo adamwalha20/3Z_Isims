@@ -28,6 +28,28 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  [dir="rtl"], .rtl-mode {
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+    direction: rtl;
+    text-align: right;
+  }
+
+  [dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+  }
+
+  /* Keep tech identifiers, numbers, emails, tokens strictly LTR in RTL mode */
+  .dir-ltr,
+  [dir="rtl"] input[type="email"],
+  [dir="rtl"] input[type="url"],
+  [dir="rtl"] input[type="tel"],
+  [dir="rtl"] .font-mono,
+  [dir="rtl"] .token-display {
+    direction: ltr !important;
+    text-align: left !important;
+  }
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }

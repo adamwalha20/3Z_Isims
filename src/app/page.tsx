@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { getRankLevel, RANK_LEVELS, Task } from '@/types/database.types';
 import {
   CheckCircle,
@@ -43,6 +44,7 @@ import {
 } from '@/components/dashboard/BureauWorkspaces';
 
 export default function DashboardPage() {
+  const { t, isRtl } = useTranslation();
   const {
     user,
     activeRole,
@@ -234,7 +236,7 @@ export default function DashboardPage() {
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1 flex-wrap">
                   <h1 className="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight truncate">
-                    Welcome back, {user?.full_name?.split(' ')[0] || 'Member'}!
+                    {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || 'Member' })}
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-200 uppercase">
                     {activeRole === 'bureau' ? (currentBureauPos.replace(/_/g, ' ')) : activeRole}
@@ -255,14 +257,14 @@ export default function DashboardPage() {
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
                   >
                     <QrCode className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>My Digital Pass</span>
+                    <span>{t('attendance.myQrTab')}</span>
                   </button>
                   <Link
                     href="/ranking"
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-200 transition-colors"
                   >
                     <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Leaderboard #{myLeaderboardRank}</span>
+                    <span>{t('ranking.leaderboard')} #{myLeaderboardRank}</span>
                   </Link>
                 </div>
               </div>
@@ -280,11 +282,11 @@ export default function DashboardPage() {
                 <Award className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Experience Level</div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('ranking.tier')}</div>
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-base text-slate-900">{myRankLevel.name}</span>
                   <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${myRankLevel.badgeColor}`}>
-                    {myXpData.total_xp} XP Total
+                    {myXpData.total_xp} {t('ranking.totalPoints')}
                   </span>
                 </div>
               </div>
@@ -295,7 +297,7 @@ export default function DashboardPage() {
                 {nextLevel ? `${nextLevel.minXp - myXpData.total_xp} XP to ${nextLevel.name}` : 'Max Rank Achieved'}
               </span>
               <div className="text-xs font-mono font-bold text-emerald-700">
-                Rank #{myLeaderboardRank} in ISIMS
+                {t('ranking.rank')} #{myLeaderboardRank} in ISIMS
               </div>
             </div>
           </div>
@@ -311,7 +313,7 @@ export default function DashboardPage() {
           {/* Achievement Badges Unlocked */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs flex-wrap gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">Earned Badges:</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase">{t('ranking.achievements')}:</span>
               {myAchievements.length > 0 ? (
                 myAchievements.map((ach) => (
                   <span
@@ -323,12 +325,12 @@ export default function DashboardPage() {
                   </span>
                 ))
               ) : (
-                <span className="text-slate-400 text-[11px] italic">Complete tasks to unlock badges</span>
+                <span className="text-slate-400 text-[11px] italic">{t('ranking.howToEarn')}</span>
               )}
             </div>
             <Link href="/ranking" className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
-              <span>Full Leaderboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>{t('ranking.leaderboard')}</span>
+              <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
             </Link>
           </div>
         </section>
@@ -445,7 +447,7 @@ export default function DashboardPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-slate-900">My Tasks</h2>
+              <h2 className="text-base font-extrabold text-slate-900">{t('tasks.title')}</h2>
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-mono text-xs font-bold">
                 {memberTasks.length}
               </span>
@@ -459,7 +461,7 @@ export default function DashboardPage() {
                   taskFilter === 'all' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                All
+                {t('tasks.filterAll')}
               </button>
               <button
                 onClick={() => setTaskFilter('todo')}
@@ -467,7 +469,7 @@ export default function DashboardPage() {
                   taskFilter === 'todo' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                To Do
+                {t('tasks.statusToDo')}
               </button>
               <button
                 onClick={() => setTaskFilter('in_progress')}
@@ -475,7 +477,7 @@ export default function DashboardPage() {
                   taskFilter === 'in_progress' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                In Progress
+                {t('tasks.statusInProgress')}
               </button>
               <button
                 onClick={() => setTaskFilter('waiting_verification')}
@@ -483,7 +485,7 @@ export default function DashboardPage() {
                   taskFilter === 'waiting_verification' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                Verification
+                {t('tasks.statusInReview')}
               </button>
               <button
                 onClick={() => setTaskFilter('done')}
@@ -491,7 +493,7 @@ export default function DashboardPage() {
                   taskFilter === 'done' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                Completed
+                {t('tasks.statusCompleted')}
               </button>
             </div>
           </div>

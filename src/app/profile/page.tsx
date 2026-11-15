@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import MemberQRCard from '@/components/attendance/MemberQRCard';
 import {
   User,
@@ -33,6 +35,7 @@ const AVATAR_PRESETS = [
 ];
 
 export default function ProfilePage() {
+  const { t, isRtl } = useTranslation();
   const { user, activeRole, signOut, updateUserProfile, uploadAvatar, emailPreferences, updateEmailPreferences, userBureauPositions } = useAuth();
 
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -527,6 +530,15 @@ export default function ProfilePage() {
                   </div>
                 </label>
               </div>
+            </div>
+
+            {/* Language & Interface Preference */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">{t('profile.languageSettings')}</h3>
+                <p className="text-[11px] text-slate-500">{t('profile.languageHint')}</p>
+              </div>
+              <LanguageSwitcher variant="profile" />
             </div>
 
             {/* Action Buttons */}

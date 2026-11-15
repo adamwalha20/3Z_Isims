@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, ActiveRole } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { NotificationItem } from '@/types/database.types';
 import {
   Bell,
@@ -23,6 +25,7 @@ import {
 
 export default function AppHeader() {
   const router = useRouter();
+  const { t, isRtl } = useTranslation();
   const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
@@ -207,6 +210,9 @@ export default function AppHeader() {
               <span>Assign Roles</span>
             </Link>
           )}
+
+          {/* Language Switcher */}
+          <LanguageSwitcher variant="header" />
 
           {/* Notifications Button */}
           <div className="relative">

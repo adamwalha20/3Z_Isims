@@ -26,10 +26,12 @@ import {
 import { formatTunisDate, formatTunisTime } from '@/lib/email/timezone-utils';
 import { createClient } from '@/lib/supabase/client';
 import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
+import { useTranslation } from '@/lib/i18n/context';
 
 type ViewTab = 'qr' | 'history' | 'sessions';
 
 export default function AttendanceMainPage() {
+  const { t, isRtl } = useTranslation();
   const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
   const canScan = canAccessAttendanceScanner({
@@ -161,14 +163,14 @@ export default function AttendanceMainPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                  Smart QR Attendance & Sessions
+                  {t('attendance.title')}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
                   Physical Hub
                 </span>
               </div>
               <p className="text-xs md:text-sm text-slate-500 mt-0.5">
-                Encrypted in-person check-in passes, real-time punctuality tracking, and verified XP points for ISIMS campus activities.
+                {t('attendance.subtitle')}
               </p>
             </div>
           </div>
@@ -181,7 +183,7 @@ export default function AttendanceMainPage() {
                 className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
               >
                 <Camera className="w-4 h-4" />
-                <span>Open Scanner</span>
+                <span>{t('attendance.openScanner')}</span>
               </Link>
             )}
 
@@ -219,7 +221,7 @@ export default function AttendanceMainPage() {
             }`}
           >
             <QrCode className="w-4 h-4" />
-            <span>My Attendance QR</span>
+            <span>{t('attendance.myQrTab')}</span>
           </button>
 
           <button
@@ -231,7 +233,7 @@ export default function AttendanceMainPage() {
             }`}
           >
             <History className="w-4 h-4" />
-            <span>My Attendance History</span>
+            <span>{t('attendance.historyTab')}</span>
             {totalAttended > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
                 {totalAttended}
@@ -248,7 +250,7 @@ export default function AttendanceMainPage() {
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Physical Sessions</span>
+            <span>{t('attendance.sessionsTab')}</span>
             {sessions.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-slate-200 text-slate-700">
                 {sessions.length}

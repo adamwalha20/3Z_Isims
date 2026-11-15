@@ -23,6 +23,7 @@ export interface Profile {
     email: boolean;
     in_app: boolean;
   };
+  preferred_locale?: 'en' | 'fr' | 'ar-TN';
   created_at: string;
   updated_at: string;
   membership?: ClubMembership | null;

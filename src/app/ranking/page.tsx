@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { getRankLevel, RANK_LEVELS, MemberXp } from '@/types/database.types';
 import {
   Trophy,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export default function RankingPage() {
+  const { t, isRtl } = useTranslation();
   const {
     user,
     isAdmin,
@@ -157,13 +159,13 @@ export default function RankingPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-lg text-slate-900">Member XP Leaderboard</h1>
+                <h1 className="font-extrabold text-lg text-slate-900">{t('ranking.title')}</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
                   Verified Points
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Recognizing verified task deliveries, sustainability milestones, and active campus impact.
+                {t('ranking.subtitle')}
               </p>
             </div>
           </div>

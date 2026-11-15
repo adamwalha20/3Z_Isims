@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { Task, TaskPriority, TaskStatus } from '@/types/database.types';
 import {
   CheckCircle,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 
 export default function TasksPage() {
+  const { t, isRtl } = useTranslation();
   const {
     user,
     activeRole,
@@ -125,7 +127,7 @@ export default function TasksPage() {
                 {filteredTasks.filter((t) => t.status !== 'done').length}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/80 mt-0.5">
-                Active
+                {t('common.active')}
               </span>
             </div>
             <div className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-rose-50 border border-rose-100">
@@ -134,7 +136,7 @@ export default function TasksPage() {
                 <Flame className="w-4 h-4 text-rose-600 fill-rose-600" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 mt-0.5">
-                Urgent
+                {t('common.urgent')}
               </span>
             </div>
             <div className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-amber-50 border border-amber-100">
@@ -142,7 +144,7 @@ export default function TasksPage() {
                 {waitingTasks.length}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 mt-0.5">
-                In Review
+                {t('tasks.statusInReview')}
               </span>
             </div>
             <div className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-teal-50 border border-teal-100">
@@ -150,7 +152,7 @@ export default function TasksPage() {
                 {completedTasks.length}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 mt-0.5">
-                Verified Done
+                {t('tasks.statusCompleted')}
               </span>
             </div>
           </div>

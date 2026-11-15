@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import {
   Lock,
   Mail,
@@ -33,6 +35,7 @@ const SUGGESTED_SKILLS = [
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { t, isRtl } = useTranslation();
   const { signUp, signInWithGoogle, isLoading } = useAuth();
 
   const [fullName, setFullName] = useState('');
@@ -112,7 +115,12 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-[#f4f9f6] py-12">
-      <div className="w-full max-w-lg flex flex-col gap-6">
+      <div className="w-full max-w-lg flex flex-col gap-4">
+        {/* Language Switcher Bar */}
+        <div className="flex justify-end">
+          <LanguageSwitcher variant="header" />
+        </div>
+
         {/* Header Branding */}
         <div className="flex flex-col items-center text-center gap-2">
           <Link href="/" className="group flex flex-col items-center gap-2">

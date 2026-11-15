@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { Lock, Mail, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, isRtl } = useTranslation();
   const { signIn, signInWithGoogle, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +23,7 @@ export default function LoginPage() {
 
     const res = await signIn(email, password);
     if (!res.success) {
-      setErrorMsg(res.error || 'Authentication failed. Please verify your credentials.');
+      setErrorMsg(res.error || t('auth.invalidCredentials'));
     } else {
       window.location.href = '/';
     }
@@ -32,13 +35,18 @@ export default function LoginPage() {
     const res = await signInWithGoogle();
     setIsGoogleLoading(false);
     if (!res.success) {
-      setErrorMsg(res.error || 'Failed to initialize Google login. Please check Supabase Google provider settings or sign in with your email.');
+      setErrorMsg(res.error || 'Failed to initialize Google login. Please sign in with your email.');
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-[#f4f9f6]">
-      <div className="w-full max-w-md flex flex-col gap-5">
+      <div className="w-full max-w-md flex flex-col gap-4">
+        {/* Language Switcher Bar */}
+        <div className="flex justify-end">
+          <LanguageSwitcher variant="header" />
+        </div>
+
         {/* Logo and Brand Title */}
         <div className="flex flex-col items-center text-center gap-2">
           <Link href="/" className="group flex flex-col items-center gap-2">
@@ -55,7 +63,7 @@ export default function LoginPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                ZERO EXCLUSION CARBON POVERTY • Sfax Chapter Hub
+                {t('dashboard.tagline')}
               </p>
             </div>
           </Link>
@@ -64,9 +72,9 @@ export default function LoginPage() {
         {/* Login Form Card */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-900/10 flex flex-col gap-5">
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-extrabold text-slate-900">Sign in to Workspace</h2>
+            <h2 className="text-lg font-extrabold text-slate-900">{t('auth.welcomeBack')}</h2>
             <p className="text-xs text-slate-500">
-              Access your bureau cockpit, department projects, and member portal.
+              {t('auth.loginSubtitle')}
             </p>
           </div>
 
@@ -74,7 +82,7 @@ export default function LoginPage() {
             <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
-                <span className="font-bold">Authentication Notice</span>
+                <span className="font-bold">{t('common.error')}</span>
                 <span>{errorMsg}</span>
               </div>
             </div>
@@ -105,40 +113,40 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+            <span>{isGoogleLoading ? t('common.loading') : 'Google'}</span>
           </button>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">or sign in with email</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('common.or')}</span>
             <div className="flex-1 h-px bg-slate-200"></div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-700">University / Personal Email</label>
+              <label className="text-xs font-bold text-slate-700">{t('auth.email')}</label>
               <div className="relative mt-1">
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@isims.tn"
-                  className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  placeholder={t('auth.emailPlaceholder')}
+                  className="w-full ps-9 pe-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 dir-ltr"
                 />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700">Password</label>
+                <label className="text-xs font-bold text-slate-700">{t('auth.password')}</label>
                 <Link
                   href="/forgot-password"
                   className="text-[11px] font-bold text-emerald-700 hover:underline"
                 >
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
               <div className="relative mt-1">
@@ -148,9 +156,9 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full ps-9 pe-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 dir-ltr"
                 />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               </div>
             </div>
 
@@ -159,16 +167,16 @@ export default function LoginPage() {
               disabled={isLoading || isGoogleLoading}
               className="w-full py-3 px-4 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
-              <span>{isLoading ? 'Verifying Credentials...' : 'Access Workspace'}</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>{isLoading ? t('auth.signingIn') : t('auth.signInButton')}</span>
+              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
             </button>
           </form>
 
           {/* New Member Registration Link */}
           <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
-            <span>New student or bureau candidate?</span>
+            <span>{t('auth.noAccount')}</span>
             <Link href="/signup" className="font-bold text-emerald-700 hover:underline">
-              Register with Skills & Department
+              {t('auth.signupTitle')}
             </Link>
           </div>
         </div>

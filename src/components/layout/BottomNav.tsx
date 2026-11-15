@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 import {
   X,
@@ -27,6 +29,7 @@ import {
 export default function BottomNav() {
   const pathname = usePathname();
   const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
+  const { t, isRtl } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
@@ -40,55 +43,55 @@ export default function BottomNav() {
 
   // Quick primary tabs for the bar matching simple general navigation: Home, Tasks, Ranking, Events
   const primaryTabs = [
-    { label: 'Home', href: '/', icon: 'home' },
-    { label: 'Tasks', href: '/tasks', icon: 'check_box' },
-    { label: 'Ranking', href: '/ranking', icon: 'trophy' },
-    { label: 'Events', href: '/events', icon: 'calendar_month' },
+    { label: t('nav.home'), href: '/', icon: 'home' },
+    { label: t('nav.tasks'), href: '/tasks', icon: 'check_box' },
+    { label: t('nav.ranking'), href: '/ranking', icon: 'trophy' },
+    { label: t('nav.events'), href: '/events', icon: 'calendar_month' },
   ];
 
   // All pages grouped for the expanded mobile drawer
   const navigationSections = [
     {
-      title: 'Member Workspace',
+      title: t('common.appName'),
       items: [
-        { label: 'Dashboard & Pass', href: '/', icon: 'home', desc: 'Scoreboard, digital pass & priority tasks', badge: 'Live' },
-        { label: 'QR Attendance & Sessions', href: '/attendance', icon: 'qr_code_scanner', desc: 'Personal QR pass, check-ins & physical sessions', badge: 'QR' },
-        { label: 'Task Management', href: '/tasks', icon: 'check_box', desc: 'Assigned tasks & verification status' },
-        { label: 'Smart Meetings & Archive', href: '/meetings', icon: 'groups', desc: 'Google Meet, recordings, transcripts & summaries', badge: 'Hub' },
-        { label: 'XP Ranking & Leaderboard', href: '/ranking', icon: 'trophy', desc: 'Member ranking, badges & XP history', badge: 'XP' },
-        { label: 'Calendar & Events', href: '/events', icon: 'calendar_month', desc: 'Summits, workshops & in-person check-in' },
-        { label: 'Announcements', href: '/announcements', icon: 'campaign', desc: 'Official chapter broadcasts & circulars' },
+        { label: `${t('nav.dashboard')} & ${t('attendance.myQrTab')}`, href: '/', icon: 'home', desc: t('dashboard.overview'), badge: 'Live' },
+        { label: t('nav.attendance'), href: '/attendance', icon: 'qr_code_scanner', desc: t('attendance.subtitle'), badge: 'QR' },
+        { label: t('nav.tasks'), href: '/tasks', icon: 'check_box', desc: t('tasks.subtitle') },
+        { label: t('nav.meetings'), href: '/meetings', icon: 'groups', desc: t('meetings.subtitle'), badge: 'Hub' },
+        { label: t('nav.ranking'), href: '/ranking', icon: 'trophy', desc: t('ranking.subtitle'), badge: 'XP' },
+        { label: t('nav.events'), href: '/events', icon: 'calendar_month', desc: t('events.subtitle') },
+        { label: t('nav.announcements'), href: '/announcements', icon: 'campaign', desc: t('common.chapterName') },
       ],
     },
     ...(isBureauOrAdmin
       ? [
           {
-            title: 'Bureau Operations',
+            title: t('nav.bureauModules'),
             items: [
               ...(canScan
-                ? [{ label: 'Attendance Scanner', href: '/attendance/scanner', icon: 'camera_alt', desc: 'Scan member QR passes & verify arrival', badge: 'Live' }]
+                ? [{ label: t('nav.attendanceScanner'), href: '/attendance/scanner', icon: 'camera_alt', desc: t('attendance.scannerSubtitle'), badge: 'Live' }]
                 : []),
-              { label: 'Bureau Attendance Analytics', href: '/admin/attendance', icon: 'analytics', desc: '10 Bureau positions attendance metrics' },
-              { label: '3Z Lab Projects', href: '/projects', icon: 'rocket_launch', desc: 'Incubation portfolio & milestones' },
-              { label: 'Department Units', href: '/departments', icon: 'domain', desc: 'Training & Innovation, Comms, Logistics' },
-              { label: 'Document Vault', href: '/documents', icon: 'folder_open', desc: 'Charters, templates & safe storage' },
-              { label: 'Members Directory', href: '/members', icon: 'badge', desc: 'Student roster & Handover Vault' },
+              { label: t('nav.bureauAttendance'), href: '/admin/attendance', icon: 'analytics', desc: t('admin.healthSubtitle') },
+              { label: t('nav.projects'), href: '/projects', icon: 'rocket_launch', desc: t('projects.subtitle') },
+              { label: t('nav.departments'), href: '/departments', icon: 'domain', desc: t('members.departmentsCount') },
+              { label: t('nav.documents'), href: '/documents', icon: 'folder_open', desc: t('meetings.meetingMinutes') },
+              { label: t('nav.members'), href: '/members', icon: 'badge', desc: t('members.subtitle') },
             ],
           },
         ]
       : []),
     {
-      title: 'Account & Administration',
+      title: t('nav.adminControls'),
       items: [
-        { label: 'Digital Pass & Profile', href: '/profile', icon: 'qr_code_2', desc: 'Student ID, NFC pass & settings' },
+        { label: t('nav.profile'), href: '/profile', icon: 'qr_code_2', desc: t('profile.subtitle') },
         ...(user?.email?.toLowerCase() === 'adamwalha20@gmail.com'
           ? [
-              { label: 'Bureau Administration', href: '/admin', icon: 'admin_panel_settings', desc: 'Membership approval & audit logs', badge: 'Admin' },
-              { label: 'Bureau Mandates (10 Roles)', href: '/admin/roles', icon: 'shield_person', desc: 'Manage 10 officer responsibilities' },
+              { label: t('nav.adminGovernance'), href: '/admin', icon: 'admin_panel_settings', desc: t('bureau.subtitle'), badge: 'Admin' },
+              { label: t('bureau.mandatesTab', { count: 12 }), href: '/admin/roles', icon: 'shield_person', desc: t('bureau.subtitle') },
             ]
           : []),
-        { label: 'Sign In', href: '/login', icon: 'login', desc: 'Switch user session' },
-        { label: 'Student Registration', href: '/signup', icon: 'person_add', desc: 'Onboard new member application', highlight: true },
+        { label: t('nav.signIn'), href: '/login', icon: 'login', desc: t('auth.loginSubtitle') },
+        { label: t('nav.studentRegistration'), href: '/signup', icon: 'person_add', desc: t('auth.signupSubtitle'), highlight: true },
       ],
     },
   ];
@@ -147,7 +150,7 @@ export default function BottomNav() {
               </span>
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse"></span>
             </div>
-            <span className="text-[10px]">{isMenuOpen ? 'Close' : 'All Pages'}</span>
+            <span className="text-[10px]">{isMenuOpen ? t('common.close') : t('nav.allPages')}</span>
             {isMoreActive && !isMenuOpen && (
               <span className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-600"></span>
             )}
@@ -224,6 +227,9 @@ export default function BottomNav() {
                   </Link>
                 </div>
               </div>
+
+              {/* Language Selector */}
+              <LanguageSwitcher variant="mobile" />
 
               {/* Navigation Sections */}
               {navigationSections.map((sec) => (

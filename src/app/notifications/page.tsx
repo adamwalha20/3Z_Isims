@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { NotificationItem, NotificationCategory } from '@/types/database.types';
 import {
   Bell,
@@ -27,6 +28,7 @@ type FilterTab = 'all' | 'unread' | 'meetings' | 'tasks' | 'events' | 'announcem
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { t, isRtl } = useTranslation();
   const {
     notifications,
     unreadNotificationCount,
@@ -147,15 +149,15 @@ export default function NotificationsPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Notification Center</h1>
+                <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{t('notifications.title')}</h1>
                 {unreadCount > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-extrabold text-xs">
-                    {unreadCount} unread
+                    {unreadCount} {t('common.pending')}
                   </span>
                 )}
               </div>
               <p className="text-xs md:text-sm text-slate-500 mt-1">
-                Stay updated with meetings, task assignments, verified achievements, and club announcements.
+                {t('notifications.subtitle')}
               </p>
             </div>
           </div>
@@ -168,7 +170,7 @@ export default function NotificationsPage() {
                 className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs"
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                <span>Mark All Read</span>
+                <span>{t('common.markAllRead')}</span>
               </button>
             )}
             {notifications.length > 0 && (
