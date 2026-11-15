@@ -184,3 +184,4 @@ describe('ZEC Campus Hub — Admin Audit Logs & Undo Operations', () => {
     assert.equal(engine.userRoles['usr-member-1'], 'member');
   });
 });
+

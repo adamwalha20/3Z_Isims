@@ -130,3 +130,27 @@ CREATE POLICY "Admins and system can insert audit logs"
 ON public.audit_logs FOR INSERT
 TO authenticated
 WITH CHECK (true);
+
+-- 8. Fix xp_transactions schema and constraints for physical attendance scanning
+ALTER TABLE public.xp_transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;
+
+ALTER TABLE public.xp_transactions DROP CONSTRAINT IF EXISTS xp_transactions_source_type_check;
+ALTER TABLE public.xp_transactions ADD CONSTRAINT xp_transactions_source_type_check CHECK (
+  source_type = ANY (ARRAY[
+    'task'::text,
+    'milestone'::text,
+    'event'::text,
+    'initiative'::text,
+    'adjustment'::text,
+    'session_attendance'::text,
+    'session_checkout'::text,
+    'attendance_adjustment'::text,
+    'meeting'::text
+  ])
+);
+
+-- 9. Ensure notifications table allows default type
+ALTER TABLE public.notifications ALTER COLUMN type SET DEFAULT 'general';
+ALTER TABLE public.notifications ALTER COLUMN type DROP NOT NULL;
+
+

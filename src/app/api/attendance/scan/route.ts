@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
 
     // Check secretary or bureau/admin privileges
     const { data: isAuth } = await supabase.rpc('is_bureau_or_admin', { user_uuid: user.id });
-    const isAdam = user.email?.toLowerCase() === 'adamwalha20@gmail.com';
-    if (!isAuth && !isAdam) {
+    const isSuperAdminEmail = ['adamwalha20@gmail.com', 'mahdihelmin@gmail.com'].includes(user.email?.toLowerCase() || '');
+    if (!isAuth && !isSuperAdminEmail) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Only secretaries and bureau officers can scan attendance' }, { status: 403 });
     }
 

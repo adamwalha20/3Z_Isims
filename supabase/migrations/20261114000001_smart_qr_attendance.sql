@@ -222,6 +222,7 @@ BEGIN
             points,
             reason,
             source_type,
+            source_id,
             reference_id,
             idempotency_key,
             created_at
@@ -230,6 +231,7 @@ BEGIN
             v_xp_to_award,
             'Physical Attendance: ' || v_session.title || ' (' || v_punctuality || ')',
             'session_attendance',
+            v_attendance_id,
             v_attendance_id::text,
             v_xp_idempotency_key,
             now()
@@ -350,6 +352,7 @@ BEGIN
             points,
             reason,
             source_type,
+            source_id,
             reference_id,
             idempotency_key,
             created_at
@@ -358,6 +361,7 @@ BEGIN
             v_bonus_xp,
             'Full Session Checkout Bonus: ' || v_session.title,
             'session_checkout',
+            v_att.id,
             v_att.id::text,
             v_bonus_idempotency,
             now()
@@ -457,6 +461,7 @@ BEGIN
             points,
             reason,
             source_type,
+            source_id,
             reference_id,
             created_at
         ) VALUES (
@@ -464,6 +469,7 @@ BEGIN
             v_delta_xp,
             'Attendance Correction: ' || v_session.title || ' (' || v_old_status || ' -> ' || p_new_status || ') - ' || p_reason,
             'attendance_adjustment',
+            p_attendance_id,
             p_attendance_id::text,
             now()
         );
