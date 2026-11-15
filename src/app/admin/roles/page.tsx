@@ -31,7 +31,7 @@ export default function AdminRolesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.email?.toLowerCase() === 'mahdihelmin@gmail.com' || user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN');
+  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN');
 
   if (!isAuthorized) {
     return (

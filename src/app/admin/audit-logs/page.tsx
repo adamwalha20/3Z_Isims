@@ -56,7 +56,7 @@ export default function AdminAuditLogsPage() {
   const [undoingLogId, setUndoingLogId] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.email?.toLowerCase() === 'mahdihelmin@gmail.com';
+  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
 
   const fetchLogs = async () => {
     setIsLoading(true);

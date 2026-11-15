@@ -70,12 +70,18 @@ FROM public.profiles p
 CROSS JOIN public.roles r
 WHERE r.key = 'admin'
   AND (
-    lower(p.email) IN ('adamwalha20@gmail.com', 'mahdihelmin@gmail.com')
+    lower(p.email) = 'adamwalha20@gmail.com'
     OR p.student_id ILIKE 'ISIMS-ADMIN-%'
   )
+  AND lower(p.email) != 'mahdihelmin@gmail.com'
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
--- 5. Strengthen public.is_admin function
+-- Revoke admin role from mahdihelmin@gmail.com if present
+DELETE FROM public.user_roles 
+WHERE user_id IN (SELECT id FROM public.profiles WHERE lower(email) = 'mahdihelmin@gmail.com')
+  AND role_id IN (SELECT id FROM public.roles WHERE key = 'admin');
+
+-- 5. Strengthen public.is_admin function (excluding mahdihelmin@gmail.com)
 CREATE OR REPLACE FUNCTION public.is_admin(user_uuid UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -83,16 +89,23 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT public.has_global_role(user_uuid, 'admin')
-  OR EXISTS (
-    SELECT 1 FROM public.profiles 
-    WHERE id = user_uuid 
-    AND (
-      lower(email) IN ('adamwalha20@gmail.com', 'mahdihelmin@gmail.com')
-      OR student_id ILIKE 'ISIMS-ADMIN-%'
+  SELECT (
+    public.has_global_role(user_uuid, 'admin')
+    OR EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = user_uuid 
+      AND (
+        lower(email) = 'adamwalha20@gmail.com'
+        OR student_id ILIKE 'ISIMS-ADMIN-%'
+      )
     )
+    OR public.has_bureau_position(user_uuid, 'president')
   )
-  OR public.has_bureau_position(user_uuid, 'president');
+  AND NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_uuid
+    AND lower(email) = 'mahdihelmin@gmail.com'
+  );
 $$;
 
 -- 6. Configure RLS policy on user_bureau_positions
@@ -152,5 +165,202 @@ ALTER TABLE public.xp_transactions ADD CONSTRAINT xp_transactions_source_type_ch
 -- 9. Ensure notifications table allows default type
 ALTER TABLE public.notifications ALTER COLUMN type SET DEFAULT 'general';
 ALTER TABLE public.notifications ALTER COLUMN type DROP NOT NULL;
+
+-- 10. Drop any overloaded/ambiguous signatures of register_qr_attendance and declare single canonical RPC
+DROP FUNCTION IF EXISTS public.register_qr_attendance(uuid, uuid, text, uuid, timestamp with time zone);
+DROP FUNCTION IF EXISTS public.register_qr_attendance(uuid, uuid, uuid, text, timestamp with time zone);
+
+CREATE OR REPLACE FUNCTION public.register_qr_attendance(
+    p_session_id UUID,
+    p_member_id UUID,
+    p_verified_by UUID DEFAULT NULL,
+    p_verification_method TEXT DEFAULT 'qr',
+    p_custom_check_in TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_session RECORD;
+    v_member RECORD;
+    v_checkin_time TIMESTAMPTZ;
+    v_late_limit TIMESTAMPTZ;
+    v_punctuality TEXT;
+    v_xp_to_award INT := 0;
+    v_idempotency_key TEXT;
+    v_xp_idempotency_key TEXT;
+    v_attendance_id UUID;
+    v_existing RECORD;
+BEGIN
+    -- 1. Fetch Session
+    SELECT * INTO v_session FROM public.sessions WHERE id = p_session_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Session not found');
+    END IF;
+
+    -- Verify session attendance state
+    IF v_session.attendance_status != 'open' THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Attendance is currently ' || v_session.attendance_status || '. Scans are only accepted when attendance is open.'
+        );
+    END IF;
+
+    -- 2. Fetch Member
+    SELECT * INTO v_member FROM public.profiles WHERE id = p_member_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Member not found');
+    END IF;
+
+    -- 3. Check for existing attendance record
+    SELECT * INTO v_existing FROM public.session_attendance
+    WHERE session_id = p_session_id AND member_id = p_member_id;
+
+    IF FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'already_registered', true,
+            'message', 'Member already registered for this session at ' || to_char(v_existing.checked_in_at, 'HH24:MI:SS'),
+            'attendance', row_to_json(v_existing)
+        );
+    END IF;
+
+    -- 4. Determine check-in timestamp and punctuality
+    v_checkin_time := COALESCE(p_custom_check_in, now());
+    v_late_limit := v_session.starts_at + (v_session.late_threshold_minutes || ' minutes')::INTERVAL;
+
+    IF v_session.requires_manual_verification THEN
+        v_punctuality := 'pending_verification';
+        v_xp_to_award := 0;
+    ELSIF v_checkin_time <= v_late_limit THEN
+        v_punctuality := 'present';
+        v_xp_to_award := v_session.xp_on_time;
+    ELSE
+        v_punctuality := 'late';
+        v_xp_to_award := v_session.xp_late;
+    END IF;
+
+    -- 5. Construct idempotency keys
+    v_idempotency_key := 'att_' || p_session_id || '_' || p_member_id || '_in';
+    v_xp_idempotency_key := 'xp_att_' || p_session_id || '_' || p_member_id;
+
+    -- 6. Insert attendance record
+    INSERT INTO public.session_attendance (
+        session_id,
+        member_id,
+        checked_in_at,
+        attendance_status,
+        verification_method,
+        verified_by,
+        check_in_idempotency_key,
+        xp_awarded,
+        notes
+    ) VALUES (
+        p_session_id,
+        p_member_id,
+        v_checkin_time,
+        v_punctuality,
+        p_verification_method,
+        p_verified_by,
+        v_idempotency_key,
+        v_xp_to_award,
+        CASE WHEN v_punctuality = 'late' THEN 'Late arrival by ' || round(extract(epoch from (v_checkin_time - v_session.starts_at))/60) || ' mins' ELSE 'Punctual arrival' END
+    )
+    RETURNING id INTO v_attendance_id;
+
+    -- 7. Award XP atomically if applicable
+    IF v_xp_to_award > 0 THEN
+        -- Upsert member XP total
+        INSERT INTO public.member_xp (user_id, total_xp, completed_tasks_count, updated_at)
+        VALUES (p_member_id, v_xp_to_award, 0, now())
+        ON CONFLICT (user_id) DO UPDATE
+        SET total_xp = public.member_xp.total_xp + v_xp_to_award,
+            updated_at = now();
+
+        -- Record XP transaction with idempotency
+        INSERT INTO public.xp_transactions (
+            user_id,
+            points,
+            reason,
+            source_type,
+            source_id,
+            reference_id,
+            idempotency_key,
+            created_at
+        ) VALUES (
+            p_member_id,
+            v_xp_to_award,
+            'Physical Attendance: ' || v_session.title || ' (' || v_punctuality || ')',
+            'session_attendance',
+            v_attendance_id,
+            v_attendance_id::text,
+            v_xp_idempotency_key,
+            now()
+        )
+        ON CONFLICT (idempotency_key) DO NOTHING;
+    END IF;
+
+    -- 8. Write audit log
+    INSERT INTO public.attendance_audit_logs (
+        session_id,
+        member_id,
+        action,
+        new_value,
+        performed_by
+    ) VALUES (
+        p_session_id,
+        p_member_id,
+        'check_in',
+        jsonb_build_object(
+            'status', v_punctuality,
+            'checked_in_at', v_checkin_time,
+            'xp_awarded', v_xp_to_award,
+            'method', p_verification_method
+        ),
+        p_verified_by
+    );
+
+    -- 9. Create notification for member
+    INSERT INTO public.notifications (
+        recipient_user_id,
+        recipient_id,
+        type,
+        title,
+        description,
+        body,
+        category,
+        priority,
+        destination_url,
+        related_entity_type,
+        related_entity_id,
+        is_read
+    ) VALUES (
+        p_member_id,
+        p_member_id,
+        'attendance_verified',
+        'Attendance Verified: ' || v_session.title,
+        'Checked in at ' || to_char(v_checkin_time, 'HH24:MI:SS') || ' (' || v_punctuality || '). +' || v_xp_to_award || ' XP awarded.',
+        'Checked in at ' || to_char(v_checkin_time, 'HH24:MI:SS') || ' (' || v_punctuality || '). +' || v_xp_to_award || ' XP awarded.',
+        'xp_achievements',
+        'normal',
+        '/attendance',
+        'sessions',
+        p_session_id::text,
+        false
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'attendance_id', v_attendance_id,
+        'member_id', p_member_id,
+        'member_name', v_member.full_name,
+        'status', v_punctuality,
+        'checked_in_at', v_checkin_time,
+        'xp_awarded', v_xp_to_award
+    );
+END;
+$$;
 
 

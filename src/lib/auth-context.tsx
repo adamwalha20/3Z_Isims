@@ -2605,7 +2605,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isApproved,
         isLoading,
         isLiveSupabase,
-        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.email?.toLowerCase() === 'mahdihelmin@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
+        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
         tasks,
         projects,
         events,
