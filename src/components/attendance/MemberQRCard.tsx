@@ -46,18 +46,14 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
         });
         setQrDataUrl(url);
       } else {
-        // Fallback for offline/mock mode
-        const mockPayload = `zec_att_v1:${user?.id || 'usr-default'}:${Date.now().toString(16)}`;
-        setQrPayload(mockPayload);
-        const url = await QRCode.toDataURL(mockPayload, {
-          width: 320,
-          margin: 2,
-          color: { dark: '#064e3b', light: '#ffffff' },
-        });
-        setQrDataUrl(url);
+        setErrorMessage(data?.error || 'Unable to retrieve cryptographic pass. Please click regenerate.');
+        setQrPayload('');
+        setQrDataUrl('');
       }
     } catch (err: any) {
-      console.warn('QR generation notice:', err?.message);
+      setErrorMessage(err?.message || 'Network error fetching attendance pass.');
+      setQrPayload('');
+      setQrDataUrl('');
     } finally {
       setIsLoading(false);
     }

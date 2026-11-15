@@ -38,9 +38,11 @@ export function BureauPositionSelector() {
 
   const positions: { key: ActiveBureauPosition; label: string; icon: string }[] = [
     { key: 'all', label: 'All Operations', icon: 'dashboard' },
+    { key: 'president', label: 'President', icon: 'shield_person' },
     { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart' },
     { key: 'secretary_general', label: 'Secretary General', icon: 'history_edu' },
     { key: 'treasurer', label: 'Treasurer', icon: 'payments' },
+    { key: 'training_innovation', label: 'Training & Innovation', icon: 'psychology' },
     { key: 'hr_manager', label: 'HR Manager', icon: 'badge' },
     { key: 'marketing_design_manager', label: 'Marketing & Design', icon: 'palette' },
     { key: 'sustainable_campus_manager', label: 'Sustainable Campus', icon: 'eco' },
@@ -1055,6 +1057,150 @@ export function CommsEngagementCockpit() {
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Audience Scope</span>
           <div className="text-2xl font-black text-emerald-800 mt-1">Club-Wide</div>
           <span className="text-[10px] text-slate-500 mt-0.5">All active ISIMS chapter members</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// 12. PRESIDENT COCKPIT (Executive Club Leadership & Institutional Strategy)
+// ==============================================================================
+
+export function PresidentCockpit() {
+  const { members, bureauMembers, decisions, meetings } = useAuth();
+  const presidentMember = bureauMembers.find((bm) => bm.position_key === 'president')?.member_name || 'Adam Walha';
+  const isVacant = presidentMember === 'Unassigned';
+
+  const activeMembers = members.filter((m) => m.membership?.membership_status === 'active');
+  const pendingMembers = members.filter((m) => m.membership?.membership_status === 'pending');
+  const filledMandates = bureauMembers.filter((bm) => bm.member_name !== 'Unassigned').length;
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-emerald-50/50 rounded-3xl border border-emerald-900/10 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-emerald-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">shield_person</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">President Executive Governance</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-slate-900 text-white'}`}>
+                {presidentMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Executive leadership, university institutional relations & strategic steering</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/members"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Review Applications ({pendingMembers.length})</span>
+          </Link>
+          <Link
+            href="/meetings"
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Call Bureau Assembly</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Club Members</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">{activeMembers.length}</div>
+          <span className="text-[10px] text-emerald-700 font-bold mt-0.5">+{pendingMembers.length} pending review</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Executive Bureau</span>
+          <div className="text-2xl font-black text-emerald-800 mt-1">{filledMandates} / {bureauMembers.length || 12}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Mandates assigned</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Institutional PVs</span>
+          <div className="text-2xl font-black text-purple-700 mt-1">{decisions.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Adopted resolutions</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Meetings Logged</span>
+          <div className="text-2xl font-black text-blue-700 mt-1">{meetings.length}</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Institutional memory archive</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// 13. TRAINING & INNOVATION COCKPIT (Climate Tech, Hackathons & AI Telemetry)
+// ==============================================================================
+
+export function TrainingInnovationCockpit() {
+  const { bureauMembers, tasks, projects } = useAuth();
+  const leadMember = bureauMembers.find((bm) => bm.position_key === 'training_innovation')?.member_name || 'Unassigned';
+  const isVacant = leadMember === 'Unassigned';
+
+  const techTasks = tasks.filter((t) => t.department?.slug?.includes('training') || t.title.toLowerCase().includes('training') || t.title.toLowerCase().includes('workshop'));
+  const activeProjects = projects.filter((p) => p.status === 'active' || p.status === 'planning');
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-white to-cyan-50/40 rounded-3xl border border-cyan-900/10 shadow-sm flex flex-col gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-cyan-900/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-cyan-700 text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">psychology</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900">Training & Innovation Lab</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isVacant ? 'bg-amber-100 text-amber-800' : 'bg-cyan-100 text-cyan-900'}`}>
+                {leadMember}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Technical climate academy, clean tech prototyping & AI telemetry workshops</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/attendance"
+            className="px-3.5 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Schedule Workshop</span>
+          </Link>
+          <Link
+            href="/projects"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Lab Project</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Technical Tracks</span>
+          <div className="text-2xl font-black text-cyan-800 mt-1">{techTasks.length} Active</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">Clean IoT, Solar audits & AI carbon modeling</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Lab Projects</span>
+          <div className="text-2xl font-black text-emerald-700 mt-1">{activeProjects.length} Initiatives</div>
+          <span className="text-[10px] text-slate-500 mt-0.5">ISIMS campus prototypes</span>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Smart Green Lab</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">Operational</div>
+          <span className="text-[10px] text-emerald-700 font-bold mt-0.5">IoT sensors & telemetry active</span>
         </div>
       </div>
     </div>

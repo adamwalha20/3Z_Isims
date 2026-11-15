@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { formatTunisDate, formatTunisTime } from '@/lib/email/timezone-utils';
+import { createClient } from '@/lib/supabase/client';
 
 type ViewTab = 'qr' | 'history' | 'sessions';
 
@@ -59,69 +60,30 @@ export default function AttendanceMainPage() {
         setSessions(data.sessions);
       }
 
-      // 2. Fetch member's personal attendance history
-      // Fallback mock history if DB query returns empty
-      const mockHistory: SessionAttendance[] = [
-        {
-          id: 'hist-1',
-          session_id: 'sess-001',
-          member_id: user?.id || 'usr-001',
-          checked_in_at: '2026-11-11T09:05:00.000Z',
-          attendance_status: 'present',
-          verification_method: 'qr',
-          xp_awarded: 15,
-          created_at: '2026-11-11T09:05:00.000Z',
-          updated_at: '2026-11-11T09:05:00.000Z',
-          session: {
-            id: 'sess-001',
-            title: 'Renewable Solar Tech & IoT Hardware Workshop',
-            session_type: 'workshop',
-            date: '2026-11-11',
-            starts_at: '2026-11-11T09:00:00.000Z',
-            location: 'Smart Green Lab, ISIMS',
-            late_threshold_minutes: 10,
-            attendance_status: 'finalized',
-            xp_on_time: 15,
-            xp_late: 10,
-            xp_full_session: 5,
-            requires_checkout: false,
-            requires_manual_verification: false,
-            visibility: 'club',
-            created_at: '2026-11-11T00:00:00.000Z',
-            updated_at: '2026-11-11T00:00:00.000Z',
-          },
-        },
-        {
-          id: 'hist-2',
-          session_id: 'sess-002',
-          member_id: user?.id || 'usr-001',
-          checked_in_at: '2026-11-07T14:18:00.000Z',
-          attendance_status: 'late',
-          verification_method: 'qr',
-          xp_awarded: 10,
-          created_at: '2026-11-07T14:18:00.000Z',
-          updated_at: '2026-11-07T14:18:00.000Z',
-          session: {
-            id: 'sess-002',
-            title: 'ISIMS Zero Carbon Annual Strategy Summit',
-            session_type: 'conference',
-            date: '2026-11-07',
-            starts_at: '2026-11-07T14:00:00.000Z',
-            location: 'Main Auditorium, ISIMS',
-            late_threshold_minutes: 15,
-            attendance_status: 'finalized',
-            xp_on_time: 15,
-            xp_late: 10,
-            xp_full_session: 5,
-            requires_checkout: true,
-            requires_manual_verification: false,
-            visibility: 'club',
-            created_at: '2026-11-07T00:00:00.000Z',
-            updated_at: '2026-11-07T00:00:00.000Z',
-          },
-        },
-      ];
-      setMyAttendance(mockHistory);
+      // 2. Fetch member's personal attendance history directly from Supabase
+      if (user?.id) {
+        const supabase = createClient();
+        if (supabase) {
+          const { data: attHistory, error: attErr } = await supabase
+            .from('session_attendance')
+            .select(`
+              *,
+              session:sessions(*)
+            `)
+            .eq('member_id', user.id)
+            .order('checked_in_at', { ascending: false });
+
+          if (!attErr && attHistory) {
+            setMyAttendance(attHistory as unknown as SessionAttendance[]);
+          } else {
+            setMyAttendance([]);
+          }
+        } else {
+          setMyAttendance([]);
+        }
+      } else {
+        setMyAttendance([]);
+      }
     } catch (err) {
       console.warn('Attendance load error:', err);
     } finally {

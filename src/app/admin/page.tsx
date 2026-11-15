@@ -12,12 +12,46 @@ import {
   ChevronRight,
   AlertCircle,
   FileSpreadsheet,
+  Activity,
+  QrCode,
+  Bell,
+  Undo2,
 } from 'lucide-react';
 
 export default function AdminGovernancePage() {
-  const { user, auditLogs, members } = useAuth();
+  const { user, auditLogs, members, bureauMembers } = useAuth();
 
   const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+
+  const pendingMembers = members.filter(
+    (m) => m.membership?.membership_status === 'pending' && m.email?.toLowerCase() !== 'adamwalha20@gmail.com'
+  );
+
+  const handleExportAuditLedger = () => {
+    if (!auditLogs || auditLogs.length === 0) {
+      alert('No audit logs available to export.');
+      return;
+    }
+    const headers = ['ID', 'Timestamp', 'Actor', 'Action', 'Entity Type', 'Entity ID', 'Metadata'];
+    const rows = auditLogs.map((log) => [
+      log.id,
+      log.created_at,
+      log.actor?.full_name || 'System',
+      log.action,
+      log.entity_type,
+      log.entity_id || '',
+      JSON.stringify(log.metadata || log.details || {}).replace(/"/g, '""'),
+    ]);
+    const csvContent = [headers.map((h) => `"${h}"`).join(','), ...rows.map((r) => r.map((f) => `"${f}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `ZEC_Audit_Ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (!isAuthorized) {
     return (
@@ -69,11 +103,11 @@ export default function AdminGovernancePage() {
               </div>
               <div>
                 <h3 className="font-extrabold text-sm text-slate-900">Bureau Mandates</h3>
-                <p className="text-xs text-slate-500">10 official positions</p>
+                <p className="text-xs text-slate-500">{bureauMembers.length || 12} official positions</p>
               </div>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 text-[10px] font-bold">
-              10 Roles
+              {bureauMembers.length || 12} Roles
             </span>
           </Link>
 
@@ -91,8 +125,61 @@ export default function AdminGovernancePage() {
               </div>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
-              8 Pending
+              {pendingMembers.length} Pending
             </span>
+          </Link>
+
+          <Link
+            href="/admin/health"
+            className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 hover:border-emerald-300 transition-colors flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">System Health</h3>
+                <p className="text-xs text-slate-500">Live DB, Realtime & Services</p>
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold">
+              Telemetry
+            </span>
+          </Link>
+        </div>
+
+        {/* Secondary Admin Navigation */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            href="/admin/audit-logs"
+            className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 hover:border-emerald-300 transition-colors flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center">
+                <Undo2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Audit Logs & Undo</h3>
+                <p className="text-xs text-slate-500">1-click state rollback</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </Link>
+
+          <Link
+            href="/admin/attendance"
+            className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 hover:border-emerald-300 transition-colors flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-800 flex items-center justify-center">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Attendance Oversight</h3>
+                <p className="text-xs text-slate-500">Sessions, check-ins & adjustments</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
           </Link>
 
           <div className="p-4 rounded-3xl bg-white shadow-xs border border-emerald-900/10 flex items-center justify-between gap-3">
@@ -101,13 +188,13 @@ export default function AdminGovernancePage() {
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Export Audit Ledger</h3>
-                <p className="text-xs text-slate-500">Official log for University Directorate</p>
+                <h3 className="font-extrabold text-sm text-slate-900">Export Ledger</h3>
+                <p className="text-xs text-slate-500">Download signed CSV log</p>
               </div>
             </div>
             <button
-              onClick={() => alert('Exporting signed audit ledger CSV.')}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black"
+              onClick={handleExportAuditLedger}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black transition-colors"
             >
               Export
             </button>

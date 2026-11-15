@@ -58,91 +58,15 @@ export default function AdminNotificationsPage() {
   const loadData = async () => {
     setIsLoading(true);
     const supabase = createClient();
-    if (!supabase || !isLiveSupabase) {
-      // Mock data for preview mode
+    if (!supabase) {
       setStats({
-        totalNotifications: 142,
-        pendingReminders: 8,
-        sentEmails: 124,
-        failedEmails: 2,
+        totalNotifications: 0,
+        pendingReminders: 0,
+        sentEmails: 0,
+        failedEmails: 0,
       });
-      setScheduledReminders([
-        {
-          id: 'rem-mock-1',
-          meeting_id: 'meet-001',
-          recipient_user_id: user?.id || 'usr-001',
-          reminder_type: '48h',
-          scheduled_at: new Date(Date.now() + 3600000 * 20).toISOString(),
-          status: 'pending',
-          idempotency_key: 'rem_meet-001_usr-001_48h',
-          attempts: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'rem-mock-2',
-          meeting_id: 'meet-001',
-          recipient_user_id: user?.id || 'usr-001',
-          reminder_type: 'morning_8am',
-          scheduled_at: new Date(Date.now() + 3600000 * 10).toISOString(),
-          status: 'pending',
-          idempotency_key: 'rem_meet-001_usr-001_morning_8am',
-          attempts: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'rem-mock-3',
-          meeting_id: 'meet-002',
-          recipient_user_id: user?.id || 'usr-001',
-          reminder_type: '1h',
-          scheduled_at: new Date(Date.now() - 3600000).toISOString(),
-          status: 'sent',
-          idempotency_key: 'rem_meet-002_usr-001_1h',
-          attempts: 1,
-          sent_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'rem-mock-4',
-          meeting_id: 'meet-003',
-          recipient_user_id: user?.id || 'usr-002',
-          reminder_type: '1h',
-          scheduled_at: new Date(Date.now() - 7200000).toISOString(),
-          status: 'failed',
-          idempotency_key: 'rem_meet-003_usr-002_1h',
-          attempts: 3,
-          error_message: 'Recipient address rejected: DNS verification failed',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-      setDeliveryLogs([
-        {
-          id: 'log-mock-1',
-          recipient_email: user?.email || 'admin@isims.tn',
-          recipient_user_id: user?.id || 'usr-001',
-          email_type: 'reminder',
-          subject: '🔔 [REMINDER] Tomorrow: ISIMS Zero Carbon Campus Strategic Workshop',
-          provider_message_id: 'msg_resend_mock_1',
-          delivery_status: 'delivered',
-          sent_at: new Date(Date.now() - 3600000).toISOString(),
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: 'log-mock-2',
-          recipient_email: 'member@isims.tn',
-          recipient_user_id: 'usr-002',
-          email_type: 'reminder',
-          subject: '🚨 [URGENT] Starting in 1 Hour: Clean Tech Hackathon Pitch',
-          provider_message_id: 'msg_resend_mock_2',
-          delivery_status: 'failed',
-          error_message: 'Simulated 550 Mailbox unavailable',
-          sent_at: new Date(Date.now() - 7200000).toISOString(),
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ]);
+      setScheduledReminders([]);
+      setDeliveryLogs([]);
       setIsLoading(false);
       return;
     }

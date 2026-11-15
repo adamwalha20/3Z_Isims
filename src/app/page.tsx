@@ -28,8 +28,10 @@ import {
 } from 'lucide-react';
 import {
   BureauPositionSelector,
+  PresidentCockpit,
   VicePresidentCockpit,
   TreasurerCockpit,
+  TrainingInnovationCockpit,
   HrManagerCockpit,
   MarketingCockpit,
   SustainableCampusCockpit,
@@ -157,8 +159,12 @@ export default function DashboardPage() {
 
   const renderBureauCockpit = (pos: string) => {
     switch (pos) {
+      case 'president':
+        return <PresidentCockpit />;
       case 'treasurer':
         return <TreasurerCockpit />;
+      case 'training_innovation':
+        return <TrainingInnovationCockpit />;
       case 'hr_manager':
         return <HrManagerCockpit />;
       case 'events_manager':

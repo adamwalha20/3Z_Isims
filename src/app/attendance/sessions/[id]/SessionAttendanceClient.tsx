@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  AlertCircle,
   ArrowLeft,
   Camera,
   Download,
@@ -54,65 +55,8 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
         setSession(data.session);
         setAttendanceList(data.session.attendance_records || []);
       } else {
-        // Mock fallback for preview mode
-        const mockSess: PhysicalSession = {
-          id: sessionId,
-          title: 'ISIMS Climate Action & Clean Tech Workshop',
-          description: 'Hands-on practical training on solar energy audits and carbon reduction.',
-          session_type: 'workshop',
-          date: '2026-11-14',
-          starts_at: '2026-11-14T09:00:00.000Z',
-          location: 'Amphi A, ISIMS Sfax',
-          late_threshold_minutes: 10,
-          attendance_status: 'open',
-          xp_on_time: 15,
-          xp_late: 10,
-          xp_full_session: 5,
-          requires_checkout: true,
-          requires_manual_verification: false,
-          visibility: 'club',
-          created_at: '2026-11-14T08:00:00.000Z',
-          updated_at: '2026-11-14T08:00:00.000Z',
-        };
-        const mockAtt: SessionAttendance[] = [
-          {
-            id: 'att-1',
-            session_id: sessionId,
-            member_id: user?.id || 'usr-001',
-            checked_in_at: '2026-11-14T09:04:00.000Z',
-            attendance_status: 'present',
-            verification_method: 'qr',
-            xp_awarded: 15,
-            created_at: '2026-11-14T09:04:00.000Z',
-            updated_at: '2026-11-14T09:04:00.000Z',
-            member: user || undefined,
-          },
-          {
-            id: 'att-2',
-            session_id: sessionId,
-            member_id: 'usr-002',
-            checked_in_at: '2026-11-14T09:14:00.000Z',
-            attendance_status: 'late',
-            verification_method: 'qr',
-            xp_awarded: 10,
-            notes: 'Late arrival by 14 mins',
-            created_at: '2026-11-14T09:14:00.000Z',
-            updated_at: '2026-11-14T09:14:00.000Z',
-            member: {
-              id: 'usr-002',
-              email: 'sarah.k@isims.tn',
-              full_name: 'Sarah Khemir',
-              student_id: 'ISIMS-2026-089',
-              study_field: 'Computer Engineering',
-              skills: ['IoT', 'Climate Action'],
-              contact_preferences: { email: true, in_app: true },
-              created_at: '2026-11-14T00:00:00.000Z',
-              updated_at: '2026-11-14T00:00:00.000Z',
-            },
-          },
-        ];
-        setSession(mockSess);
-        setAttendanceList(mockAtt);
+        setSession(null);
+        setAttendanceList([]);
       }
     } catch (err) {
       console.warn('Load session data error:', err);
@@ -281,6 +225,23 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
             </Link>
           )}
         </div>
+
+        {/* Empty State when Session Not Found */}
+        {!session && !isLoading && (
+          <div className="bg-white rounded-3xl p-10 border border-slate-200 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
+            <h2 className="text-base font-extrabold text-slate-900">Physical Session Not Found</h2>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              This physical session does not exist or has been removed from the database.
+            </p>
+            <Link
+              href="/attendance"
+              className="inline-block mt-2 px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800"
+            >
+              Return to Sessions
+            </Link>
+          </div>
+        )}
 
         {/* Header Card */}
         {session && (

@@ -107,32 +107,9 @@ export default function AttendanceScannerPage() {
           setSelectedSession(defaultSess);
         }
       } else {
-        // Mock fallback if DB empty
-        const mockSess: PhysicalSession = {
-          id: 'sess-001',
-          title: 'ISIMS Climate Action & Clean Tech Bootcamp',
-          description: 'Official hands-on workshop on solar measurement and carbon audit.',
-          session_type: 'workshop',
-          date: '2026-11-14',
-          starts_at: '2026-11-14T09:00:00.000Z',
-          location: 'Amphi A, ISIMS Sfax',
-          late_threshold_minutes: 10,
-          attendance_status: 'open',
-          xp_on_time: 15,
-          xp_late: 10,
-          xp_full_session: 5,
-          requires_checkout: false,
-          requires_manual_verification: false,
-          visibility: 'club',
-          created_at: '2026-11-14T09:00:00.000Z',
-          updated_at: '2026-11-14T09:00:00.000Z',
-          present_count: 14,
-          late_count: 2,
-          total_attendees: 16,
-        };
-        setSessions([mockSess]);
-        setSelectedSessionId(mockSess.id);
-        setSelectedSession(mockSess);
+        setSessions([]);
+        setSelectedSessionId('');
+        setSelectedSession(null);
       }
     } catch (err) {
       console.warn('Sessions load notice:', err);

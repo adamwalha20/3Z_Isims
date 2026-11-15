@@ -227,48 +227,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userBureauPositions, setUserBureauPositions] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isApproved, setIsApproved] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLiveSupabase, setIsLiveSupabase] = useState<boolean>(false);
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
 
-  // Core data store
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
-  const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
-  const [meetings, setMeetings] = useState<Meeting[]>(INITIAL_MEETINGS);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [emailPreferences, setEmailPreferences] = useState<EmailPreferences | null>({
-    id: 'pref-default',
-    user_id: INITIAL_USER.id,
-    meeting_reminders_enabled: true,
-    task_emails_enabled: true,
-    event_emails_enabled: true,
-    announcement_emails_enabled: true,
-  });
+  // Core data store — initialized cleanly to empty arrays (real database driven)
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [emailPreferences, setEmailPreferences] = useState<EmailPreferences | null>(null);
   const unreadNotificationCount = notifications.filter((n) => !n.is_read && !n.read_at).length;
-  const [documents, setDocuments] = useState<DocumentItem[]>(INITIAL_DOCUMENTS);
-  const [departments] = useState<Department[]>(INITIAL_DEPARTMENTS);
-  const [members, setMembers] = useState<Profile[]>(INITIAL_MEMBERS);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   // XP & Member Ranking state
-  const [memberXpList, setMemberXpList] = useState<MemberXp[]>(INITIAL_MEMBER_XP);
-  const [xpTransactions, setXpTransactions] = useState<XpTransaction[]>(INITIAL_XP_TRANSACTIONS);
-  const [xpRules, setXpRules] = useState<XpRule[]>(INITIAL_XP_RULES);
-  const [userAchievements, setUserAchievements] = useState<MemberAchievement[]>(() =>
-    INITIAL_MEMBER_ACHIEVEMENTS.filter((a) => a.user_id === INITIAL_USER.id)
-  );
+  const [memberXpList, setMemberXpList] = useState<MemberXp[]>([]);
+  const [xpTransactions, setXpTransactions] = useState<XpTransaction[]>([]);
+  const [xpRules, setXpRules] = useState<XpRule[]>([]);
+  const [userAchievements, setUserAchievements] = useState<MemberAchievement[]>([]);
 
   // Role-Specific Workspaces state
-  const [bureauMembers, setBureauMembers] = useState<BureauMemberAssignment[]>(OFFICIAL_BUREAU_MEMBERS);
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(INITIAL_FINANCIAL_TRANSACTIONS);
-  const [budgets, setBudgets] = useState<Budget[]>(INITIAL_BUDGETS);
-  const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
-  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>(INITIAL_MARKETING_CAMPAIGNS);
-  const [initiatives, setInitiatives] = useState<SustainabilityInitiative[]>(INITIAL_SUSTAINABILITY_INITIATIVES);
-  const [decisions, setDecisions] = useState<Decision[]>(INITIAL_DECISIONS);
-  const [recruitmentApps, setRecruitmentApps] = useState<RecruitmentApplication[]>(INITIAL_RECRUITMENT_APPLICATIONS);
+  const [bureauMembers, setBureauMembers] = useState<BureauMemberAssignment[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
+  const [initiatives, setInitiatives] = useState<SustainabilityInitiative[]>([]);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [recruitmentApps, setRecruitmentApps] = useState<RecruitmentApplication[]>([]);
 
   const currentUserXp = memberXpList.find((mxp) => mxp.user_id === user?.id) || {
     user_id: user?.id || 'usr-default',
@@ -444,6 +435,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         });
         setMembers(formatted);
+      } else {
+        setMembers([]);
       }
 
       // 7. Fetch all bureau positions & assigned officers
@@ -472,6 +465,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         });
         setBureauMembers(mappedBureau);
+      } else {
+        setBureauMembers([]);
       }
 
       // 8. Fetch live tasks with assignees
@@ -492,6 +487,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           assignees: t.task_assignees?.map((ta: any) => ta.profiles).filter(Boolean) || [],
         }));
         setTasks(mappedTasks);
+      } else {
+        setTasks([]);
       }
 
       // 9. Fetch XP leaderboard data
@@ -499,27 +496,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('member_xp')
         .select('*, profile:profiles(*)')
         .order('total_xp', { ascending: false });
-      if (dbXp && dbXp.length > 0) {
-        setMemberXpList(dbXp);
-      }
+      setMemberXpList(dbXp || []);
 
       // 10. Fetch XP rules
       const { data: dbRules } = await supabase
         .from('xp_rules')
         .select('*')
         .order('points', { ascending: true });
-      if (dbRules && dbRules.length > 0) {
-        setXpRules(dbRules);
-      }
+      setXpRules(dbRules || []);
 
       // 11. Fetch XP transactions
       const { data: dbTx } = await supabase
         .from('xp_transactions')
         .select('*, user:profiles!xp_transactions_user_id_fkey(*)')
         .order('created_at', { ascending: false });
-      if (dbTx && dbTx.length > 0) {
-        setXpTransactions(dbTx);
-      }
+      setXpTransactions(dbTx || []);
 
       // 12. Fetch live meetings with recordings, transcripts, summaries & action items
       const { data: dbMeetings } = await supabase
@@ -544,9 +535,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           action_items: m.action_items || [],
         }));
         setMeetings(mappedMeetings);
+      } else {
+        setMeetings([]);
       }
+
+      // 13. Fetch departments
+      const { data: dbDepts } = await supabase.from('departments').select('*').order('name');
+      setDepartments(dbDepts || []);
+
+      // 14. Fetch projects
+      const { data: dbProjects } = await supabase
+        .from('projects')
+        .select('*, owner:profiles!projects_owner_id_fkey(*)')
+        .order('created_at', { ascending: false });
+      setProjects(dbProjects || []);
+
+      // 15. Fetch events
+      const { data: dbEvents } = await supabase
+        .from('events')
+        .select('*, organizer:profiles!events_organizer_id_fkey(*), department:departments(*)')
+        .order('starts_at', { ascending: true });
+      setEvents(dbEvents || []);
+
+      // 16. Fetch announcements
+      const { data: dbAnnouncements } = await supabase
+        .from('announcements')
+        .select('*, author:profiles!announcements_author_id_fkey(*), department:departments(*)')
+        .order('created_at', { ascending: false });
+      setAnnouncements(dbAnnouncements || []);
+
+      // 17. Fetch documents
+      const { data: dbDocs } = await supabase
+        .from('documents')
+        .select('*, uploader:profiles!documents_uploaded_by_fkey(*), department:departments(*)')
+        .order('created_at', { ascending: false });
+      setDocuments(dbDocs || []);
+
+      // 18. Fetch role-specific operational workspace tables
+      const { data: dbFin } = await supabase.from('financial_transactions').select('*').order('date', { ascending: false });
+      setTransactions(dbFin || []);
+
+      const { data: dbBudgets } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
+      setBudgets(dbBudgets || []);
+
+      const { data: dbPartners } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
+      setPartners(dbPartners || []);
+
+      const { data: dbCamps } = await supabase.from('marketing_campaigns').select('*').order('planned_date', { ascending: true });
+      setCampaigns(dbCamps || []);
+
+      const { data: dbInits } = await supabase.from('sustainability_initiatives').select('*').order('created_at', { ascending: false });
+      setInitiatives(dbInits || []);
+
+      const { data: dbDecs } = await supabase.from('decisions').select('*').order('decided_at', { ascending: false });
+      setDecisions(dbDecs || []);
+
+      const { data: dbApps } = await supabase.from('recruitment_applications').select('*').order('created_at', { ascending: false });
+      setRecruitmentApps(dbApps || []);
+
+      const { data: dbLogs } = await supabase.from('audit_logs').select('*, actor:profiles!audit_logs_actor_id_fkey(*)').order('created_at', { ascending: false }).limit(50);
+      setAuditLogs(dbLogs || []);
     } catch (err) {
       console.error('Error fetching Supabase auth, tasks & XP data:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -554,9 +606,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) {
-      setUser(INITIAL_USER);
-      setIsAuthenticated(true);
-      setIsApproved(true);
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsApproved(false);
+      setIsLoading(false);
       return;
     }
 
@@ -574,19 +627,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Realtime notifications listener
-    const notifsChannel = supabase
-      .channel('public:notifications')
+    // Realtime listener across all published core tables
+    const realtimeChannel = supabase
+      .channel('public:hub_realtime_sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newItem = payload.new as NotificationItem;
-            setNotifications((prev) => {
-              if (prev.some((n) => n.id === newItem.id)) return prev;
-              return [newItem, ...prev];
-            });
+            setNotifications((prev) => [newItem, ...prev.filter((n) => n.id !== newItem.id)]);
           } else if (payload.eventType === 'UPDATE') {
             const updatedItem = payload.new as NotificationItem;
             setNotifications((prev) =>
@@ -600,11 +650,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meetings' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'announcements' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'member_xp' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'club_memberships' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_roles' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_bureau_positions' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => {
+          loadUserData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          loadUserData();
+        }
+      )
       .subscribe();
 
     return () => {
       subscription?.unsubscribe();
-      supabase.removeChannel(notifsChannel);
+      supabase.removeChannel(realtimeChannel);
     };
   }, []);
 
@@ -946,35 +1059,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const addProject = (newProjectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+  const addProject = async (newProjectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const newProj: Project = {
       ...newProjectData,
       id: `proj-${Date.now()}`,
       created_at: now,
       updated_at: now,
-      owner: user || INITIAL_USER,
+      owner: user || undefined,
       tasks_count: 0,
       completed_tasks_count: 0,
     };
-    setProjects((prev) => [newProj, ...prev]);
 
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actor_id: user?.id,
-        action: 'PROJECT_CREATE',
-        entity_type: 'projects',
-        entity_id: newProj.id,
-        metadata: { name: newProj.name, budget_tnd: newProj.budget_tnd },
-        created_at: now,
-        actor: user || INITIAL_USER,
-      },
-      ...prev,
-    ]);
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('projects')
+            .insert({
+              name: newProjectData.name,
+              description: newProjectData.description || null,
+              status: newProjectData.status || 'planning',
+              budget_tnd: newProjectData.budget_tnd || 0,
+              due_date: newProjectData.due_date || null,
+              department_id: isUuid(newProjectData.department_id) ? newProjectData.department_id : null,
+              owner_id: user.id,
+              created_by: user.id,
+            })
+            .select('*, owner:profiles!projects_owner_id_fkey(*)')
+            .single();
+
+          if (!error && data) {
+            setProjects((prev) => [data as Project, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert project into live db:', e?.message);
+        }
+      }
+    }
+
+    setProjects((prev) => [newProj, ...prev]);
   };
 
-  const registerEvent = (eventId: string) => {
+  const registerEvent = async (eventId: string) => {
+    if (isLiveSupabase && user?.id && isUuid(user.id) && isUuid(eventId)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const existing = events.find((e) => e.id === eventId);
+          const isRegistered = existing?.user_registered;
+          if (isRegistered) {
+            await supabase
+              .from('event_registrations')
+              .delete()
+              .eq('event_id', eventId)
+              .eq('user_id', user.id);
+          } else {
+            await supabase
+              .from('event_registrations')
+              .insert({
+                event_id: eventId,
+                user_id: user.id,
+                registration_status: 'confirmed',
+                attendance_status: 'registered',
+                registered_at: new Date().toISOString(),
+              });
+          }
+        } catch (e: any) {
+          console.warn('Event registration DB error:', e?.message);
+        }
+      }
+    }
+
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id === eventId) {
@@ -982,7 +1140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return {
             ...e,
             user_registered: registered,
-            registrations_count: (e.registrations_count || 0) + (registered ? 1 : -1),
+            registrations_count: Math.max(0, (e.registrations_count || 0) + (registered ? 1 : -1)),
           };
         }
         return e;
@@ -1156,14 +1314,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const addAnnouncement = (newAnn: Omit<Announcement, 'id' | 'created_at'>) => {
+  const addAnnouncement = async (newAnn: Omit<Announcement, 'id' | 'created_at'>) => {
     const ann: Announcement = {
       ...newAnn,
       id: `ann-${Date.now()}`,
       created_at: new Date().toISOString(),
-      author: user || INITIAL_USER,
+      author: user || undefined,
       is_read: true,
     };
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('announcements')
+            .insert({
+              title: newAnn.title,
+              body: newAnn.body || (newAnn as any).content || '',
+              author_id: user.id,
+              audience_type: newAnn.audience_type || 'club',
+              department_id: isUuid(newAnn.department_id) ? newAnn.department_id : null,
+              status: newAnn.status || 'published',
+              is_pinned: Boolean(newAnn.is_pinned),
+              published_at: new Date().toISOString(),
+            })
+            .select('*, author:profiles!announcements_author_id_fkey(*)')
+            .single();
+
+          if (!error && data) {
+            setAnnouncements((prev) => [data as Announcement, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert announcement to live db:', e?.message);
+        }
+      }
+    }
+
     setAnnouncements((prev) => [ann, ...prev]);
 
     // Dispatch in-app notification to all active members
@@ -1185,15 +1373,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const addDocument = (docData: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addDocument = async (docData: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const doc: DocumentItem = {
       ...docData,
       id: `doc-${Date.now()}`,
       created_at: now,
       updated_at: now,
-      uploader: user || INITIAL_USER,
+      uploader: user || undefined,
     };
+
+    if (isLiveSupabase && user?.id && isUuid(user.id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('documents')
+            .insert({
+              title: docData.title,
+              description: docData.description || null,
+              storage_path: docData.storage_path || (docData as any).file_url || 'documents/general.pdf',
+              category: docData.category || 'general',
+              visibility: docData.visibility || 'club',
+              department_id: isUuid(docData.department_id) ? docData.department_id : null,
+              uploaded_by: user.id,
+            })
+            .select('*, uploader:profiles!documents_uploaded_by_fkey(*)')
+            .single();
+
+          if (!error && data) {
+            setDocuments((prev) => [data as DocumentItem, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert document to live db:', e?.message);
+        }
+      }
+    }
+
     setDocuments((prev) => [doc, ...prev]);
   };
 
@@ -1748,7 +1965,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Role-Specific Workspaces Mutations
   // ----------------------------------------------------------------------------
 
-  const addTransaction = (txData: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => {
+  const addTransaction = async (txData: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const newTx: FinancialTransaction = {
       ...txData,
@@ -1757,39 +1974,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updated_at: now,
       created_by: user?.id,
     };
-    setTransactions((prev) => [newTx, ...prev]);
 
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actor_id: user?.id,
-        action: 'FINANCE_TRANSACTION_RECORD',
-        entity_type: 'financial_transactions',
-        entity_id: newTx.id,
-        metadata: { amount: newTx.amount, type: newTx.transaction_type, category: newTx.category },
-        created_at: now,
-        actor: user || INITIAL_USER,
-      },
-      ...prev,
-    ]);
+    if (isLiveSupabase && user?.id) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('financial_transactions')
+            .insert({
+              amount: txData.amount,
+              currency: txData.currency || 'TND',
+              transaction_type: txData.transaction_type,
+              category: txData.category,
+              description: txData.description,
+              date: txData.date || new Date().toISOString().split('T')[0],
+              approval_status: txData.approval_status || 'pending',
+              created_by: user.id,
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setTransactions((prev) => [data as FinancialTransaction, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert financial transaction to live db:', e?.message);
+        }
+      }
+    }
+
+    setTransactions((prev) => [newTx, ...prev]);
   };
 
-  const approveTransaction = (id: string, status: 'approved' | 'rejected') => {
+  const approveTransaction = async (id: string, status: 'approved' | 'rejected') => {
+    if (isLiveSupabase && isUuid(id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('financial_transactions')
+            .update({ approval_status: status })
+            .eq('id', id);
+        } catch (e: any) {
+          console.warn('Failed to update financial transaction in live db:', e?.message);
+        }
+      }
+    }
+
     setTransactions((prev) =>
       prev.map((tx) => (tx.id === id ? { ...tx, approval_status: status, updated_at: new Date().toISOString() } : tx))
     );
   };
 
-  const addBudget = (bgtData: Omit<Budget, 'id' | 'created_at'>) => {
+  const addBudget = async (bgtData: Omit<Budget, 'id' | 'created_at'>) => {
     const newBgt: Budget = {
       ...bgtData,
       id: `bgt-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('budgets')
+            .insert({
+              title: bgtData.title,
+              category: bgtData.category,
+              planned_amount: bgtData.planned_amount,
+              currency: bgtData.currency || 'TND',
+              period: bgtData.period || '2026-Q1',
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setBudgets((prev) => [data as Budget, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert budget to live db:', e?.message);
+        }
+      }
+    }
+
     setBudgets((prev) => [newBgt, ...prev]);
   };
 
-  const addPartner = (partnerData: Omit<Partner, 'id' | 'created_at' | 'updated_at'>) => {
+  const addPartner = async (partnerData: Omit<Partner, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const newPartner: Partner = {
       ...partnerData,
@@ -1798,16 +2072,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updated_at: now,
       created_by: user?.id,
     };
+
+    if (isLiveSupabase && user?.id) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('partners')
+            .insert({
+              organization_name: partnerData.organization_name,
+              contact_name: partnerData.contact_name || null,
+              contact_email: partnerData.contact_email || null,
+              contact_phone: partnerData.contact_phone || null,
+              pipeline_stage: partnerData.pipeline_stage || 'lead',
+              sponsorship_amount_tnd: partnerData.sponsorship_amount_tnd || 0,
+              notes: partnerData.notes || null,
+              created_by: user.id,
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setPartners((prev) => [data as Partner, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert partner to live db:', e?.message);
+        }
+      }
+    }
+
     setPartners((prev) => [newPartner, ...prev]);
   };
 
-  const updatePartnerStage = (id: string, stage: Partner['pipeline_stage']) => {
+  const updatePartnerStage = async (id: string, stage: Partner['pipeline_stage']) => {
+    if (isLiveSupabase && isUuid(id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('partners')
+            .update({ pipeline_stage: stage })
+            .eq('id', id);
+        } catch (e: any) {
+          console.warn('Failed to update partner stage in live db:', e?.message);
+        }
+      }
+    }
+
     setPartners((prev) =>
       prev.map((p) => (p.id === id ? { ...p, pipeline_stage: stage, updated_at: new Date().toISOString() } : p))
     );
   };
 
-  const addCampaign = (campData: Omit<MarketingCampaign, 'id' | 'created_at' | 'updated_at'>) => {
+  const addCampaign = async (campData: Omit<MarketingCampaign, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const newCamp: MarketingCampaign = {
       ...campData,
@@ -1816,16 +2134,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updated_at: now,
       assigned_creator_id: user?.id,
     };
+
+    if (isLiveSupabase && user?.id) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('marketing_campaigns')
+            .insert({
+              title: campData.title,
+              platform: campData.platform,
+              status: campData.status || 'draft',
+              caption_draft: campData.caption_draft || null,
+              planned_date: campData.planned_date || null,
+              assigned_creator_id: user.id,
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setCampaigns((prev) => [data as MarketingCampaign, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert campaign to live db:', e?.message);
+        }
+      }
+    }
+
     setCampaigns((prev) => [newCamp, ...prev]);
   };
 
-  const updateCampaignStatus = (id: string, status: MarketingCampaign['status']) => {
+  const updateCampaignStatus = async (id: string, status: MarketingCampaign['status']) => {
+    if (isLiveSupabase && isUuid(id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('marketing_campaigns')
+            .update({ status })
+            .eq('id', id);
+        } catch (e: any) {
+          console.warn('Failed to update campaign in live db:', e?.message);
+        }
+      }
+    }
+
     setCampaigns((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status, updated_at: new Date().toISOString() } : c))
     );
   };
 
-  const addInitiative = (initData: Omit<SustainabilityInitiative, 'id' | 'created_at' | 'updated_at'>) => {
+  const addInitiative = async (initData: Omit<SustainabilityInitiative, 'id' | 'created_at' | 'updated_at'>) => {
     const now = new Date().toISOString();
     const newInit: SustainabilityInitiative = {
       ...initData,
@@ -1834,10 +2194,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updated_at: now,
       lead_id: user?.id,
     };
+
+    if (isLiveSupabase && user?.id) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('sustainability_initiatives')
+            .insert({
+              title: initData.title,
+              category: initData.category,
+              status: initData.status || 'active',
+              target_metric: initData.target_metric,
+              current_metric: initData.current_metric || 0,
+              metric_unit: initData.metric_unit,
+              calculation_method: initData.calculation_method || null,
+              lead_id: user.id,
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setInitiatives((prev) => [data as SustainabilityInitiative, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert initiative to live db:', e?.message);
+        }
+      }
+    }
+
     setInitiatives((prev) => [newInit, ...prev]);
   };
 
-  const updateInitiativeProgress = (id: string, current: number) => {
+  const updateInitiativeProgress = async (id: string, current: number) => {
+    if (isLiveSupabase && isUuid(id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('sustainability_initiatives')
+            .update({ current_metric: current })
+            .eq('id', id);
+        } catch (e: any) {
+          console.warn('Failed to update initiative progress in live db:', e?.message);
+        }
+      }
+    }
+
     setInitiatives((prev) =>
       prev.map((i) =>
         i.id === id
@@ -1852,16 +2256,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const addDecision = (decData: Omit<Decision, 'id' | 'decided_at'>) => {
+  const addDecision = async (decData: Omit<Decision, 'id' | 'decided_at'>) => {
     const newDec: Decision = {
       ...decData,
       id: `dec-${Date.now()}`,
       decided_at: new Date().toISOString(),
     };
+
+    if (isLiveSupabase) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('decisions')
+            .insert({
+              title: decData.title,
+              details: decData.details || null,
+              status: decData.status || 'approved',
+              meeting_id: isUuid(decData.meeting_id) ? decData.meeting_id : null,
+              decided_at: new Date().toISOString(),
+            })
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            setDecisions((prev) => [data as Decision, ...prev]);
+            return;
+          }
+        } catch (e: any) {
+          console.warn('Failed to insert decision to live db:', e?.message);
+        }
+      }
+    }
+
     setDecisions((prev) => [newDec, ...prev]);
   };
 
-  const updateApplicationStatus = (id: string, status: RecruitmentApplication['status'], notes?: string) => {
+  const updateApplicationStatus = async (id: string, status: RecruitmentApplication['status'], notes?: string) => {
+    if (isLiveSupabase && isUuid(id)) {
+      const supabase = createClient();
+      if (supabase) {
+        try {
+          await supabase
+            .from('recruitment_applications')
+            .update({
+              status,
+              hr_notes: notes || undefined,
+            })
+            .eq('id', id);
+        } catch (e: any) {
+          console.warn('Failed to update application status in live db:', e?.message);
+        }
+      }
+    }
+
     setRecruitmentApps((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status, hr_notes: notes || app.hr_notes } : app))
     );

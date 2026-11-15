@@ -27,6 +27,9 @@ export default function MembersDirectoryPage() {
   const [searchMember, setSearchMember] = useState('');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('all');
 
+  const activeCount = members.filter((m) => m.membership?.membership_status === 'active').length;
+  const pendingCount = members.filter((m) => m.membership?.membership_status === 'pending').length;
+
   const filteredMembers = members.filter((m) => {
     const matchName = m.full_name.toLowerCase().includes(searchMember.toLowerCase()) ||
       m.student_id.toLowerCase().includes(searchMember.toLowerCase());
@@ -73,10 +76,10 @@ export default function MembersDirectoryPage() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <h2 className="font-extrabold text-lg sm:text-xl text-slate-900 leading-tight truncate">
-                    {user?.full_name || 'Yassine Mezghani'}
+                    {user?.full_name || 'Registered Club Member'}
                   </h2>
                   <span className="font-mono text-xs text-slate-500 font-semibold mt-0.5">
-                    {user?.student_id || 'ISIMS-2024-8891'} • L2 DSI
+                    {user?.student_id || 'ISIMS Matricule'}
                   </span>
                   <span className="text-xs text-slate-600 truncate mt-0.5 font-medium">
                     {user?.study_field || 'Computer Science & Multimedia'}
@@ -129,12 +132,12 @@ export default function MembersDirectoryPage() {
                   <span className="material-symbols-outlined text-[20px]">badge</span>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black">
-                  +8 new
+                  {members.length} Total
                 </span>
               </div>
               <div>
                 <span className="font-extrabold text-sm text-slate-900 block">Members</span>
-                <span className="text-xs text-slate-500 font-medium block mt-0.5">72 active • 8 pending</span>
+                <span className="text-xs text-slate-500 font-medium block mt-0.5">{activeCount} active • {pendingCount} pending</span>
                 <span className="text-[10px] text-emerald-700 font-bold block mt-1">Directory & roles</span>
               </div>
             </a>
@@ -149,7 +152,7 @@ export default function MembersDirectoryPage() {
                   <span className="material-symbols-outlined text-[20px]">hub</span>
                 </div>
                 <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800">
-                  5 Units
+                  {departments.length || 5} Units
                 </span>
               </div>
               <div>
