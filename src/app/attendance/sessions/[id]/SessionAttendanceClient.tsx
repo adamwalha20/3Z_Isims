@@ -71,20 +71,20 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
           requires_checkout: true,
           requires_manual_verification: false,
           visibility: 'club',
-          created_at: '2026-11-14T00:00:00.000Z',
-          updated_at: '2026-11-14T00:00:00.000Z',
+          created_at: '2026-11-14T08:00:00.000Z',
+          updated_at: '2026-11-14T08:00:00.000Z',
         };
         const mockAtt: SessionAttendance[] = [
           {
             id: 'att-1',
             session_id: sessionId,
             member_id: user?.id || 'usr-001',
-            checked_in_at: '2026-11-14T08:58:00.000Z',
+            checked_in_at: '2026-11-14T09:04:00.000Z',
             attendance_status: 'present',
             verification_method: 'qr',
             xp_awarded: 15,
-            created_at: '2026-11-14T08:58:00.000Z',
-            updated_at: '2026-11-14T08:58:00.000Z',
+            created_at: '2026-11-14T09:04:00.000Z',
+            updated_at: '2026-11-14T09:04:00.000Z',
             member: user || undefined,
           },
           {
@@ -358,7 +358,7 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>Starts: 09:00 (Tunis)</span>
+                <span>{formatTunisTime(session.starts_at)} (Tunis)</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <MapPin className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -605,4 +605,3 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
     </AppShell>
   );
 }
-

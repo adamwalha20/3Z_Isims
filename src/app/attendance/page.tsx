@@ -40,7 +40,7 @@ export default function AttendanceMainPage() {
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [newType, setNewType] = useState<string>('workshop');
-  const [newDate, setNewDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [newDate, setNewDate] = useState<string>('2026-11-14');
   const [newStartsAtTime, setNewStartsAtTime] = useState<string>('09:00');
   const [newLocation, setNewLocation] = useState<string>('Amphi A, ISIMS');
   const [newLateThreshold, setNewLateThreshold] = useState<number>(10);
@@ -66,12 +66,12 @@ export default function AttendanceMainPage() {
           id: 'hist-1',
           session_id: 'sess-001',
           member_id: user?.id || 'usr-001',
-          checked_in_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+          checked_in_at: '2026-11-11T09:05:00.000Z',
           attendance_status: 'present',
           verification_method: 'qr',
           xp_awarded: 15,
-          created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-          updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+          created_at: '2026-11-11T09:05:00.000Z',
+          updated_at: '2026-11-11T09:05:00.000Z',
           session: {
             id: 'sess-001',
             title: 'Renewable Solar Tech & IoT Hardware Workshop',
@@ -95,12 +95,12 @@ export default function AttendanceMainPage() {
           id: 'hist-2',
           session_id: 'sess-002',
           member_id: user?.id || 'usr-001',
-          checked_in_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+          checked_in_at: '2026-11-07T14:18:00.000Z',
           attendance_status: 'late',
           verification_method: 'qr',
           xp_awarded: 10,
-          created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-          updated_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+          created_at: '2026-11-07T14:18:00.000Z',
+          updated_at: '2026-11-07T14:18:00.000Z',
           session: {
             id: 'sess-002',
             title: 'ISIMS Zero Carbon Annual Strategy Summit',
@@ -130,6 +130,7 @@ export default function AttendanceMainPage() {
   };
 
   useEffect(() => {
+    setNewDate(new Date().toISOString().split('T')[0]);
     loadData();
   }, [user?.id]);
 

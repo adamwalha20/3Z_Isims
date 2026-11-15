@@ -26,6 +26,7 @@ import {
   Award,
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { formatTunisTime } from '@/lib/email/timezone-utils';
 
 interface ScanResultCard {
   success: boolean;
@@ -100,8 +101,8 @@ export default function AttendanceScannerPage() {
           title: 'ISIMS Climate Action & Clean Tech Bootcamp',
           description: 'Official hands-on workshop on solar measurement and carbon audit.',
           session_type: 'workshop',
-          date: new Date().toISOString().split('T')[0],
-          starts_at: new Date().toISOString(),
+          date: '2026-11-14',
+          starts_at: '2026-11-14T09:00:00.000Z',
           location: 'Amphi A, ISIMS Sfax',
           late_threshold_minutes: 10,
           attendance_status: 'open',
@@ -111,8 +112,8 @@ export default function AttendanceScannerPage() {
           requires_checkout: false,
           requires_manual_verification: false,
           visibility: 'club',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: '2026-11-14T09:00:00.000Z',
+          updated_at: '2026-11-14T09:00:00.000Z',
           present_count: 14,
           late_count: 2,
           total_attendees: 16,
@@ -425,7 +426,7 @@ export default function AttendanceScannerPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Starts: {new Date(selectedSession.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>Starts: {formatTunisTime(selectedSession.starts_at)}</span>
               </span>
               <span className="flex items-center gap-1">
                 <Award className="w-3.5 h-3.5 text-emerald-700" />
