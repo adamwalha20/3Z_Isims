@@ -22,6 +22,7 @@ import {
   QrCode,
   Camera,
   BarChart3,
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -52,6 +53,7 @@ export default function Sidebar() {
 
   const adminLinks = [
     { label: 'Admin Governance', href: '/admin', icon: ShieldCheck },
+    { label: 'Audit Logs & Undo', href: '/admin/audit-logs', icon: ShieldAlert },
     { label: 'Member Approvals', href: '/admin/members', icon: UserCheck },
     { label: 'Bureau Attendance', href: '/admin/attendance', icon: BarChart3 },
   ];

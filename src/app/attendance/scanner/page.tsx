@@ -60,6 +60,18 @@ export default function AttendanceScannerPage() {
   const [selectedSession, setSelectedSession] = useState<PhysicalSession | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
 
+  // Fresh refs to avoid stale closure traps in camera scanning callback
+  const selectedSessionIdRef = useRef<string>('');
+  const selectedSessionRef = useRef<PhysicalSession | null>(null);
+
+  useEffect(() => {
+    selectedSessionIdRef.current = selectedSessionId;
+  }, [selectedSessionId]);
+
+  useEffect(() => {
+    selectedSessionRef.current = selectedSession;
+  }, [selectedSession]);
+
   // Scanner state
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scannerError, setScannerError] = useState<string>('');
@@ -85,7 +97,7 @@ export default function AttendanceScannerPage() {
     try {
       const res = await fetch('/api/attendance/sessions');
       const data = await res.json();
-      if (res.ok && data.success && data.sessions) {
+      if (res.ok && data.success && data.sessions && data.sessions.length > 0) {
         setSessions(data.sessions);
         // Default to first open or draft session
         const openSess = data.sessions.find((s: PhysicalSession) => s.attendance_status === 'open');
@@ -225,6 +237,36 @@ export default function AttendanceScannerPage() {
 
     lastScanTimeRef.current = now;
     setLastScannedPayload(decodedText);
+
+    const activeSessionId = selectedSessionIdRef.current || selectedSessionId;
+    const activeSession = selectedSessionRef.current || selectedSession;
+
+    // Guard 1: Verify a session is selected
+    if (!activeSessionId) {
+      setScanResult({
+        success: false,
+        alreadyRegistered: false,
+        member: { id: '', name: 'No Session Selected', position: 'Action Required' },
+        session: { id: '', title: 'None Selected' },
+        attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
+        message: 'Please select or create an active session above before scanning.',
+      });
+      return;
+    }
+
+    // Guard 2: Verify session attendance is currently open
+    if (activeSession && activeSession.attendance_status !== 'open') {
+      setScanResult({
+        success: false,
+        alreadyRegistered: false,
+        member: { id: '', name: 'Attendance Not Open', position: activeSession.attendance_status.toUpperCase() },
+        session: { id: activeSession.id, title: activeSession.title },
+        attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
+        message: `Session attendance is currently "${activeSession.attendance_status}". Click "Open Attendance" above to begin scanning.`,
+      });
+      return;
+    }
+
     setIsProcessingScan(true);
 
     try {
@@ -233,7 +275,7 @@ export default function AttendanceScannerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           qrPayload: decodedText,
-          sessionId: selectedSessionId,
+          sessionId: activeSessionId,
         }),
       });
 
@@ -257,7 +299,7 @@ export default function AttendanceScannerPage() {
           success: false,
           alreadyRegistered: false,
           member: { id: '', name: 'Scan Error', position: 'Unverified' },
-          session: { id: selectedSessionId, title: selectedSession?.title || 'Session' },
+          session: { id: activeSessionId, title: activeSession?.title || 'Session' },
           attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
           message: data.error || 'Failed to verify member QR code',
         });
@@ -267,7 +309,7 @@ export default function AttendanceScannerPage() {
         success: false,
         alreadyRegistered: false,
         member: { id: '', name: 'Network Error', position: 'Unverified' },
-        session: { id: selectedSessionId, title: selectedSession?.title || 'Session' },
+        session: { id: activeSessionId, title: activeSession?.title || 'Session' },
         attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
         message: err?.message || 'Server request failed',
       });
@@ -278,7 +320,18 @@ export default function AttendanceScannerPage() {
 
   // 4. Manual Fallback Check-in
   const handleManualCheckIn = async (memberId: string) => {
-    if (!selectedSessionId) return;
+    const activeSessionId = selectedSessionIdRef.current || selectedSessionId;
+    const activeSession = selectedSessionRef.current || selectedSession;
+
+    if (!activeSessionId) {
+      alert('Please select an active session first.');
+      return;
+    }
+
+    if (activeSession && activeSession.attendance_status !== 'open') {
+      alert(`Attendance is currently ${activeSession.attendance_status}. Please open attendance first.`);
+      return;
+    }
     setIsCheckingInManual(true);
 
     try {
@@ -562,9 +615,21 @@ export default function AttendanceScannerPage() {
             </div>
 
             {selectedSession?.attendance_status !== 'open' && (
-              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                <span>Attendance is currently closed. Click &quot;Open Attendance&quot; above to begin scanning.</span>
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>
+                    Attendance is currently {selectedSession?.attendance_status || 'closed'}. Click to enable scanning.
+                  </span>
+                </div>
+                {selectedSession && (
+                  <button
+                    onClick={() => handleUpdateSessionStatus('open')}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors shrink-0 self-start sm:self-auto shadow-xs"
+                  >
+                    Open Attendance Now
+                  </button>
+                )}
               </div>
             )}
 

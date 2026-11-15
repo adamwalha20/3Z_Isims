@@ -6,6 +6,7 @@ import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import {
   Shield,
+  ShieldAlert,
   Users,
   CheckCircle2,
   Lock,
@@ -23,14 +24,14 @@ import {
 } from 'lucide-react';
 
 export default function AdminRolesPage() {
-  const { user, bureauMembers, assignBureauPosition, setUserRole, members, approveMembership } = useAuth();
+  const { user, bureauMembers, assignBureauPosition, setUserRole, members, approveMembership, isAdmin, activeRole } = useAuth();
   const [activeTab, setActiveTab] = useState<'bureau' | 'users'>('bureau');
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.email?.toLowerCase() === 'mahdihelmin@gmail.com' || user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN');
 
   if (!isAuthorized) {
     return (
@@ -125,16 +126,26 @@ export default function AdminRolesPage() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900">Governance, Bureau Mandates & User Roles</h1>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-              Live Supabase Synced
-            </span>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-extrabold text-slate-900">Governance, Bureau Mandates & User Roles</h1>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                Live Supabase Synced
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              As the Club Administrator, assign registered students to official bureau positions and manage member access roles.
+            </p>
           </div>
-          <p className="text-xs text-slate-500">
-            As the Club Administrator, assign registered students to official bureau positions and manage member access roles.
-          </p>
+
+          <Link
+            href="/admin/audit-logs"
+            className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 border border-slate-200 self-start md:self-center shadow-xs"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+            <span>Audit Logs & Undo</span>
+          </Link>
         </div>
 
         {/* Status Toast */}

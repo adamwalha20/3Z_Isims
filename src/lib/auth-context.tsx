@@ -450,12 +450,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: posData } = await supabase
         .from('bureau_positions')
         .select(`
-          id, key, display_name, description,
+          id, key, display_name, description, order_index,
           user_bureau_positions (
             user_id,
             profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
           )
-        `);
+        `)
+        .order('order_index', { ascending: true });
 
       if (posData && posData.length > 0) {
         const mappedBureau: BureauMemberAssignment[] = posData.map((bp: any) => {
@@ -1880,7 +1881,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Find position record
         const { data: pos, error: posErr } = await supabase
           .from('bureau_positions')
-          .select('id')
+          .select('id, key, display_name')
           .eq('key', positionKey)
           .single();
 
@@ -1890,6 +1891,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (pos) {
+          // Capture previous assignment for undo and audit logging
+          const { data: prevAssign } = await supabase
+            .from('user_bureau_positions')
+            .select('user_id, profiles!user_bureau_positions_user_id_fkey(full_name)')
+            .eq('position_id', pos.id)
+            .maybeSingle();
+
+          const prevUserId = prevAssign?.user_id || null;
+          const prevMemberName = (prevAssign as any)?.profiles?.full_name || 'Unassigned';
+
           // Remove old assignment
           const { error: delErr } = await supabase
             .from('user_bureau_positions')
@@ -1924,6 +1935,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               });
             }
           }
+
+          // Write auditable and undoable transaction
+          await supabase.from('audit_logs').insert({
+            actor_id: user?.id && isUuid(user.id) ? user.id : null,
+            action: 'ASSIGN_BUREAU_POSITION',
+            entity_type: 'bureau_position',
+            entity_id: pos.id,
+            details: `Assigned ${finalName} to ${pos.display_name}`,
+            previous_state: {
+              position_key: positionKey,
+              position_id: pos.id,
+              position_name: pos.display_name,
+              user_id: prevUserId,
+              member_name: prevMemberName,
+            },
+            new_state: {
+              position_key: positionKey,
+              position_id: pos.id,
+              position_name: pos.display_name,
+              user_id: finalUserId,
+              member_name: finalName,
+            },
+            can_undo: true,
+            is_undone: false,
+          });
         }
       } catch (err: any) {
         console.error('Error assigning bureau position in Supabase:', err);
@@ -1963,6 +1999,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserRole = async (userId: string, roleKey: 'admin' | 'bureau' | 'member'): Promise<{ success: boolean; error?: string }> => {
     const supabase = createClient();
+    const targetMember = members.find((m) => m.id === userId);
+    const prevRole = targetMember?.roles?.[0]?.key || 'member';
+
     if (supabase && isUuid(userId)) {
       try {
         const { data: roleRow } = await supabase.from('roles').select('id').eq('key', roleKey).single();
@@ -1972,6 +2011,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user_id: userId,
             role_id: roleRow.id,
             assigned_by: user?.id && isUuid(user.id) ? user.id : null,
+          });
+
+          // Log in audit_logs
+          await supabase.from('audit_logs').insert({
+            actor_id: user?.id && isUuid(user.id) ? user.id : null,
+            action: 'ASSIGN_USER_ROLE',
+            entity_type: 'user_role',
+            entity_id: userId,
+            details: `Changed role of ${targetMember?.full_name || 'member'} from ${prevRole.toUpperCase()} to ${roleKey.toUpperCase()}`,
+            previous_state: {
+              user_id: userId,
+              member_name: targetMember?.full_name || 'Member',
+              role: prevRole,
+            },
+            new_state: {
+              user_id: userId,
+              member_name: targetMember?.full_name || 'Member',
+              role: roleKey,
+            },
+            can_undo: true,
+            is_undone: false,
           });
         }
       } catch (err: any) {
@@ -2545,7 +2605,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isApproved,
         isLoading,
         isLiveSupabase,
-        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin',
+        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.email?.toLowerCase() === 'mahdihelmin@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
         tasks,
         projects,
         events,

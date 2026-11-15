@@ -1059,6 +1059,14 @@ export const OFFICIAL_BUREAU_MEMBERS: BureauMemberAssignment[] = [
     email: 'treasurer@isims.tn',
   },
   {
+    position_key: 'training_innovation',
+    position_name: 'Training & Innovation Manager',
+    member_name: 'Unassigned',
+    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=256&q=80',
+    department: 'Training, Innovation & Tech Labs',
+    email: 'innovation@isims.tn',
+  },
+  {
     position_key: 'hr_manager',
     position_name: 'Human Resources Manager (RH)',
     member_name: 'Unassigned',

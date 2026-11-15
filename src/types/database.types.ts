@@ -560,7 +560,14 @@ export interface AuditLog {
   action: string;
   entity_type: string;
   entity_id?: string | null;
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  previous_state?: Record<string, unknown> | null;
+  new_state?: Record<string, unknown> | null;
+  is_undone?: boolean;
+  undone_at?: string | null;
+  undone_by?: string | null;
+  can_undo?: boolean;
+  details?: string | null;
   created_at: string;
   actor?: Profile;
 }
@@ -570,9 +577,11 @@ export interface AuditLog {
 // ------------------------------------------------------------------------------
 
 export type BureauPositionKey =
+  | 'president'
   | 'vice_president'
   | 'secretary_general'
   | 'treasurer'
+  | 'training_innovation'
   | 'hr_manager'
   | 'marketing_design_manager'
   | 'sustainable_campus_manager'
@@ -587,6 +596,7 @@ export interface BureauPosition {
   display_name: string;
   description?: string | null;
   initial_holder?: string | null;
+  order_index?: number;
   created_at: string;
 }
 
