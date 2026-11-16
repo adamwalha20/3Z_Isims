@@ -33,9 +33,10 @@ export interface MeetingBaaSCreateBotRequest {
   extra?: Record<string, any>;
   transcription_enabled?: boolean;
   transcription_config?: {
-    provider?: 'gladia' | 'deepgram' | 'assemblyai';
+    provider?: 'gladia' | 'deepgram' | 'assemblyai' | 'speechmatics';
     language?: string;
     model?: string;
+    custom_params?: Record<string, any>;
   };
 }
 
@@ -88,6 +89,7 @@ export interface MeetingBaaSUtterance {
   start: number;
   end: number;
   text: string;
+  language?: string;
   words?: Array<{
     word: string;
     start: number;

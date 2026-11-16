@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import {
   translateTranscriptText,
+  detectTranscriptLanguage,
+  translateTranscriptBatchWithAI,
   SupportedTranscriptLocale,
 } from '@/lib/i18n/transcript-translator';
 
@@ -49,21 +51,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'No transcript segments found' }, { status: 404 });
     }
 
-    // 3. Translate segments
+    // 3. Check which segments need AI batch translation for targetLanguage
+    const missingTarget = segments.filter(
+      (s) => !s.translations || !s.translations[targetLanguage]
+    );
+
+    let aiTranslatedMap: Record<string | number, string> = {};
+    if (missingTarget.length > 0) {
+      aiTranslatedMap = await translateTranscriptBatchWithAI(
+        missingTarget.map((s) => ({
+          id: s.id,
+          text: s.content || s.text || '',
+          speaker: s.speaker_label,
+        })),
+        targetLanguage as SupportedTranscriptLocale
+      );
+    }
+
+    // 4. Update segments
     const updatedSegments = [];
     for (const seg of segments) {
       const origText = seg.content || seg.text || '';
       const currentTranslations = (seg.translations || {}) as Record<string, string>;
+      const detected = detectTranscriptLanguage(origText);
+      const isArabic = detected === 'ar-TN' || /[\u0600-\u06FF]/.test(origText);
 
+      // Native speech preservation: if spoken in Tunisian Arabic, ar-TN is the original speech!
       const arTnText =
         currentTranslations['ar-TN'] ||
-        translateTranscriptText(origText, 'ar-TN', transcript.language || 'en');
+        (isArabic ? origText : (aiTranslatedMap[seg.id] && targetLanguage === 'ar-TN' ? aiTranslatedMap[seg.id] : translateTranscriptText(origText, 'ar-TN', detected)));
+
       const frText =
         currentTranslations['fr'] ||
-        translateTranscriptText(origText, 'fr', transcript.language || 'en');
+        (detected === 'fr' ? origText : (aiTranslatedMap[seg.id] && targetLanguage === 'fr' ? aiTranslatedMap[seg.id] : translateTranscriptText(origText, 'fr', detected)));
+
       const enText =
         currentTranslations['en'] ||
-        (transcript.language === 'en' ? origText : translateTranscriptText(origText, 'en', transcript.language));
+        (detected === 'en' ? origText : (aiTranslatedMap[seg.id] && targetLanguage === 'en' ? aiTranslatedMap[seg.id] : translateTranscriptText(origText, 'en', detected)));
 
       const newTranslations = {
         ...currentTranslations,
@@ -85,7 +109,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Update full transcript translations
+    // 5. Update full transcript translations
     const txTranslations = (transcript.translations || {}) as Record<string, string>;
     txTranslations['ar-TN'] = updatedSegments
       .map((s) => `${s.speaker_name || s.speaker_label}: ${s.translations?.['ar-TN'] || s.content}`)
@@ -108,13 +132,10 @@ export async function POST(req: NextRequest) {
       success: true,
       targetLanguage,
       segments: updatedSegments,
-      message: 'Transcript translated successfully into Tunisian Arabic, French, and English.',
+      translations: txTranslations,
     });
   } catch (err: any) {
-    console.error('Transcript translation error:', err);
-    return NextResponse.json(
-      { success: false, error: err?.message || 'Translation failed' },
-      { status: 500 }
-    );
+    console.error('Failed to translate transcript:', err);
+    return NextResponse.json({ success: false, error: err?.message || 'Translation failed' }, { status: 500 });
   }
 }

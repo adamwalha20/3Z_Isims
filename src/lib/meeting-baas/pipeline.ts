@@ -5,7 +5,7 @@ import {
   normalizeTranscriptionPayload,
 } from './artifacts';
 import { analyzeMeetingTranscript } from '@/lib/ai/meeting-analysis';
-import { translateTranscriptText } from '@/lib/i18n/transcript-translator';
+import { translateTranscriptText, detectTranscriptLanguage } from '@/lib/i18n/transcript-translator';
 
 export interface RunPipelineOptions {
   meetingId: string;
@@ -181,9 +181,12 @@ export async function executeMeetingProcessingPipeline(
           .eq('transcript_id', txRecord.id);
 
         if (normalizedTranscript.utterances.length > 0) {
-          const detectedLang = normalizedTranscript.detectedLanguage || 'en';
+          const defaultDocLang = normalizedTranscript.detectedLanguage || 'ar-TN';
           const segmentRows = normalizedTranscript.utterances.map((u, idx) => {
             const rawText = u.text || '';
+            const uttLang = (u.language && u.language !== 'unknown') ? u.language : detectTranscriptLanguage(rawText);
+            const isNativeTunisian = uttLang === 'ar-TN' || /[\u0600-\u06FF]/.test(rawText);
+
             return {
               transcript_id: txRecord.id,
               meeting_id: meetingId,
@@ -195,9 +198,10 @@ export async function executeMeetingProcessingPipeline(
               content: rawText,
               text: rawText,
               translations: {
-                en: detectedLang === 'en' ? rawText : translateTranscriptText(rawText, 'en', detectedLang),
-                fr: detectedLang === 'fr' ? rawText : translateTranscriptText(rawText, 'fr', detectedLang),
-                'ar-TN': translateTranscriptText(rawText, 'ar-TN', detectedLang),
+                // If spoken in Tunisian Arabic, preserve original native speech directly!
+                'ar-TN': isNativeTunisian ? rawText : translateTranscriptText(rawText, 'ar-TN', uttLang),
+                fr: uttLang === 'fr' ? rawText : translateTranscriptText(rawText, 'fr', uttLang),
+                en: uttLang === 'en' ? rawText : translateTranscriptText(rawText, 'en', uttLang),
               },
             };
           });

@@ -38,6 +38,7 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
             start: Number(u.start || 0),
             end: Number(u.end || 0),
             text: (u.text || u.words || '').trim(),
+            language: u.language || (u as any).lang,
           });
         }
       }
@@ -58,6 +59,7 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
         start: Number(u.start ?? u.start_seconds ?? 0),
         end: Number(u.end ?? u.end_seconds ?? 0),
         text: (u.text || u.content || '').trim(),
+        language: u.language || u.lang,
       });
     }
     const langs = payload.languages || data.languages;
@@ -75,6 +77,7 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
         start: Number(p.time_begin || 0),
         end: Number(p.time_end || 0),
         text: (p.transcription || '').trim(),
+        language: p.language || p.lang,
       });
     }
   }

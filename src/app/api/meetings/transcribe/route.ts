@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getBotDetails } from '@/lib/meeting-baas/bots';
 import { normalizeTranscriptionPayload } from '@/lib/meeting-baas/artifacts';
+import {
+  translateTranscriptText,
+  detectTranscriptLanguage,
+  SupportedTranscriptLocale,
+} from '@/lib/i18n/transcript-translator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -147,17 +152,28 @@ export async function POST(req: NextRequest) {
       .delete()
       .eq('transcript_id', txRecord.id);
 
-    const segmentRows = segments.map((s) => ({
-      transcript_id: txRecord.id,
-      meeting_id: meetingId,
-      sequence_number: s.sequence_number,
-      speaker_label: s.speaker_label,
-      speaker_name: s.speaker_label,
-      start_seconds: s.start_seconds,
-      end_seconds: s.end_seconds,
-      content: s.content || s.text,
-      text: s.content || s.text,
-    }));
+    const segmentRows = segments.map((s) => {
+      const rawText = s.content || s.text || '';
+      const uttLang = detectTranscriptLanguage(rawText);
+      const isArabic = uttLang === 'ar-TN' || /[\u0600-\u06FF]/.test(rawText);
+
+      return {
+        transcript_id: txRecord.id,
+        meeting_id: meetingId,
+        sequence_number: s.sequence_number,
+        speaker_label: s.speaker_label,
+        speaker_name: s.speaker_label,
+        start_seconds: s.start_seconds,
+        end_seconds: s.end_seconds,
+        content: rawText,
+        text: rawText,
+        translations: {
+          'ar-TN': isArabic ? rawText : translateTranscriptText(rawText, 'ar-TN', uttLang),
+          fr: uttLang === 'fr' ? rawText : translateTranscriptText(rawText, 'fr', uttLang),
+          en: uttLang === 'en' ? rawText : translateTranscriptText(rawText, 'en', uttLang),
+        },
+      };
+    });
 
     await adminDb.from('meeting_transcript_segments').insert(segmentRows);
 

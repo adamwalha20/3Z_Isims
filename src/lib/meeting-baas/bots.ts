@@ -40,7 +40,13 @@ export async function createRecordingBot(params: {
     },
     transcription_enabled: true,
     transcription_config: {
-      provider: 'gladia', // Gladia provides high-accuracy multilingual audio transcription
+      provider: 'gladia', // Gladia provides high-accuracy multilingual audio transcription & code-switching
+      custom_params: {
+        language_config: {
+          languages: ['ar', 'fr', 'en'],
+          code_switching: true,
+        },
+      },
     },
     extra: {
       meeting_id: params.meetingId,
