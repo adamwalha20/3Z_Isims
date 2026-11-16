@@ -115,10 +115,10 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
     : 'Club Member';
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-900/10 shadow-sm max-w-md mx-auto text-center space-y-5">
+    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs max-w-md mx-auto text-center space-y-4">
       {/* Member Header */}
       <div className="flex flex-col items-center gap-2">
-        <div className="w-16 h-16 rounded-full ring-4 ring-emerald-500/20 p-0.5 bg-white shadow-xs overflow-hidden">
+        <div className="w-14 h-14 rounded-full border border-slate-200 p-0.5 bg-white shadow-xs overflow-hidden">
           <img
             src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
             alt={user?.full_name || 'Member profile'}
@@ -126,8 +126,8 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
           />
         </div>
         <div>
-          <h3 className="text-lg font-black text-slate-900">{user?.full_name || 'Club Member'}</h3>
-          <span className="inline-block mt-0.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200 capitalize">
+          <h3 className="text-base font-semibold text-slate-900">{user?.full_name || 'Club Member'}</h3>
+          <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/70 capitalize">
             {displayPositions}
           </span>
         </div>
@@ -137,37 +137,37 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
       </div>
 
       {/* QR Code Container */}
-      <div className="relative p-5 bg-gradient-to-b from-emerald-50/50 to-slate-50/50 rounded-3xl border border-emerald-100 flex flex-col items-center justify-center">
+      <div className="relative p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
         {isLoading ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <span className="text-xs font-semibold">Generating encrypted QR pass...</span>
+          <div className="h-60 flex flex-col items-center justify-center gap-2 text-slate-400">
+            <Loader2 className="w-7 h-7 animate-spin text-emerald-700" />
+            <span className="text-xs font-medium">Generating encrypted pass...</span>
           </div>
         ) : (
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+          <div className="bg-white p-2.5 rounded-lg shadow-xs border border-slate-200">
             <img
               src={qrDataUrl}
               alt="Personal Attendance QR Code"
-              className="w-60 h-60 object-contain rounded-xl"
+              className="w-56 h-56 object-contain"
             />
           </div>
         )}
 
-        <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-800 font-bold">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
+          <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>Cryptographically Signed & Replay Protected</span>
         </div>
       </div>
 
       {/* Success / Error Alerts */}
       {successMessage && (
-        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
       {errorMessage && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-2">
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -179,11 +179,11 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
       </p>
 
       {/* Actions */}
-      <div className="flex items-center justify-center gap-3 pt-1 border-t border-slate-100">
+      <div className="flex items-center justify-center gap-2.5 pt-1 border-t border-slate-100">
         <button
           onClick={handleDownload}
           disabled={!qrDataUrl || isLoading}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors disabled:opacity-50"
+          className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
           <span>Download PNG</span>
@@ -192,7 +192,7 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
         <button
           onClick={handleRegenerate}
           disabled={isRegenerating || isLoading}
-          className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
           title="Revoke and generate a fresh QR token"
         >
           <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />

@@ -191,83 +191,56 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="pt-4 flex flex-col gap-5 max-w-4xl mx-auto w-full pb-20">
+      <div className="pt-4 flex flex-col gap-4 max-w-4xl mx-auto w-full pb-20">
         {/* =========================================================================
-            1. WELCOME MESSAGE & OFFICIAL DIGITAL PASS (Stitch 3Z Identity)
+            1. MEMBER WORKSPACE HEADER & CREDENTIAL PROFILE
         ========================================================================= */}
-        <section className="rounded-3xl overflow-hidden card-luminous border border-white/60 bg-white shadow-md relative">
-          <div className="badge-gradient p-4 sm:p-5 text-white relative overflow-hidden">
-            <div className="absolute -right-8 -top-8 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white font-extrabold text-xs shadow-inner">
-                  3Z
-                </div>
-                <div>
-                  <div className="font-extrabold text-sm sm:text-base leading-tight tracking-tight uppercase">
-                    3ZERO CAMPUS HUB
-                  </div>
-                  <div className="text-[11px] text-emerald-100 font-medium tracking-wide">
-                    ISIMS SFAX CHAPTER • ZERO EXCLUSION CARBON POVERTY
-                  </div>
-                </div>
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-12 h-12 rounded-full border border-slate-200 overflow-hidden bg-slate-100 shrink-0">
+                <img
+                  alt={user?.full_name || 'Member'}
+                  className="w-full h-full object-cover"
+                  src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                />
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold shadow-xs">
-                <span className="material-symbols-outlined text-[15px] text-emerald-300">verified</span>
-                <span className="capitalize">{activeRole} Workspace</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-5 bg-white flex flex-col gap-3.5">
-            <div className="flex items-start gap-4">
-              <div className="relative shrink-0">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-1 bg-gradient-to-tr from-emerald-600 via-emerald-400 to-green-300 shadow-md">
-                  <img
-                    alt={user?.full_name || 'Member'}
-                    className="w-full h-full rounded-full object-cover bg-white"
-                    src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1 flex-wrap">
-                  <h1 className="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight truncate">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-semibold text-base sm:text-lg text-slate-900 tracking-tight truncate">
                     {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || 'Member' })}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-200 uppercase">
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-xs font-medium capitalize">
                     {activeRole === 'bureau' ? (currentBureauPos.replace(/_/g, ' ')) : activeRole}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono mt-0.5">
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
                   <span>{user?.student_id || 'ISIMS-STUDENT'}</span>
                   <span>•</span>
-                  <span className="text-emerald-700 font-semibold font-sans">
+                  <span className="text-slate-600 font-sans font-medium">
                     {user?.study_field || 'Computer Science & Multimedia'}
                   </span>
                 </div>
-
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={() => setShowQRModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>{t('attendance.myQrTab')}</span>
-                  </button>
-                  <Link
-                    href="/ranking"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-200 transition-colors"
-                  >
-                    <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{t('ranking.leaderboard')} #{myLeaderboardRank}</span>
-                  </Link>
-                </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 transition-colors shadow-xs"
+              >
+                <QrCode className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{t('attendance.myQrTab')}</span>
+              </button>
+              <Link
+                href="/ranking"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50/70 hover:bg-emerald-50 text-emerald-900 text-xs font-medium border border-emerald-200/70 transition-colors shadow-xs"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                <span>Rank #{myLeaderboardRank}</span>
+              </Link>
             </div>
           </div>
         </section>
@@ -275,17 +248,17 @@ export default function DashboardPage() {
         {/* =========================================================================
             2. MY XP & RANK LEVEL PROGRESSION
         ========================================================================= */}
-        <section className="bg-white rounded-3xl p-5 border border-emerald-900/10 shadow-xs flex flex-col gap-3">
+        <section className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 text-white flex items-center justify-center font-bold shadow-xs">
-                <Award className="w-5 h-5" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center font-bold">
+                <Award className="w-4 h-4 text-emerald-700" />
               </div>
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('ranking.tier')}</div>
+                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('ranking.tier')}</div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-base text-slate-900">{myRankLevel.name}</span>
-                  <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${myRankLevel.badgeColor}`}>
+                  <span className="font-semibold text-sm text-slate-900">{myRankLevel.name}</span>
+                  <span className="px-2 py-0.2 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/60">
                     {myXpData.total_xp} {t('ranking.totalPoints')}
                   </span>
                 </div>
@@ -293,19 +266,19 @@ export default function DashboardPage() {
             </div>
 
             <div className="text-right">
-              <span className="text-xs font-bold text-slate-500">
+              <span className="text-xs text-slate-500 font-medium">
                 {nextLevel ? `${nextLevel.minXp - myXpData.total_xp} XP to ${nextLevel.name}` : 'Max Rank Achieved'}
               </span>
-              <div className="text-xs font-mono font-bold text-emerald-700">
+              <div className="text-xs font-medium text-emerald-800">
                 {t('ranking.rank')} #{myLeaderboardRank} in ISIMS
               </div>
             </div>
           </div>
 
           {/* Rank Progress Bar */}
-          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1">
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-0.5">
             <div
-              className="bg-gradient-to-r from-emerald-600 to-teal-500 h-full rounded-full transition-all duration-500"
+              className="bg-emerald-700 h-full rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             ></div>
           </div>
@@ -313,12 +286,12 @@ export default function DashboardPage() {
           {/* Achievement Badges Unlocked */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs flex-wrap gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">{t('ranking.achievements')}:</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('ranking.achievements')}:</span>
               {myAchievements.length > 0 ? (
                 myAchievements.map((ach) => (
                   <span
                     key={ach.id || `${ach.user_id || 'usr'}-${ach.achievement_key}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-900 text-[10px] font-bold border border-emerald-200"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[10px] font-medium border border-slate-200"
                   >
                     <Sparkles className="w-3 h-3 text-amber-500" />
                     <span>{ach.metadata?.title || ach.achievement_key.replace('_', ' ')}</span>
@@ -328,7 +301,7 @@ export default function DashboardPage() {
                 <span className="text-slate-400 text-[11px] italic">{t('ranking.howToEarn')}</span>
               )}
             </div>
-            <Link href="/ranking" className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
+            <Link href="/ranking" className="text-emerald-700 font-medium hover:text-emerald-900 flex items-center gap-1">
               <span>{t('ranking.leaderboard')}</span>
               <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
             </Link>
@@ -339,32 +312,29 @@ export default function DashboardPage() {
             3. PENDING VERIFICATIONS ACTION PANEL (Bureau Officers & Admins Only)
         ========================================================================= */}
         {(activeRole === 'bureau' || activeRole === 'admin') && pendingVerifications.length > 0 && (
-          <section className="bg-amber-50/70 rounded-3xl p-5 border border-amber-200 shadow-xs flex flex-col gap-3">
+          <section className="bg-amber-50/50 rounded-xl p-4 border border-amber-200/80 shadow-xs flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600"></span>
-                </span>
-                <h2 className="font-extrabold text-sm text-amber-950">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <h2 className="font-semibold text-xs text-amber-900 uppercase tracking-wider">
                   Pending Task Verifications ({pendingVerifications.length})
                 </h2>
               </div>
-              <span className="text-[11px] font-bold text-amber-800">Requires Review</span>
+              <span className="text-[11px] font-medium text-amber-800">Requires Review</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-1 gap-2">
               {pendingVerifications.slice(0, 3).map((task) => (
                 <div
                   key={task.id}
-                  className="bg-white p-3.5 rounded-2xl border border-amber-200/80 shadow-xs flex items-center justify-between gap-3 flex-wrap"
+                  className="bg-white p-3 rounded-lg border border-amber-200/60 shadow-xs flex items-center justify-between gap-3 flex-wrap"
                 >
                   <div className="min-w-0 flex-1">
-                    <span className="font-bold text-xs sm:text-sm text-slate-900 block truncate">
+                    <span className="font-semibold text-xs sm:text-sm text-slate-900 block truncate">
                       {task.title}
                     </span>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
-                      <span className="font-semibold text-emerald-800">
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
+                      <span className="font-medium text-slate-700 capitalize">
                         Priority: {task.priority}
                       </span>
                       <span>•</span>
@@ -375,13 +345,13 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setReviewTask(task)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors"
                     >
                       Reject / Revise
                     </button>
                     <button
                       onClick={() => verifyTask(task.id, true)}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors flex items-center gap-1 shadow-xs"
+                      className="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium transition-colors flex items-center gap-1 shadow-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Approve (+XP)</span>
@@ -397,17 +367,17 @@ export default function DashboardPage() {
             4. ROLE-SPECIFIC WORKSPACE SECTION (Bureau & Admin only)
         ========================================================================= */}
         {activeRole === 'admin' ? (
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-800" />
-                <h2 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                <h2 className="font-semibold text-xs text-slate-700 uppercase tracking-wider">
                   Admin Global Oversight
                 </h2>
               </div>
               <button
                 onClick={() => setShowNewTaskModal(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 hover:bg-emerald-800 shadow-xs"
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-xs font-medium flex items-center gap-1 hover:bg-emerald-800 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Create Task</span>
@@ -419,17 +389,17 @@ export default function DashboardPage() {
             {renderBureauCockpit(activeBureauPosition !== 'all' ? activeBureauPosition : 'vice_president')}
           </section>
         ) : activeRole === 'bureau' ? (
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-emerald-800" />
-                <h2 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                <h2 className="font-semibold text-xs text-slate-700 uppercase tracking-wider">
                   My Bureau Workspace
                 </h2>
               </div>
               <button
                 onClick={() => setShowNewTaskModal(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 hover:bg-emerald-800 shadow-xs"
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-xs font-medium flex items-center gap-1 hover:bg-emerald-800 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Assign Task</span>
@@ -447,50 +417,50 @@ export default function DashboardPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-slate-900">{t('tasks.title')}</h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-mono text-xs font-bold">
+              <h2 className="text-sm font-semibold text-slate-900">{t('tasks.title')}</h2>
+              <span className="px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 font-mono text-xs font-medium">
                 {memberTasks.length}
               </span>
             </div>
 
             {/* Clean Segmented Filters */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl overflow-x-auto no-scrollbar text-xs font-bold">
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg overflow-x-auto no-scrollbar text-xs font-medium">
               <button
                 onClick={() => setTaskFilter('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  taskFilter === 'all' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  taskFilter === 'all' ? 'bg-white text-slate-900 font-semibold shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t('tasks.filterAll')}
               </button>
               <button
                 onClick={() => setTaskFilter('todo')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  taskFilter === 'todo' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  taskFilter === 'todo' ? 'bg-white text-slate-900 font-semibold shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t('tasks.statusToDo')}
               </button>
               <button
                 onClick={() => setTaskFilter('in_progress')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  taskFilter === 'in_progress' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  taskFilter === 'in_progress' ? 'bg-white text-slate-900 font-semibold shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t('tasks.statusInProgress')}
               </button>
               <button
                 onClick={() => setTaskFilter('waiting_verification')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  taskFilter === 'waiting_verification' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  taskFilter === 'waiting_verification' ? 'bg-white text-slate-900 font-semibold shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t('tasks.statusInReview')}
               </button>
               <button
                 onClick={() => setTaskFilter('done')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  taskFilter === 'done' ? 'bg-white text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  taskFilter === 'done' ? 'bg-white text-slate-900 font-semibold shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t('tasks.statusCompleted')}
@@ -499,7 +469,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Task Items */}
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             {memberTasks.length > 0 ? (
               memberTasks.map((t) => {
                 const isDone = t.status === 'done';
@@ -508,7 +478,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={t.id}
-                    className="bg-white p-4 rounded-2xl card-luminous border border-emerald-100/70 flex items-start justify-between gap-3 shadow-xs hover:border-emerald-300 transition-colors"
+                    className="bg-white p-3.5 rounded-xl border border-slate-200 flex items-start justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors"
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       {/* Interactive Task Completion / Submission */}
@@ -520,18 +490,18 @@ export default function DashboardPage() {
                         }}
                         disabled={isWaiting}
                         aria-label="Submit task for completion"
-                        className={`mt-0.5 w-6 h-6 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
+                        className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${
                           isDone
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            ? 'bg-emerald-700 border-emerald-700 text-white'
                             : isWaiting
                             ? 'bg-amber-50 border-amber-300 text-amber-600'
-                            : 'border-slate-300 hover:border-emerald-600 bg-white text-slate-400'
+                            : 'border-slate-300 hover:border-emerald-700 bg-white text-slate-400'
                         }`}
                       >
                         {isDone ? (
-                          <CheckCircle className="w-4 h-4 text-white" />
+                          <CheckCircle className="w-3.5 h-3.5 text-white" />
                         ) : isWaiting ? (
-                          <Clock className="w-3.5 h-3.5 animate-pulse" />
+                          <Clock className="w-3 h-3 text-amber-600" />
                         ) : (
                           <span className="text-[10px] font-bold">✓</span>
                         )}
@@ -539,7 +509,7 @@ export default function DashboardPage() {
 
                       <div className="flex flex-col min-w-0">
                         <span
-                          className={`text-xs sm:text-sm font-bold text-slate-900 leading-snug ${
+                          className={`text-xs sm:text-sm font-semibold text-slate-900 leading-snug ${
                             isDone ? 'line-through text-slate-400' : ''
                           }`}
                         >
@@ -551,33 +521,33 @@ export default function DashboardPage() {
                         )}
 
                         {t.rejection_reason && (
-                          <div className="mt-1.5 p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[10px] font-medium">
-                            <span className="font-bold">Revision requested:</span> {t.rejection_reason}
+                          <div className="mt-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200/70 text-rose-800 text-[10px] font-medium">
+                            <span className="font-semibold">Revision requested:</span> {t.rejection_reason}
                           </div>
                         )}
 
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                           <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-medium capitalize ${
                               t.priority === 'urgent'
-                                ? 'bg-rose-100 text-rose-800'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
                                 : t.priority === 'high'
-                                ? 'bg-amber-100 text-amber-900'
-                                : 'bg-emerald-100 text-emerald-800'
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200/60'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200/60'
                             }`}
                           >
                             {t.priority}
                           </span>
 
                           {t.due_at && (
-                            <span className="font-mono text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                            <span className="font-mono text-[10px] text-slate-500 font-medium flex items-center gap-1">
                               <Clock className="w-3 h-3 text-slate-400" />
                               {new Date(t.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
                           )}
 
                           {t.xp_awarded && (
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-medium">
                               +XP Awarded
                             </span>
                           )}
@@ -588,17 +558,17 @@ export default function DashboardPage() {
                     {/* Status Action / Tag */}
                     <div className="shrink-0 flex flex-col items-end gap-1">
                       {isWaiting ? (
-                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
-                          Waiting for Verification
+                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-medium">
+                          In Review
                         </span>
                       ) : isDone ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-medium">
                           Completed
                         </span>
                       ) : (
                         <button
                           onClick={() => submitTaskForVerification(t.id)}
-                          className="px-3 py-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold transition-colors shadow-xs"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition-colors shadow-xs"
                         >
                           Submit Done
                         </button>
@@ -608,7 +578,7 @@ export default function DashboardPage() {
                 );
               })
             ) : (
-              <div className="p-8 bg-white rounded-3xl border border-slate-100 text-center text-slate-400 text-xs">
+              <div className="p-8 bg-white rounded-xl border border-slate-200 text-center text-slate-400 text-xs">
                 No tasks matching this filter.
               </div>
             )}
@@ -621,24 +591,24 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Upcoming Event */}
           {nextEvent && (
-            <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs flex flex-col justify-between gap-3">
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
                   Upcoming Event
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-500">
+                <span className="text-xs font-mono text-slate-500">
                   {new Date(nextEvent.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </span>
               </div>
               <div>
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">
+                <h3 className="font-semibold text-sm text-slate-900 leading-snug">
                   {nextEvent.title}
                 </h3>
                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">{nextEvent.description}</p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-600 font-medium">📍 {nextEvent.location}</span>
-                <Link href="/events" className="text-emerald-700 font-bold hover:underline">
+                <Link href="/events" className="text-emerald-700 font-medium hover:underline">
                   Details →
                 </Link>
               </div>
@@ -647,23 +617,23 @@ export default function DashboardPage() {
 
           {/* Pinned Announcement */}
           {pinnedAnnouncement && (
-            <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs flex flex-col justify-between gap-3">
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Pin className="w-3 h-3 text-amber-600" />
                   Official Circular
                 </span>
                 <span className="text-xs font-mono text-slate-400">ISIMS Chapter</span>
               </div>
               <div>
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">
+                <h3 className="font-semibold text-sm text-slate-900 leading-snug">
                   {pinnedAnnouncement.title}
                 </h3>
-                <p className="text-xs text-slate-600 line-clamp-2 mt-1 font-medium">{pinnedAnnouncement.body}</p>
+                <p className="text-xs text-slate-600 line-clamp-2 mt-1">{pinnedAnnouncement.body}</p>
               </div>
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-500 text-[11px]">Bureau Memo</span>
-                <Link href="/announcements" className="text-emerald-700 font-bold hover:underline">
+                <Link href="/announcements" className="text-emerald-700 font-medium hover:underline">
                   All Memos →
                 </Link>
               </div>
@@ -676,9 +646,9 @@ export default function DashboardPage() {
           REVISION / REJECTION FEEDBACK MODAL
       ========================================================================= */}
       {reviewTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col gap-4">
-            <h3 className="font-extrabold text-sm text-slate-900">Request Revision for Task</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-xl border border-slate-200 flex flex-col gap-3">
+            <h3 className="font-semibold text-sm text-slate-900">Request Revision for Task</h3>
             <p className="text-xs text-slate-500">
               Provide feedback for <strong className="text-slate-800">{reviewTask.title}</strong> so the member can revise and resubmit.
             </p>
@@ -688,13 +658,13 @@ export default function DashboardPage() {
               value={reviewReason}
               onChange={(e) => setReviewReason(e.target.value)}
               placeholder="e.g. Please attach the voucher receipt from CRDA."
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-600/30"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setReviewTask(null)}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -705,7 +675,7 @@ export default function DashboardPage() {
                   setReviewTask(null);
                   setReviewReason('');
                 }}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-rose-600 text-white hover:bg-rose-700"
+                className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-rose-600 text-white hover:bg-rose-700"
               >
                 Send Revision Request
               </button>
@@ -718,55 +688,55 @@ export default function DashboardPage() {
           TASK CREATION MODAL (Bureau & Admin only)
       ========================================================================= */}
       {showNewTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl p-5 max-w-md w-full shadow-lg border border-slate-200 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-sm text-slate-900">Create & Assign Chapter Task</h3>
-              <button onClick={() => setShowNewTaskModal(false)} className="text-slate-400 font-bold text-xs">
+              <h3 className="font-semibold text-sm text-slate-900">Create & Assign Chapter Task</h3>
+              <button onClick={() => setShowNewTaskModal(false)} className="text-slate-400 hover:text-slate-600 text-xs">
                 ✕
               </button>
             </div>
             <form onSubmit={handleCreateTask} className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-700">Task Title</label>
+                <label className="text-xs font-medium text-slate-700">Task Title</label>
                 <input
                   type="text"
                   required
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="e.g. Coordinate Green Wall tree delivery with CRDA"
-                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200"
+                  className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-600/30"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700">Description</label>
+                <label className="text-xs font-medium text-slate-700">Description</label>
                 <textarea
                   rows={2}
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
                   placeholder="Task instructions and expectations..."
-                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200"
+                  className="w-full mt-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-600/30"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-bold text-slate-700">Priority</label>
+                  <label className="text-xs font-medium text-slate-700">Priority</label>
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                    className="w-full mt-1 px-2.5 py-2 text-xs rounded-xl border border-slate-200"
+                    className="w-full mt-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600/30"
                   >
                     <option value="low">Low (10 XP)</option>
                     <option value="medium">Medium (10 XP)</option>
                     <option value="high">High (20 XP)</option>
-                    <option value="urgent">Urgent 🔥 (20 XP)</option>
+                    <option value="urgent">Urgent (20 XP)</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col justify-center">
-                  <label className="text-xs font-bold text-slate-700">XP Verification</label>
+                  <label className="text-xs font-medium text-slate-700">XP Verification</label>
                   <label className="flex items-center gap-2 mt-2 text-xs text-slate-700 cursor-pointer">
                     <input
                       type="checkbox"
@@ -779,17 +749,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowNewTaskModal(false)}
-                  className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
+                  className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-emerald-700 text-white hover:bg-emerald-800"
                 >
                   Create & Dispatch Task
                 </button>
@@ -801,23 +771,23 @@ export default function DashboardPage() {
 
       {/* QR Pass Modal */}
       {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center">
-            <h3 className="font-extrabold text-base text-slate-900">3ZERO Club Official ID Pass</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-lg border border-slate-200 flex flex-col items-center gap-3 text-center">
+            <h3 className="font-semibold text-sm text-slate-900">3ZERO Club Official ID Pass</h3>
             <p className="text-xs text-slate-500">Scan at entrance for automated event registration & attendance verification.</p>
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
-              <QrCode className="w-52 h-52 text-emerald-900" />
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <QrCode className="w-48 h-48 text-emerald-950" />
             </div>
             <div className="font-mono text-xs text-slate-600">
               {user?.student_id || 'ISIMS-MEMBER'} • {user?.full_name || 'Student Member'}
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold font-mono">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-mono">
               <Clock className="w-3.5 h-3.5 animate-spin" />
               <span>Refreshes in {countdown}s</span>
             </div>
             <button
               onClick={() => setShowQRModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+              className="w-full py-2 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors"
             >
               Close Pass
             </button>

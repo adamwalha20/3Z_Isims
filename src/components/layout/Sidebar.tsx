@@ -69,21 +69,21 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-emerald-900/10 min-h-[calc(100vh-4rem)] pt-6 pb-8 px-3 shrink-0">
+    <aside className="hidden lg:flex flex-col w-60 bg-white border-r border-slate-200 min-h-[calc(100vh-3.5rem)] pt-4 pb-6 px-3 shrink-0">
       {/* Chapter Context Banner */}
-      <div className="px-3 py-2.5 mb-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/60 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+      <div className="px-3 py-2 mb-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-md bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
           3Z
         </div>
         <div className="min-w-0">
-          <div className="text-xs font-extrabold text-emerald-950 truncate">{t('common.chapterName')}</div>
-          <div className="text-[10px] text-emerald-700 font-medium">{t('common.academicNode')}</div>
+          <div className="text-xs font-semibold text-slate-900 truncate">{t('common.chapterName')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">{t('common.academicNode')}</div>
         </div>
       </div>
 
       {/* Navigation Groups */}
-      <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
-        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto no-scrollbar">
+        <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           {t('nav.home')}
         </div>
         {coreNavLinks.map((item) => {
@@ -93,9 +93,9 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 isActive
-                  ? 'bg-emerald-50 text-emerald-900 font-bold border border-emerald-200/70 shadow-xs'
+                  ? 'bg-slate-100 text-slate-900 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -104,7 +104,7 @@ export default function Sidebar() {
                 <span>{item.label}</span>
               </div>
               {item.badge && (
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-200/70 text-slate-700">
                   {item.badge}
                 </span>
               )}
@@ -114,8 +114,8 @@ export default function Sidebar() {
 
         {/* Bureau Operations (Visible to Bureau Officers & Admins) */}
         {isBureauOrAdmin && (
-          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1">
-            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col gap-0.5">
+            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
               <span>{t('nav.bureauModules')}</span>
             </div>
             {bureauNavLinks.map((item) => {
@@ -125,9 +125,9 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-emerald-50 text-emerald-900 font-bold border border-emerald-200/70 shadow-xs'
+                      ? 'bg-slate-100 text-slate-900 font-semibold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
@@ -143,8 +143,8 @@ export default function Sidebar() {
 
         {/* Administration Section (Available only to Admins) */}
         {isSuperAdmin && (
-          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1">
-            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1">
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col gap-0.5">
+            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
               <span>{t('nav.adminControls')}</span>
             </div>
             {adminLinks.map((item) => {
@@ -154,9 +154,9 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-rose-50 text-rose-900 font-bold border border-rose-200/70'
+                      ? 'bg-rose-50 text-rose-900 font-semibold border border-rose-200/60'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >

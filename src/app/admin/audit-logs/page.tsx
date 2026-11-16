@@ -178,7 +178,7 @@ export default function AdminAuditLogsPage() {
         {/* Feedback Message Banner */}
         {feedbackMessage && (
           <div
-            className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between border ${
+            className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-between border ${
               feedbackMessage.type === 'success'
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                 : 'bg-rose-50 text-rose-900 border-rose-200'
@@ -202,10 +202,10 @@ export default function AdminAuditLogsPage() {
         )}
 
         {/* Header Card */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-emerald-900/10 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl p-5 md:p-6 border border-slate-200 shadow-xs space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">
                 Governance Audit Logs & Undo History
               </h1>
               <p className="text-xs text-slate-500">
@@ -216,7 +216,7 @@ export default function AdminAuditLogsPage() {
             <button
               onClick={fetchLogs}
               disabled={isLoading}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 self-start md:self-center"
+              className="px-3.5 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5 self-start md:self-center border border-slate-200"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Refresh Logs</span>
@@ -226,26 +226,26 @@ export default function AdminAuditLogsPage() {
           {/* Metric Highlights */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Total Operations</span>
-              <div className="text-lg font-black text-slate-900">{totalLogs}</div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase">Total Operations</span>
+              <div className="text-base font-bold text-slate-900">{totalLogs}</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Bureau Actions</span>
-              <div className="text-lg font-black text-emerald-700">{bureauCount}</div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase">Bureau Actions</span>
+              <div className="text-base font-bold text-emerald-800">{bureauCount}</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Attendance Corrections</span>
-              <div className="text-lg font-black text-blue-700">{attendanceCount}</div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase">Attendance Corrections</span>
+              <div className="text-base font-bold text-blue-700">{attendanceCount}</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Reverted (Undone)</span>
-              <div className="text-lg font-black text-amber-600">{undoneCount}</div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase">Reverted (Undone)</span>
+              <div className="text-base font-bold text-amber-700">{undoneCount}</div>
             </div>
           </div>
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="bg-white rounded-3xl p-4 border border-emerald-900/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -253,7 +253,7 @@ export default function AdminAuditLogsPage() {
               placeholder="Search by action, administrator, or details..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-slate-900"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-emerald-600 text-slate-900"
             />
           </div>
 
@@ -268,10 +268,10 @@ export default function AdminAuditLogsPage() {
               <button
                 key={f.id}
                 onClick={() => setFilterCategory(f.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                   filterCategory === f.id
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    ? 'bg-emerald-700 text-white shadow-xs font-semibold'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
                 }`}
               >
                 {f.label}
@@ -281,7 +281,7 @@ export default function AdminAuditLogsPage() {
         </div>
 
         {/* Audit Logs Table Card */}
-        <div className="bg-white rounded-3xl p-6 border border-emerald-900/10 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -336,7 +336,7 @@ export default function AdminAuditLogsPage() {
                               {log.actor?.full_name?.[0] || 'A'}
                             </div>
                             <div>
-                              <div className="font-extrabold text-slate-900">{log.actor?.full_name || 'System / Admin'}</div>
+                              <div className="font-semibold text-slate-900">{log.actor?.full_name || 'System / Admin'}</div>
                               <div className="text-[10px] text-slate-400">{log.actor?.email || 'admin@isims.tn'}</div>
                             </div>
                           </div>
@@ -344,7 +344,7 @@ export default function AdminAuditLogsPage() {
 
                         {/* Action Badge */}
                         <td className="py-3 px-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-tight ${actionBadge(log.action)}`}>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-tight ${actionBadge(log.action)}`}>
                             {log.action.replace(/_/g, ' ')}
                           </span>
                         </td>
@@ -360,7 +360,7 @@ export default function AdminAuditLogsPage() {
                                 {(log.previous_state as any).member_name || (log.previous_state as any).role || 'None'}
                               </span>
                               <span className="text-slate-400">→</span>
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold">
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">
                                 {(log.new_state as any).member_name || (log.new_state as any).role || 'Updated'}
                               </span>
                             </div>
@@ -370,12 +370,12 @@ export default function AdminAuditLogsPage() {
                         {/* Status */}
                         <td className="py-3 px-3">
                           {isUndone ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 flex items-center gap-1 w-max">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 w-max">
                               <RotateCcw className="w-2.5 h-2.5" />
                               <span>Undone</span>
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-1 w-max">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 w-max">
                               <CheckCircle2 className="w-2.5 h-2.5" />
                               <span>Active</span>
                             </span>
@@ -388,7 +388,7 @@ export default function AdminAuditLogsPage() {
                             <button
                               onClick={() => handleUndo(log.id)}
                               disabled={undoingLogId === log.id}
-                              className="px-3 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-[11px] transition-colors inline-flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
+                              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-semibold text-[11px] transition-colors inline-flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
                             >
                               <RotateCcw className={`w-3 h-3 ${undoingLogId === log.id ? 'animate-spin' : ''}`} />
                               <span>{undoingLogId === log.id ? 'Reverting...' : 'Undo'}</span>

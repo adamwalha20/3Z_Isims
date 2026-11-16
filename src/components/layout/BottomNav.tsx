@@ -134,21 +134,20 @@ export default function BottomNav() {
           <button
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`flex flex-col items-center justify-center gap-0.5 w-16 h-12 rounded-xl transition-all relative ${
+            className={`flex flex-col items-center justify-center gap-0.5 w-16 h-12 rounded-lg transition-colors relative ${
               isMenuOpen || isMoreActive
-                ? 'text-emerald-700 font-bold bg-emerald-50/80'
-                : 'text-slate-500 hover:text-emerald-700 font-medium'
+                ? 'text-emerald-800 font-semibold bg-emerald-50'
+                : 'text-slate-500 hover:text-slate-900 font-medium'
             }`}
             aria-label="All Pages Navigation Menu"
           >
             <div className="relative">
               <span
-                className="material-symbols-outlined text-[22px]"
+                className="material-symbols-outlined text-[20px]"
                 style={isMenuOpen || isMoreActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {isMenuOpen ? 'close' : 'grid_view'}
               </span>
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse"></span>
             </div>
             <span className="text-[10px]">{isMenuOpen ? t('common.close') : t('nav.allPages')}</span>
             {isMoreActive && !isMenuOpen && (
@@ -164,33 +163,31 @@ export default function BottomNav() {
           {/* Backdrop */}
           <div
             onClick={() => setIsMenuOpen(false)}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
           />
 
           {/* Drawer Card */}
-          <div className="relative w-full max-h-[85vh] bg-[#f8faf9] rounded-t-3xl shadow-2xl border-t border-emerald-900/15 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full max-h-[85vh] bg-slate-50 rounded-t-2xl shadow-xl border-t border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
             {/* Drawer Header Handle & Title */}
-            <div className="p-4 bg-white border-b border-emerald-900/10 flex items-center justify-between shrink-0">
+            <div className="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-800 to-emerald-500 p-0.5 shadow-sm flex items-center justify-center">
-                  <div className="w-full h-full bg-white rounded-[9px] flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[20px] text-emerald-700 font-bold">eco</span>
-                  </div>
+                <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center font-bold text-xs">
+                  3Z
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-sm text-slate-900">3ZERO Workspace</span>
-                    <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full uppercase">
+                    <span className="font-semibold text-sm text-slate-900">3ZERO Workspace</span>
+                    <span className="text-[9px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70 px-1.5 py-0.2 rounded-md uppercase">
                       ISIMS
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-500">All 11 Platform Modules</span>
+                  <span className="text-[10px] text-slate-500">Platform Modules</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
@@ -198,11 +195,11 @@ export default function BottomNav() {
             </div>
 
             {/* Scrollable Navigation Body */}
-            <div className="p-4 overflow-y-auto max-h-[calc(85vh-75px)] flex flex-col gap-5 pb-20 no-scrollbar">
+            <div className="p-3.5 overflow-y-auto max-h-[calc(85vh-75px)] flex flex-col gap-4 pb-20 no-scrollbar">
               {/* Member Quick Card */}
-              <div className="p-3.5 bg-gradient-to-br from-emerald-900 to-emerald-800 rounded-2xl text-white shadow-md flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full ring-2 ring-emerald-400 overflow-hidden bg-white/10 shrink-0">
+              <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-900 shadow-xs flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 shrink-0">
                     <img
                       src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
                       alt="User avatar"
@@ -210,12 +207,12 @@ export default function BottomNav() {
                     />
                   </div>
                   <div>
-                    <div className="font-bold text-xs">{user?.full_name || 'Active Member'}</div>
-                    <div className="text-[10px] text-emerald-200 font-mono">{user?.student_id || 'ISIMS-2024-8891'}</div>
+                    <div className="font-semibold text-xs text-slate-900">{user?.full_name || 'Active Member'}</div>
+                    <div className="text-[10px] text-slate-500 font-mono">{user?.student_id || 'ISIMS-2024-8891'}</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-700/80 border border-emerald-500/30 px-2 py-0.5 rounded-full text-emerald-100">
+                  <span className="text-[10px] font-medium uppercase tracking-wide bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-slate-700">
                     {activeRole} view
                   </span>
                   <Link

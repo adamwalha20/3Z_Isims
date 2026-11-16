@@ -21,8 +21,8 @@
     width: 100%;
     margin: 0;
     padding: 0;
-    background-color: #f4f9f6;
-    color: #0d1c32;
+    background-color: #f8fafc;
+    color: #0f172a;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -58,30 +58,33 @@
   }
 }
 
-/* Custom Stitch Vibrancy Utilities */
+/* Professional Surface & Elevation Utilities */
+.card-clean {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
 .badge-gradient {
-  background: linear-gradient(135deg, #024f33 0%, #00784a 55%, #05a766 100%);
+  background: #006948;
 }
 
 .badge-gradient-dark {
-  background: linear-gradient(135deg, #013821 0%, #024f33 50%, #00784a 100%);
-}
-
-.neon-glow {
-  box-shadow: 0 0 16px rgba(105, 255, 135, 0.45);
+  background: #004d35;
 }
 
 .card-luminous {
-  box-shadow: 0 8px 30px -4px rgba(0, 77, 48, 0.07), 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
 }
 
 .card-hover {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px -4px rgba(0, 77, 48, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
 }
 
 /* Scrollbar Utility */

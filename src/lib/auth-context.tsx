@@ -2324,6 +2324,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const finalUserId = matchedMember?.id || (userIdOrName !== 'unassigned' ? userIdOrName : null);
     const finalAvatar = matchedMember?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
 
+    // Try server-side admin API route first for rock-solid authorization and transactional reliability
+    try {
+      const apiRes = await fetch('/api/admin/roles/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          positionKey,
+          targetUserId: finalUserId || 'unassigned',
+          memberName: finalName,
+        }),
+      });
+      const apiData = await apiRes.json();
+      if (!apiRes.ok || !apiData.success) {
+        // If server returned an explicit permission or validation error, return it
+        if (apiRes.status === 403 || apiRes.status === 401) {
+          return { success: false, error: apiData.error || 'Unauthorized action' };
+        }
+        console.warn('API route assign notice, falling back to direct client:', apiData?.error);
+      } else {
+        // Server assignment succeeded! Update local state and return success
+        setBureauMembers((prev) =>
+          prev.map((bm) =>
+            bm.position_key === positionKey
+              ? {
+                  ...bm,
+                  member_name: finalName,
+                  avatar: finalAvatar,
+                }
+              : bm
+          )
+        );
+
+        if (finalUserId) {
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.id === finalUserId
+                ? {
+                    ...m,
+                    roles: [{ id: 'role-bureau', key: 'bureau', display_name: 'Bureau Officer' }],
+                  }
+                : m
+            )
+          );
+        }
+
+        return { success: true };
+      }
+    } catch (apiErr) {
+      console.warn('Admin API route unavailable, proceeding with direct client:', apiErr);
+    }
+
     if (supabase) {
       try {
         // Find position record

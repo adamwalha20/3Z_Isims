@@ -126,15 +126,15 @@ export default function MeetingsPage() {
     <AppShell>
       <div className="pt-4 flex flex-col gap-5 max-w-5xl mx-auto w-full pb-20">
         {/* Header Hero Strip */}
-        <section className="bg-white rounded-3xl p-6 border border-emerald-900/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black shadow-sm shrink-0">
-              <Video className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center shrink-0">
+              <Video className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-xl text-slate-900">{t('meetings.title')}</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                <h1 className="font-bold text-lg text-slate-900">{t('meetings.title')}</h1>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Searchable Memory
                 </span>
               </div>
@@ -147,7 +147,7 @@ export default function MeetingsPage() {
           {canSchedule && (
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>{t('meetings.scheduleMeeting')}</span>
@@ -157,12 +157,12 @@ export default function MeetingsPage() {
 
         {/* Tab Strip: Upcoming vs Past vs All */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex rounded-2xl bg-slate-100 p-1 text-xs font-bold">
+          <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
             <button
               onClick={() => setTab('upcoming')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-md transition-all ${
                 tab === 'upcoming'
-                  ? 'bg-white text-emerald-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -170,9 +170,9 @@ export default function MeetingsPage() {
             </button>
             <button
               onClick={() => setTab('past')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-md transition-all ${
                 tab === 'past'
-                  ? 'bg-white text-emerald-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -180,9 +180,9 @@ export default function MeetingsPage() {
             </button>
             <button
               onClick={() => setTab('all')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-md transition-all ${
                 tab === 'all'
-                  ? 'bg-white text-emerald-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -190,22 +190,22 @@ export default function MeetingsPage() {
             </button>
           </div>
 
-          <div className="text-xs text-slate-500 font-semibold">
-            Showing <span className="text-slate-900 font-bold">{filteredMeetings.length}</span> meeting{filteredMeetings.length === 1 ? '' : 's'}
+          <div className="text-xs text-slate-500 font-medium">
+            Showing <span className="text-slate-900 font-semibold">{filteredMeetings.length}</span> meeting{filteredMeetings.length === 1 ? '' : 's'}
           </div>
         </div>
 
         {/* Search & Filter Toolbar */}
-        <section className="bg-white rounded-3xl p-4 border border-emerald-900/10 shadow-xs flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
+        <section className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col gap-2.5">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5">
             <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search meetings by title, agenda, topic, or organizer..."
-                className="w-full pl-10 pr-4 py-2 text-xs rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50/50"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 bg-white"
               />
             </div>
 
@@ -213,7 +213,7 @@ export default function MeetingsPage() {
               <select
                 value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 shrink-0"
+                className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 font-medium focus:outline-none focus:border-emerald-600 shrink-0"
               >
                 <option value="all">All Departments</option>
                 {departments.map((d) => (
@@ -282,11 +282,11 @@ export default function MeetingsPage() {
 
         {/* Meetings List */}
         {filteredMeetings.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center flex flex-col items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-              <Calendar className="w-7 h-7" />
+          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Calendar className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-extrabold text-slate-800">No meetings found</h3>
+            <h3 className="text-sm font-semibold text-slate-800">No meetings found</h3>
             <p className="text-xs text-slate-500 max-w-sm">
               {searchQuery || selectedDepartment !== 'all' || selectedType !== 'all'
                 ? 'Try adjusting your search criteria or filters to locate meeting archives.'
@@ -295,14 +295,14 @@ export default function MeetingsPage() {
             {canSchedule && (
               <button
                 onClick={() => setShowScheduleModal(true)}
-                className="mt-2 px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800"
+                className="mt-1 px-3.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800"
               >
                 Schedule First Meeting
               </button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3.5">
             {filteredMeetings.map((meet) => {
               const hasRec = meet.recordings && meet.recordings.length > 0;
               const hasTrans = Boolean(meet.transcript) || (meet.transcripts && meet.transcripts.length > 0);
@@ -315,32 +315,32 @@ export default function MeetingsPage() {
               return (
                 <div
                   key={meet.id}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-900/10 shadow-xs hover:shadow-md transition-all flex flex-col gap-4 group"
+                  className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-colors flex flex-col gap-3.5 group"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-semibold uppercase tracking-wider border border-emerald-200">
                           {meet.meeting_type || 'General Club Meeting'}
                         </span>
                         {deptLabel && (
-                          <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium">
                             {deptLabel}
                           </span>
                         )}
                         <span
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-medium ${
                             meet.status === 'live'
-                              ? 'bg-rose-100 text-rose-800 border border-rose-200 animate-pulse'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
                               : meet.status === 'completed'
                               ? 'bg-slate-100 text-slate-600'
-                              : 'bg-emerald-100 text-emerald-800'
+                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                           }`}
                         >
                           {meet.status === 'live' ? '🔴 Live Session' : meet.status}
                         </span>
                         {isConfidential(meet) && (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1">
                             <Eye className="w-3 h-3" />
                             <span>Restricted</span>
                           </span>
@@ -348,7 +348,7 @@ export default function MeetingsPage() {
                       </div>
 
                       <Link href={`/meetings/${meet.id}`}>
-                        <h2 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        <h2 className="text-base font-semibold text-slate-900 group-hover:text-emerald-800 transition-colors">
                           {meet.title}
                         </h2>
                       </Link>
@@ -365,7 +365,7 @@ export default function MeetingsPage() {
                           href={meet.meeting_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-2 shadow-xs transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                          className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
                         >
                           <Video className="w-4 h-4" />
                           <span>Join Google Meet</span>
