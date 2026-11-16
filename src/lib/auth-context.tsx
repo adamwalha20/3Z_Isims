@@ -176,10 +176,23 @@ interface AuthContextType {
   assignBureauPosition: (positionKey: string, userIdOrName: string, memberName?: string) => Promise<{ success: boolean; error?: string }>;
   setUserRole: (userId: string, roleKey: 'admin' | 'bureau' | 'member') => Promise<{ success: boolean; error?: string }>;
 
-  // Approval & Profile Management
+  // Approval, HR & Member Management Authority
   isApproved: boolean;
   approveMembership: (userId: string) => Promise<{ success: boolean; error?: string }>;
   rejectMembership: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  removeMember: (userId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  suspendMember: (userId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  reactivateMember: (userId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
+  deleteMemberAccount: (userId: string, reason: string, permanent?: boolean) => Promise<{ success: boolean; error?: string }>;
+
+  // Event Management Authority
+  editEvent: (eventId: string, updates: Partial<EventItem>, reason?: string) => Promise<{ success: boolean; error?: string; event?: EventItem }>;
+  deleteEvent: (eventId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  restoreEvent: (eventId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Recycle Bin & Recovery
+  restoreRecycleBinRecord: (entityType: string, recordId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
+  permanentPurgeRecord: (entityType: string, recordId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
   updateUserProfile: (updates: {
     fullName?: string;
     studentId?: string;
@@ -2971,6 +2984,275 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  // =========================================================================
+  // HR & MEMBER MANAGEMENT FUNCTIONS
+  // =========================================================================
+  const removeMember = async (userId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/members/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove', userId, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to remove member' };
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === userId
+            ? {
+                ...m,
+                membership: {
+                  ...(m.membership || { id: `mem-${userId}`, user_id: userId, created_at: new Date().toISOString() }),
+                  membership_status: 'removed',
+                  removal_reason: reason,
+                  updated_at: new Date().toISOString(),
+                },
+              }
+            : m
+        )
+      );
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error removing member' };
+    }
+  };
+
+  const suspendMember = async (userId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/members/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'suspend', userId, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to suspend member' };
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === userId
+            ? {
+                ...m,
+                membership: {
+                  ...(m.membership || { id: `mem-${userId}`, user_id: userId, created_at: new Date().toISOString() }),
+                  membership_status: 'suspended',
+                  suspension_reason: reason,
+                  updated_at: new Date().toISOString(),
+                },
+              }
+            : m
+        )
+      );
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error suspending member' };
+    }
+  };
+
+  const reactivateMember = async (userId: string, reason?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/members/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reactivate', userId, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to reactivate member' };
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === userId
+            ? {
+                ...m,
+                membership: {
+                  ...(m.membership || { id: `mem-${userId}`, user_id: userId, created_at: new Date().toISOString() }),
+                  membership_status: 'active',
+                  suspension_reason: undefined,
+                  removal_reason: undefined,
+                  updated_at: new Date().toISOString(),
+                },
+              }
+            : m
+        )
+      );
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error reactivating member' };
+    }
+  };
+
+  const deleteMemberAccount = async (
+    userId: string,
+    reason: string,
+    permanent?: boolean
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/members/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_account', userId, reason, permanent }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to delete member account' };
+      }
+
+      if (permanent) {
+        setMembers((prev) => prev.filter((m) => m.id !== userId));
+      } else {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === userId
+              ? {
+                  ...m,
+                  membership: {
+                    ...(m.membership || { id: `mem-${userId}`, user_id: userId, created_at: new Date().toISOString() }),
+                    membership_status: 'removed',
+                    removal_reason: reason,
+                    is_deleted: true,
+                    updated_at: new Date().toISOString(),
+                  },
+                }
+              : m
+          )
+        );
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error deleting account' };
+    }
+  };
+
+  // =========================================================================
+  // EVENT MANAGEMENT FUNCTIONS
+  // =========================================================================
+  const editEvent = async (
+    eventId: string,
+    updates: Partial<EventItem>,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string; event?: EventItem }> => {
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to update event' };
+      }
+
+      if (data.event) {
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, ...data.event } : e)));
+      }
+
+      return { success: true, event: data.event };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error updating event' };
+    }
+  };
+
+  const deleteEvent = async (eventId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to delete event' };
+      }
+
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error deleting event' };
+    }
+  };
+
+  const restoreEvent = async (eventId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to restore event' };
+      }
+
+      // Re-fetch events
+      const supabase = createClient();
+      if (supabase) {
+        const { data: refreshed } = await supabase
+          .from('events')
+          .select('*, organizer:profiles!events_organizer_id_fkey(*), department:departments(*)')
+          .order('starts_at', { ascending: true });
+        if (refreshed) setEvents(refreshed);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error restoring event' };
+    }
+  };
+
+  // =========================================================================
+  // RECYCLE BIN FUNCTIONS
+  // =========================================================================
+  const restoreRecycleBinRecord = async (
+    entityType: string,
+    recordId: string,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/recycle-bin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore', entityType, recordId, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to restore record' };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error restoring record' };
+    }
+  };
+
+  const permanentPurgeRecord = async (
+    entityType: string,
+    recordId: string,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/recycle-bin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'permanent_delete', entityType, recordId, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to purge record' };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error purging record' };
+    }
+  };
+
   const updateUserProfile = async (updates: {
     fullName?: string;
     studentId?: string;
@@ -3191,6 +3473,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole,
         approveMembership,
         rejectMembership,
+        removeMember,
+        suspendMember,
+        reactivateMember,
+        deleteMemberAccount,
+        editEvent,
+        deleteEvent,
+        restoreEvent,
+        restoreRecycleBinRecord,
+        permanentPurgeRecord,
         updateUserProfile,
         uploadAvatar,
         needsOnboarding,

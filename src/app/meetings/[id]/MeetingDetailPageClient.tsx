@@ -416,14 +416,14 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
 
   const activeTranscript =
     intelData?.transcript ||
-    mAny?.transcript ||
-    (Array.isArray(mAny?.transcripts) ? mAny.transcripts[0] : mAny?.transcripts) ||
+    (mAny?.transcript?.content ? mAny.transcript : null) ||
+    (Array.isArray(mAny?.transcripts) && mAny.transcripts[0]?.content ? mAny.transcripts[0] : null) ||
     null;
 
   const activeSummary =
     intelData?.summary ||
-    mAny?.summary ||
-    (Array.isArray(mAny?.summaries) ? mAny.summaries[0] : mAny?.summaries) ||
+    (mAny?.summary?.summary_content ? mAny.summary : null) ||
+    (Array.isArray(mAny?.summaries) && mAny.summaries[0]?.summary_content ? mAny.summaries[0] : null) ||
     null;
 
   const summaryContent = activeSummary?.content || activeSummary?.summary_content;

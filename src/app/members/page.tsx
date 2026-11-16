@@ -362,37 +362,65 @@ export default function MembersDirectoryPage() {
         </section>
 
         {/* =========================================================================
-            5. ADMINISTRATION CONTROLS (Audit & Permissions)
+            5. ADMINISTRATION & HR CONTROLS (Audit, Recycle Bin & Permissions)
         ========================================================================= */}
-        {isSuperAdminEmail(user?.email) && (
-          <section className="rounded-3xl bg-white p-5 shadow-xs border border-rose-100 flex flex-col gap-3">
+        {(isSuperAdminEmail(user?.email) || activeRole === 'admin' || activeRole === 'bureau') && (
+          <section className="rounded-3xl bg-white p-5 shadow-xs border border-emerald-900/10 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-extrabold text-sm text-slate-900">Admin Controls</h3>
-                    <span className="px-2 py-0.2 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      Elevated
+                    <h3 className="font-extrabold text-sm text-slate-900">Governance & HR Authority</h3>
+                    <span className="px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold">
+                      Authorized
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500">President & Secretary Permissions</span>
+                  <span className="text-xs text-slate-500">Member management, audit trails, and recovery tools</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Link
                 href="/admin/members"
-                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50/50 rounded-2xl border border-slate-100 transition-colors"
+                className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-emerald-50/50 rounded-2xl border border-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[18px] text-emerald-700">how_to_reg</span>
+                  <span className="material-symbols-outlined text-[20px] text-emerald-700">badge</span>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-900">Approve 8 Member Applications</span>
-                    <span className="text-[10px] text-slate-500">Verification required for ISIMS matricule</span>
+                    <span className="text-xs font-bold text-slate-900">HR & Member Management</span>
+                    <span className="text-[10px] text-slate-500">Suspension, removal & membership history</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </Link>
+
+              <Link
+                href="/admin/audit-logs"
+                className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-emerald-50/50 rounded-2xl border border-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[20px] text-emerald-700">history_edu</span>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-slate-900">Activity & Audit Logs</span>
+                    <span className="text-[10px] text-slate-500">Append-only audit trail & 1-click Undo</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </Link>
+
+              <Link
+                href="/admin/recycle-bin"
+                className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-rose-50/50 rounded-2xl border border-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[20px] text-rose-700">delete_sweep</span>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-slate-900">Administration Recycle Bin</span>
+                    <span className="text-[10px] text-slate-500">Restore soft-deleted events, tasks & records</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -400,13 +428,13 @@ export default function MembersDirectoryPage() {
 
               <Link
                 href="/admin"
-                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50/50 rounded-2xl border border-slate-100 transition-colors"
+                className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-emerald-50/50 rounded-2xl border border-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[18px] text-emerald-700">security</span>
+                  <span className="material-symbols-outlined text-[20px] text-emerald-700">security</span>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-900">Manage Role Permissions</span>
-                    <span className="text-[10px] text-slate-500">Department heads, budget writers & leads</span>
+                    <span className="text-xs font-bold text-slate-900">Governance & Bureau Mandates</span>
+                    <span className="text-[10px] text-slate-500">Executive hierarchy & role permissions</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />

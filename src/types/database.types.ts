@@ -1,4 +1,4 @@
-export type MembershipStatus = 'pending' | 'active' | 'suspended' | 'departed';
+export type MembershipStatus = 'pending' | 'active' | 'suspended' | 'departed' | 'removed' | 'deleted';
 export type GlobalRoleKey = 'admin' | 'bureau' | 'member';
 export type DepartmentRole = 'lead' | 'contributor';
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
@@ -18,12 +18,19 @@ export interface Profile {
   bio?: string | null;
   phone?: string | null;
   study_field?: string | null;
+  department_id?: string | null;
   skills: string[];
   contact_preferences: {
     email: boolean;
     in_app: boolean;
   };
   preferred_locale?: 'en' | 'fr' | 'ar-TN';
+  account_status?: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
   created_at: string;
   updated_at: string;
   membership?: ClubMembership | null;
@@ -37,6 +44,17 @@ export interface ClubMembership {
   joined_at?: string | null;
   created_at: string;
   updated_at: string;
+  suspended_at?: string | null;
+  suspended_by?: string | null;
+  suspension_reason?: string | null;
+  removed_at?: string | null;
+  removed_by?: string | null;
+  removal_reason?: string | null;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
 }
 
 export interface Role {
@@ -149,6 +167,11 @@ export interface EventItem {
   organizer?: Profile;
   registrations_count?: number;
   user_registered?: boolean;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
 }
 
 export type MeetingType =
@@ -394,6 +417,11 @@ export interface Meeting {
   created_by?: string | null;
   created_at: string;
   updated_at: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
   department?: Department | string;
   organizer?: Profile | string;
   minutes?: string | null;
@@ -658,17 +686,25 @@ export interface HandoverRecord {
 export interface AuditLog {
   id: string;
   actor_id?: string | null;
+  actor_user_id?: string | null;
+  actor_name_snapshot?: string | null;
+  actor_role_snapshot?: string | null;
   action: string;
   entity_type: string;
   entity_id?: string | null;
+  entity_label_snapshot?: string | null;
   metadata?: Record<string, unknown>;
   previous_state?: Record<string, unknown> | null;
   new_state?: Record<string, unknown> | null;
+  old_values?: Record<string, unknown> | null;
+  new_values?: Record<string, unknown> | null;
+  reason?: string | null;
   is_undone?: boolean;
   undone_at?: string | null;
   undone_by?: string | null;
   can_undo?: boolean;
   details?: string | null;
+  request_id?: string | null;
   created_at: string;
   actor?: Profile;
 }

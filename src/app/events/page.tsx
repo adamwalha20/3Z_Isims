@@ -25,10 +25,28 @@ import {
   X,
   History,
   Layers,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  RotateCcw,
+  Shield,
 } from 'lucide-react';
+import { canEditEvent, canDeleteEvent, canAccessRecycleBin } from '@/lib/permissions/permission-checks';
+import { UserPermissionContext } from '@/lib/permissions/access-control';
 
 export default function EventsPage() {
-  const { user, events, meetings, registerEvent } = useAuth();
+  const {
+    user,
+    events,
+    meetings,
+    registerEvent,
+    editEvent,
+    deleteEvent,
+    isAdmin,
+    activeRole,
+    userBureauPositions,
+    activeBureauPosition,
+  } = useAuth();
   const { t, formatDate, formatTime, locale } = useTranslation();
 
   const [viewMode, setViewMode] = useState<'agenda' | 'month'>('agenda');
@@ -44,6 +62,44 @@ export default function EventsPage() {
   const [passEvent, setPassEvent] = useState<EventItem | null>(null);
   const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, boolean>>({});
 
+  // RBAC Permission Context
+  const permCtx: UserPermissionContext = useMemo(
+    () => ({
+      userId: user?.id,
+      email: user?.email,
+      role: isAdmin ? 'admin' : activeRole,
+      bureauPositions: userBureauPositions,
+      activeBureauPosition: activeBureauPosition,
+      departmentId: user?.department_id,
+    }),
+    [user, isAdmin, activeRole, userBureauPositions, activeBureauPosition]
+  );
+
+  const canManageRecycleBin = canAccessRecycleBin(permCtx);
+
+  // Edit Event State
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    location: '',
+    starts_at: '',
+    ends_at: '',
+    capacity: 60,
+    reason: '',
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Delete Event State
+  const [deletingEvent, setDeletingEvent] = useState<EventItem | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Action Feedback Toast
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string; link?: string } | null>(null);
+
   useEffect(() => {
     const now = new Date();
     setNowTimestamp(now.getTime());
@@ -51,6 +107,100 @@ export default function EventsPage() {
     setSelectedDate(now);
     setTodayIso(now.toISOString().split('T')[0]);
   }, []);
+
+  const openEditModal = (event: EventItem) => {
+    setEditingEvent(event);
+    setEditForm({
+      title: event.title || '',
+      description: event.description || '',
+      location: event.location || '',
+      starts_at: event.starts_at ? event.starts_at.slice(0, 16) : '',
+      ends_at: event.ends_at ? event.ends_at.slice(0, 16) : '',
+      capacity: event.capacity || 60,
+      reason: '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingEvent) return;
+    if (!editForm.title.trim()) {
+      setFeedback({ type: 'error', text: 'Title is required.' });
+      return;
+    }
+    if (!editForm.reason.trim()) {
+      setFeedback({ type: 'error', text: 'A reason for modifying this event is required.' });
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setFeedback(null);
+    try {
+      const res = await editEvent(
+        editingEvent.id,
+        {
+          title: editForm.title.trim(),
+          description: editForm.description.trim(),
+          location: editForm.location.trim(),
+          starts_at: editForm.starts_at ? new Date(editForm.starts_at).toISOString() : editingEvent.starts_at,
+          ends_at: editForm.ends_at ? new Date(editForm.ends_at).toISOString() : editingEvent.ends_at,
+          capacity: Number(editForm.capacity) || 60,
+        },
+        editForm.reason.trim()
+      );
+
+      if (res.success) {
+        setIsEditModalOpen(false);
+        setEditingEvent(null);
+        setFeedback({
+          type: 'success',
+          text: t('events.eventUpdated') || 'Event updated successfully.',
+          link: '/admin/audit-logs',
+        });
+      } else {
+        setFeedback({ type: 'error', text: res.error || 'Failed to update event' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Failed to update event' });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const openDeleteModal = (event: EventItem) => {
+    setDeletingEvent(event);
+    setDeleteReason('');
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingEvent) return;
+    if (!deleteReason.trim()) {
+      setFeedback({ type: 'error', text: 'A reason for deleting this event is required.' });
+      return;
+    }
+
+    setIsDeleting(true);
+    setFeedback(null);
+    try {
+      const res = await deleteEvent(deletingEvent.id, deleteReason.trim());
+      if (res.success) {
+        setIsDeleteModalOpen(false);
+        setDeletingEvent(null);
+        setFeedback({
+          type: 'success',
+          text: t('events.eventMovedToRecycleBin') || 'Event moved to Recycle Bin. Registrations and XP preserved.',
+          link: '/admin/recycle-bin',
+        });
+      } else {
+        setFeedback({ type: 'error', text: res.error || 'Failed to delete event' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Failed to delete event' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Dynamic academic semester calculation (S1: Sep-Jan, S2: Feb-Jun)
   const currentMonthIdx = currentDate.getMonth();
@@ -95,6 +245,8 @@ export default function EventsPage() {
   // Check if an item has ended or is marked completed/cancelled
   const isItemPast = (item: { starts_at: string; ends_at?: string | null; status?: string }) => {
     if (item.status === 'completed' || item.status === 'cancelled') return true;
+    const dateStr = (item.ends_at || item.starts_at || '').slice(0, 10);
+    if (dateStr && dateStr < todayIso) return true;
     const endOrStartTime = item.ends_at || item.starts_at;
     if (!endOrStartTime) return false;
     const itemDate = new Date(endOrStartTime);
@@ -105,38 +257,44 @@ export default function EventsPage() {
   // Combined Schedule items (events + meetings) sorted chronologically
   const scheduleItems = useMemo(() => {
     const list = [
-      ...events.map((e) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        location: e.location || 'ISIMS Campus',
-        starts_at: e.starts_at,
-        ends_at: e.ends_at,
-        status: e.status,
-        type: 'event' as const,
-        badge: e.department?.name || 'Club Event',
-        capacity: e.capacity,
-        registrations_count: e.registrations_count,
-        user_registered: e.user_registered,
-        isMeeting: false,
-        url: undefined as string | undefined,
-      })),
-      ...meetings.map((m) => ({
-        id: m.id,
-        title: m.title,
-        description: m.description,
-        location: m.location || m.meeting_platform || 'Google Meet',
-        starts_at: m.starts_at,
-        ends_at: m.ends_at,
-        status: m.status,
-        type: 'meeting' as const,
-        badge: m.meeting_type === 'bureau' ? 'Governance' : 'Smart Meeting',
-        capacity: undefined,
-        registrations_count: undefined,
-        user_registered: true,
-        isMeeting: true,
-        url: `/meetings/${m.id}` as string | undefined,
-      })),
+      ...events
+        .filter((e) => !e.is_deleted)
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          location: e.location || 'ISIMS Campus',
+          starts_at: e.starts_at,
+          ends_at: e.ends_at,
+          status: e.status,
+          type: 'event' as const,
+          badge: e.department?.name || 'Club Event',
+          capacity: e.capacity,
+          registrations_count: e.registrations_count,
+          user_registered: e.user_registered,
+          isMeeting: false,
+          url: undefined as string | undefined,
+          rawEvent: e,
+        })),
+      ...meetings
+        .filter((m) => !m.is_deleted)
+        .map((m) => ({
+          id: m.id,
+          title: m.title,
+          description: m.description,
+          location: m.location || m.meeting_platform || 'Google Meet',
+          starts_at: m.starts_at,
+          ends_at: m.ends_at,
+          status: m.status,
+          type: 'meeting' as const,
+          badge: m.meeting_type === 'bureau' ? 'Governance' : 'Smart Meeting',
+          capacity: undefined,
+          registrations_count: undefined,
+          user_registered: true,
+          isMeeting: true,
+          url: `/meetings/${m.id}` as string | undefined,
+          rawEvent: undefined,
+        })),
     ];
 
     return list.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
@@ -381,6 +539,62 @@ export default function EventsPage() {
             <span>{semesterLabel}</span>
           </div>
         </div>
+
+        {/* Governance / Admin Shortcuts */}
+        {canManageRecycleBin && (
+          <div className="flex items-center justify-between gap-2 p-2.5 px-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs flex-wrap">
+            <div className="flex items-center gap-2 text-slate-700 font-bold">
+              <Shield className="w-4 h-4 text-emerald-700" />
+              <span>Event Governance & Traceability</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/recycle-bin"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 hover:text-emerald-800 font-bold transition-all shadow-2xs"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>{t('events.recycleBin')}</span>
+              </Link>
+              <Link
+                href="/admin/audit-logs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 hover:text-emerald-800 font-bold transition-all shadow-2xs"
+              >
+                <History className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{t('events.auditLogs')}</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Alert Banner */}
+        {feedback && (
+          <div
+            className={`p-3 rounded-2xl text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in ${
+              feedback.type === 'success'
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border border-rose-200 text-rose-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {feedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0" />
+              )}
+              <span>{feedback.text}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {feedback.link && (
+                <Link href={feedback.link} className="underline text-emerald-800 hover:text-emerald-950 font-extrabold">
+                  View
+                </Link>
+              )}
+              <button onClick={() => setFeedback(null)} className="p-1 rounded hover:bg-black/5">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* =========================================================================
             2. INTERACTIVE HORIZONTAL WEEKLY STRIP (AGENDA MODE ONLY)
@@ -717,6 +931,30 @@ export default function EventsPage() {
                   <span>{mainEvent.user_registered ? t('events.registered') : t('events.register')}</span>
                 </button>
               </div>
+
+              {/* Bureau / Admin Event Management Actions */}
+              {mainEvent && (canEditEvent(permCtx, mainEvent) || canDeleteEvent(permCtx, mainEvent)) && (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  {canEditEvent(permCtx, mainEvent) && (
+                    <button
+                      onClick={() => openEditModal(mainEvent)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-slate-600" />
+                      <span>{t('events.editEvent')}</span>
+                    </button>
+                  )}
+                  {canDeleteEvent(permCtx, mainEvent) && (
+                    <button
+                      onClick={() => openDeleteModal(mainEvent)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>{t('events.deleteEvent')}</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -918,6 +1156,31 @@ export default function EventsPage() {
 
                   {/* Right Actions */}
                   <div className="flex items-center gap-1 shrink-0">
+                    {item.type === 'event' && item.rawEvent && (
+                      <>
+                        {canEditEvent(permCtx, item.rawEvent) && (
+                          <button
+                            onClick={() => openEditModal(item.rawEvent!)}
+                            aria-label="Edit event"
+                            title={t('events.editEvent')}
+                            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDeleteEvent(permCtx, item.rawEvent) && (
+                          <button
+                            onClick={() => openDeleteModal(item.rawEvent!)}
+                            aria-label="Delete event"
+                            title={t('events.deleteEvent')}
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
+                    )}
+
                     {item.isMeeting && item.url ? (
                       <Link
                         href={item.url}
@@ -944,6 +1207,205 @@ export default function EventsPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Event Modal */}
+      {isEditModalOpen && editingEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900">{t('events.editEvent')}</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingEvent(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto px-1">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Location / Venue</label>
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={(e) => setEditForm((p) => ({ ...p, location: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    value={editForm.capacity}
+                    onChange={(e) => setEditForm((p) => ({ ...p, capacity: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Start Time</label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.starts_at}
+                    onChange={(e) => setEditForm((p) => ({ ...p, starts_at: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">End Time</label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.ends_at}
+                    onChange={(e) => setEditForm((p) => ({ ...p, ends_at: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                <label className="text-xs font-extrabold text-amber-900 block mb-1">
+                  {t('events.editReasonLabel')}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={t('events.editReasonPlaceholder')}
+                  value={editForm.reason}
+                  onChange={(e) => setEditForm((p) => ({ ...p, reason: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-[10px] text-amber-800 mt-1">
+                  This reason will be permanently recorded in the immutable audit log with your signature snapshot.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingEvent(null);
+                }}
+                disabled={isSavingEdit}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                {t('events.cancel')}
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit || !editForm.title.trim() || !editForm.reason.trim()}
+                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
+              >
+                {isSavingEdit ? 'Saving...' : t('events.saveChangesBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Event Modal */}
+      {isDeleteModalOpen && deletingEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900">{t('events.deleteConfirmTitle')}</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeletingEvent(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              {t('events.deleteConfirmDesc')}
+            </p>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+              <p className="font-bold text-slate-900">{deletingEvent.title}</p>
+              <p className="text-slate-500 text-[11px] mt-0.5">
+                {formatDate(deletingEvent.starts_at, { month: 'short', day: 'numeric', year: 'numeric' })} • {deletingEvent.location}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-extrabold text-slate-800 block mb-1">
+                {t('events.deleteReasonLabel')}
+              </label>
+              <textarea
+                rows={2}
+                required
+                placeholder={t('events.deleteReasonPlaceholder')}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-rose-300 text-xs outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Soft-deleted items can be inspected or restored from the <Link href="/admin/recycle-bin" className="underline font-bold text-slate-700">Recycle Bin</Link>.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeletingEvent(null);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                {t('events.cancel')}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting || !deleteReason.trim()}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : t('events.confirmDeleteBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Pass Modal */}
       {showQRPass && (

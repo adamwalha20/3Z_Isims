@@ -18,12 +18,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
-    }
+
+    const adminDb = getSupabaseAdmin();
 
     // 1. Fetch meeting & verify permission
-    const { data: meeting, error: meetErr } = await supabase
+    const { data: meeting, error: meetErr } = await adminDb
       .from('meetings')
       .select('*, organizer:profiles!meetings_organizer_id_fkey(id, email, full_name, avatar_path)')
       .eq('id', meetingId)
@@ -35,6 +34,10 @@ export async function GET(req: NextRequest) {
 
     const isConfidential = meeting.visibility === 'restricted' || meeting.visibility === 'confidential';
     if (isConfidential) {
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required for confidential meetings' }, { status: 401 });
+      }
+
       const isSuperAdmin = isSuperAdminEmail(user.email);
       const isOrganizer = meeting.organizer_id === user.id || meeting.created_by === user.id;
 
@@ -60,8 +63,6 @@ export async function GET(req: NextRequest) {
         );
       }
     }
-
-    const adminDb = getSupabaseAdmin();
 
     // 2. Fetch parallel intelligence entities
     const [

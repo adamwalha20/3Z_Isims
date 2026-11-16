@@ -35,17 +35,24 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
   const isSecGen = positions.has('secretary_general') || positions.has('secretary');
   const isTreas = positions.has('treasurer');
   const isHR = positions.has('hr_manager');
+  const isEventsManager = positions.has('events_manager');
   const isPartnerships = positions.has('partnerships_sponsorship_manager');
   const isBureau = role === 'bureau' || positions.size > 0;
 
   switch (permission) {
-    // --- Member Management ---
+    // --- Member Management & HR ---
     case 'members:view_public':
       return true;
     case 'members:view_sensitive':
       return isPres || isVP || isSecGen || isHR;
     case 'members:manage':
-      return isPres || isVP || isSecGen;
+    case 'members:remove':
+    case 'members:suspend':
+    case 'members:reactivate':
+    case 'members:view_history':
+      return isPres || isVP || isSecGen || isHR;
+    case 'members:delete_account':
+      return isPres || isHR;
     case 'members:assign_roles':
       return isPres; // Only President or Admin can assign bureau mandates
 
@@ -74,6 +81,22 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
       return true;
     case 'tasks:verify':
       return isBureau;
+
+    // --- Events ---
+    case 'events:view':
+      return true;
+    case 'events:create':
+      return isPres || isVP || isEventsManager || isBureau;
+    case 'events:edit_own':
+      return isPres || isVP || isEventsManager || isBureau;
+    case 'events:edit_all':
+      return isPres || isVP;
+    case 'events:delete_own':
+      return isPres || isVP || isEventsManager;
+    case 'events:delete_all':
+      return isPres || isVP;
+    case 'events:restore':
+      return false; // Reserved exclusively for Club Administrator
 
     // --- Meetings ---
     case 'meetings:view_shared':
@@ -121,10 +144,14 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
     case 'partnerships:commit_sponsorship':
       return isPres || isVP || isPartnerships;
 
-    // --- Audit & System ---
+    // --- Audit & Recovery ---
     case 'audit:view':
-      return isPres || isSecGen;
+      return isPres || isSecGen || isHR;
     case 'audit:undo':
+      return false; // Reserved exclusively for Club Administrator
+    case 'recycle_bin:view':
+    case 'recycle_bin:restore':
+    case 'recycle_bin:permanent_delete':
       return false; // Reserved exclusively for Club Administrator
     case 'system:manage_settings':
       return false; // Reserved exclusively for Club Administrator

@@ -3,11 +3,16 @@
  */
 
 export type PermissionKey =
-  // Members
+  // Members & HR
   | 'members:view_public'
   | 'members:view_sensitive'
   | 'members:manage'
   | 'members:assign_roles'
+  | 'members:remove'
+  | 'members:suspend'
+  | 'members:reactivate'
+  | 'members:delete_account'
+  | 'members:view_history'
   // Departments
   | 'departments:view'
   | 'departments:manage_own'
@@ -22,6 +27,14 @@ export type PermissionKey =
   | 'tasks:delete'
   | 'tasks:submit_verification'
   | 'tasks:verify'
+  // Events
+  | 'events:view'
+  | 'events:create'
+  | 'events:edit_own'
+  | 'events:edit_all'
+  | 'events:delete_own'
+  | 'events:delete_all'
+  | 'events:restore'
   // Meetings & Bots
   | 'meetings:view_shared'
   | 'meetings:view_confidential'
@@ -49,7 +62,10 @@ export type PermissionKey =
   | 'partnerships:view'
   | 'partnerships:manage_pipeline'
   | 'partnerships:commit_sponsorship'
-  // Audit Logs & Administration
+  // Audit Logs, Recycle Bin & Administration
   | 'audit:view'
   | 'audit:undo'
+  | 'recycle_bin:view'
+  | 'recycle_bin:restore'
+  | 'recycle_bin:permanent_delete'
   | 'system:manage_settings';

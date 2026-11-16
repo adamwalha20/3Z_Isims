@@ -21,7 +21,21 @@ export function canAccessPage(
 
   const path = pagePath.toLowerCase();
 
-  // Admin routes
+  // Admin routes: audit logs are viewable by HR and Secretary General too
+  if (path.startsWith('/admin/audit-logs')) {
+    if (hasPermission(ctx, 'audit:view')) {
+      return { allowed: true };
+    }
+  }
+
+  // Member applications / approvals
+  if (path.startsWith('/admin/members')) {
+    if (hasPermission(ctx, 'members:manage') || hasPermission(ctx, 'hr:review_applications')) {
+      return { allowed: true };
+    }
+  }
+
+  // Other admin routes (roles, health, recycle-bin) strictly require Admin
   if (path.startsWith('/admin')) {
     return {
       allowed: false,
@@ -125,6 +139,92 @@ export function canAccessAttendanceScanner(ctx: UserPermissionContext | null | u
 export function canManageMembers(ctx: UserPermissionContext | null | undefined): boolean {
   if (!ctx) return false;
   return hasPermission(ctx, 'members:manage');
+}
+
+export function canRemoveMember(ctx: UserPermissionContext | null | undefined, targetUser?: any): boolean {
+  if (!ctx) return false;
+  if (targetUser?.id && ctx.userId && targetUser.id === ctx.userId) return false; // Cannot remove self
+  const targetEmail = targetUser?.email || '';
+  if (isSuperAdminEmail(targetEmail) || targetUser?.role === 'admin') {
+    return isSuperAdminEmail(ctx.email); // Only Super Admin can remove an admin
+  }
+  return hasPermission(ctx, 'members:remove');
+}
+
+export function canSuspendMember(ctx: UserPermissionContext | null | undefined, targetUser?: any): boolean {
+  if (!ctx) return false;
+  if (targetUser?.id && ctx.userId && targetUser.id === ctx.userId) return false; // Cannot suspend self
+  const targetEmail = targetUser?.email || '';
+  if (isSuperAdminEmail(targetEmail) || targetUser?.role === 'admin') {
+    return false; // Cannot suspend an administrator
+  }
+  return hasPermission(ctx, 'members:suspend');
+}
+
+export function canReactivateMember(ctx: UserPermissionContext | null | undefined, targetUser?: any): boolean {
+  if (!ctx) return false;
+  return hasPermission(ctx, 'members:reactivate');
+}
+
+export function canDeleteMemberAccount(ctx: UserPermissionContext | null | undefined, targetUser?: any): boolean {
+  if (!ctx) return false;
+  if (targetUser?.id && ctx.userId && targetUser.id === ctx.userId) return false; // Cannot delete self
+  const targetEmail = targetUser?.email || '';
+  if (isSuperAdminEmail(targetEmail) || targetUser?.role === 'admin') {
+    return isSuperAdminEmail(ctx.email); // Only Super Admin can delete an admin account
+  }
+  return hasPermission(ctx, 'members:delete_account');
+}
+
+export function canEditEvent(ctx: UserPermissionContext | null | undefined, event?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'events:edit_all')) return true;
+
+  // Organizer can edit their own event
+  if (event?.organizer_id && ctx.userId && event.organizer_id === ctx.userId) {
+    return hasPermission(ctx, 'events:edit_own');
+  }
+
+  // Events Manager can edit events in Events & Logistics
+  const positions = new Set((ctx.bureauPositions || []).map((p) => String(p).toLowerCase()));
+  if (positions.has('events_manager')) {
+    return true;
+  }
+
+  return false;
+}
+
+export function canDeleteEvent(ctx: UserPermissionContext | null | undefined, event?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'events:delete_all')) return true;
+
+  const positions = new Set((ctx.bureauPositions || []).map((p) => String(p).toLowerCase()));
+  if (positions.has('events_manager')) {
+    return true;
+  }
+
+  if (event?.organizer_id && ctx.userId && event.organizer_id === ctx.userId) {
+    return hasPermission(ctx, 'events:delete_own');
+  }
+
+  return false;
+}
+
+export function canRestoreRecord(ctx: UserPermissionContext | null | undefined): boolean {
+  if (!ctx) return false;
+  return isSuperAdminEmail(ctx.email) || ctx.role === 'admin' || hasPermission(ctx, 'recycle_bin:restore');
+}
+
+export function canAccessRecycleBin(ctx: UserPermissionContext | null | undefined): boolean {
+  if (!ctx) return false;
+  return isSuperAdminEmail(ctx.email) || ctx.role === 'admin' || hasPermission(ctx, 'recycle_bin:view');
+}
+
+export function canPermanentDelete(ctx: UserPermissionContext | null | undefined): boolean {
+  if (!ctx) return false;
+  return isSuperAdminEmail(ctx.email) || ctx.role === 'admin' || hasPermission(ctx, 'recycle_bin:permanent_delete');
 }
 
 export function canAssignRoles(ctx: UserPermissionContext | null | undefined): boolean {
