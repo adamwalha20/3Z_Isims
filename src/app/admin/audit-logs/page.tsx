@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -50,6 +51,7 @@ interface AuditLogItem {
 
 export default function AdminAuditLogsPage() {
   const { user, isAdmin, activeRole } = useAuth();
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -138,9 +140,9 @@ export default function AdminAuditLogsPage() {
           <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
             <Lock className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-extrabold text-slate-900">Admin Eyes Only</h2>
+          <h2 className="text-base font-extrabold text-slate-900">{t('admin.adminOnly')}</h2>
           <p className="text-xs text-slate-500 max-w-sm">
-            Club audit logs and rollback controls are strictly restricted to authenticated Club Administrators.
+            {t('admin.adminOnlyDesc')}
           </p>
           <div className="mt-2 text-[11px] font-mono text-slate-400">
             Account: {user?.email || 'Guest'}
@@ -165,13 +167,13 @@ export default function AdminAuditLogsPage() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-800 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Governance & Roles</span>
+            <span>{t('admin.backToRoles')}</span>
           </Link>
 
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin Audit Console</span>
+              <span>{t('admin.auditConsole')}</span>
             </span>
           </div>
         </div>

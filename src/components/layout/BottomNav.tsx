@@ -182,14 +182,14 @@ export default function BottomNav() {
                       ISIMS
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-500">Platform Modules</span>
+                  <span className="text-[10px] text-slate-500">{t('nav.platformModules')}</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setIsMenuOpen(false)}
                 className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
-                aria-label="Close menu"
+                aria-label={t('common.close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -203,12 +203,12 @@ export default function BottomNav() {
                   <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 shrink-0">
                     <img
                       src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-                      alt="User avatar"
+                      alt={user?.full_name || t('nav.memberProfile')}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-slate-900">{user?.full_name || 'Active Member'}</div>
+                    <div className="font-semibold text-xs text-slate-900">{user?.full_name || t('nav.memberProfile')}</div>
                     <div className="text-[10px] text-slate-500 font-mono">{user?.student_id || 'ISIMS-2024-8891'}</div>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export default function BottomNav() {
                     onClick={() => setIsMenuOpen(false)}
                     className="text-[10px] text-emerald-300 font-semibold hover:underline"
                   >
-                    View Pass →
+                    {t('nav.viewPass')}
                   </Link>
                 </div>
               </div>

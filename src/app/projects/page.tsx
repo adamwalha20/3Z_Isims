@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { Project, ProjectStatus } from '@/types/database.types';
 import {
   Rocket,
@@ -24,6 +25,7 @@ import {
 
 export default function ProjectsPage() {
   const { user, projects, addProject } = useAuth();
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'active' | 'planning' | 'completed'>('all');
   const [showProposeModal, setShowProposeModal] = useState(false);
   const [name, setName] = useState('');
@@ -69,8 +71,8 @@ export default function ProjectsPage() {
               <Rocket className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">3Z Lab Projects</h1>
-              <p className="text-xs text-slate-500">Sfax Chapter Incubation Space</p>
+              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">{t('projects.title')}</h1>
+              <p className="text-xs text-slate-500">{t('projects.subtitle')}</p>
             </div>
           </div>
 
@@ -79,7 +81,7 @@ export default function ProjectsPage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-md hover:bg-emerald-800 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Propose Project</span>
+            <span>{t('projects.proposeProject')}</span>
           </button>
         </div>
 
@@ -90,13 +92,13 @@ export default function ProjectsPage() {
           <div className="absolute -right-10 -bottom-10 w-36 h-36 rounded-full bg-emerald-300/20 blur-2xl pointer-events-none"></div>
           <div className="absolute right-4 top-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-            <span className="text-[11px] font-bold tracking-wider uppercase text-white">S1 2024 Cycle</span>
+            <span className="text-[11px] font-bold tracking-wider uppercase text-white">{t('projects.cycleName')}</span>
           </div>
 
           <div className="relative z-10 flex flex-col gap-4">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-100">
-                Active Chapter Portfolio
+                {t('projects.portfolioTitle')}
               </span>
               <div className="flex items-baseline gap-2 mt-0.5">
                 <span className="text-3xl font-extrabold tracking-tight">{totalBudget.toLocaleString()}</span>
@@ -130,10 +132,10 @@ export default function ProjectsPage() {
         ========================================================================= */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {[
-            { key: 'all', label: `All (${projects.length})` },
-            { key: 'active', label: `Active (${projects.filter((p) => p.status === 'active').length})` },
-            { key: 'planning', label: `Planning (${projects.filter((p) => p.status === 'planning').length})` },
-            { key: 'completed', label: `Completed (${projects.filter((p) => p.status === 'completed').length})` },
+            { key: 'all', label: `${t('projects.filterAll')} (${projects.length})` },
+            { key: 'active', label: `${t('projects.filterActive')} (${projects.filter((p) => p.status === 'active').length})` },
+            { key: 'planning', label: `${t('projects.filterPlanning')} (${projects.filter((p) => p.status === 'planning').length})` },
+            { key: 'completed', label: `${t('projects.filterCompleted')} (${projects.filter((p) => p.status === 'completed').length})` },
           ].map((chip) => (
             <button
               key={chip.key}
@@ -367,13 +369,13 @@ export default function ProjectsPage() {
                   onClick={() => setShowProposeModal(false)}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
                 >
-                  Submit Proposal
+                  {t('common.submit')}
                 </button>
               </div>
             </form>

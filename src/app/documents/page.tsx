@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { DocumentCategory, DocumentVisibility } from '@/types/database.types';
 import {
   FolderLock,
@@ -19,6 +20,7 @@ import {
 
 export default function DocumentsPage() {
   const { user, activeRole, documents, addDocument } = useAuth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -65,8 +67,8 @@ export default function DocumentsPage() {
               <FolderLock className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">Documents & Handover Vault</h1>
-              <p className="text-xs text-slate-500">Secure institutional memory & official chapter records</p>
+              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">{t('documents.title')}</h1>
+              <p className="text-xs text-slate-500">{t('documents.subtitle')}</p>
             </div>
           </div>
 
@@ -75,7 +77,7 @@ export default function DocumentsPage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-md hover:bg-emerald-800 active:scale-95 transition-all"
           >
             <Upload className="w-4 h-4" />
-            <span>Upload File</span>
+            <span>{t('documents.uploadFile')}</span>
           </button>
         </div>
 
@@ -86,9 +88,9 @@ export default function DocumentsPage() {
               <History className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900">2024-2025 Mandate Transition Pack</h3>
+              <h3 className="font-extrabold text-sm text-slate-900">{t('documents.transitionPackTitle')}</h3>
               <p className="text-xs text-slate-600">
-                Statutes, CRDA agreements, sponsor registries, and event runbooks are cryptographically archived.
+                {t('documents.transitionPackDesc')}
               </p>
             </div>
           </div>
@@ -96,7 +98,7 @@ export default function DocumentsPage() {
             onClick={() => alert('Downloading official handover bundle (ZIP)...')}
             className="px-3.5 py-1.5 rounded-xl bg-white text-emerald-900 font-bold text-xs border border-emerald-300 hover:bg-emerald-50 shrink-0 shadow-xs"
           >
-            Export Pack
+            {t('documents.exportPack')}
           </button>
         </div>
 
@@ -108,7 +110,7 @@ export default function DocumentsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search documents by title or keyword..."
+              placeholder={t('documents.searchPlaceholder')}
               className="w-full bg-transparent border-0 p-0 pl-2 focus:outline-none text-xs text-slate-900"
             />
           </div>
@@ -168,7 +170,7 @@ export default function DocumentsPage() {
 
           {filteredDocs.length === 0 && (
             <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
-              No documents found matching the filter criteria.
+              {t('documents.noDocuments')}
             </div>
           )}
         </div>
@@ -179,7 +181,7 @@ export default function DocumentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-emerald-100 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-base text-slate-900">Upload to Chapter Vault</h3>
+              <h3 className="font-extrabold text-base text-slate-900">{t('documents.uploadModalTitle')}</h3>
               <button onClick={() => setShowUploadModal(false)} className="text-slate-400 text-sm font-bold">
                 ✕
               </button>
@@ -187,7 +189,7 @@ export default function DocumentsPage() {
 
             <form onSubmit={handleUpload} className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-600">Document Title</label>
+                <label className="text-xs font-bold text-slate-600">{t('documents.documentTitle')}</label>
                 <input
                   type="text"
                   required
@@ -199,7 +201,7 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-600">Description</label>
+                <label className="text-xs font-bold text-slate-600">{t('tasks.taskDescription')}</label>
                 <textarea
                   rows={2}
                   value={description}
@@ -211,7 +213,7 @@ export default function DocumentsPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-bold text-slate-600">Category</label>
+                  <label className="text-xs font-bold text-slate-600">{t('documents.documentCategory')}</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
@@ -227,7 +229,7 @@ export default function DocumentsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-600">Visibility</label>
+                  <label className="text-xs font-bold text-slate-600">{t('documents.documentVisibility')}</label>
                   <select
                     value={visibility}
                     onChange={(e) => setVisibility(e.target.value as any)}
@@ -251,13 +253,13 @@ export default function DocumentsPage() {
                   onClick={() => setShowUploadModal(false)}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
                 >
-                  Save to Vault
+                  {t('common.save')}
                 </button>
               </div>
             </form>

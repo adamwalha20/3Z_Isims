@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import { EventItem } from '@/types/database.types';
 import {
   Calendar as CalendarIcon,
@@ -20,6 +21,7 @@ import {
 
 export default function EventsPage() {
   const { user, events, registerEvent } = useAuth();
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'agenda' | 'month'>('agenda');
   const [selectedDay, setSelectedDay] = useState(24);
   const [showQRPass, setShowQRPass] = useState(false);
@@ -57,7 +59,7 @@ export default function EventsPage() {
               }`}
             >
               <CalendarIcon className="w-3.5 h-3.5" />
-              <span>Agenda</span>
+              <span>{t('events.agendaView')}</span>
             </button>
             <button
               onClick={() => setViewMode('month')}
@@ -65,7 +67,7 @@ export default function EventsPage() {
                 viewMode === 'month' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>Month</span>
+              <span>{t('events.monthView')}</span>
             </button>
           </div>
 
@@ -210,7 +212,7 @@ export default function EventsPage() {
                   className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 active:scale-95 transition-all shadow-xs"
                 >
                   <QrCode className="w-4 h-4" />
-                  <span>Show QR Pass</span>
+                  <span>{t('attendance.myQrTab')}</span>
                 </button>
                 <button
                   onClick={() => registerEvent(mainEvent.id)}
@@ -221,7 +223,7 @@ export default function EventsPage() {
                   }`}
                 >
                   <CheckSquare className="w-4 h-4 text-emerald-700" />
-                  <span>{mainEvent.user_registered ? 'Registered ✓' : 'Register Seat'}</span>
+                  <span>{mainEvent.user_registered ? t('events.registered') : t('events.register')}</span>
                 </button>
               </div>
             </div>
@@ -238,12 +240,12 @@ export default function EventsPage() {
                 <CheckSquare className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Event Readiness Log</h3>
+                <h3 className="font-extrabold text-sm text-slate-900">{t('events.checklistTitle')}</h3>
                 <p className="text-[11px] text-slate-500">Sprint prep tasks ahead of Oct 29</p>
               </div>
             </div>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-              {readinessPercent}% Ready
+              {readinessPercent}% {t('events.readinessScore')}
             </span>
           </div>
 

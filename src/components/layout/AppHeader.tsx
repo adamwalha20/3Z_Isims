@@ -115,7 +115,7 @@ export default function AppHeader() {
                 ISIMS
               </span>
             </div>
-            <span className="text-[10px] font-normal text-slate-500 truncate">Sfax Chapter Workspace</span>
+            <span className="text-[10px] font-normal text-slate-500 truncate">{t('nav.chapterWorkspace')}</span>
           </div>
         </Link>
 
@@ -125,7 +125,7 @@ export default function AppHeader() {
             <button
               onClick={() => setShowRoleDropdown(!showRoleDropdown)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium transition-colors shadow-xs"
-              title="Switch active role simulation"
+              title={t('nav.switchRoleSimulation')}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
               <span className="capitalize truncate max-w-[140px] sm:max-w-none">{currentDisplayTitle}</span>
@@ -135,7 +135,7 @@ export default function AppHeader() {
             {showRoleDropdown && (
               <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-50 max-h-[80vh] overflow-y-auto no-scrollbar">
                 <div className="px-2 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Security Role Mode
+                  {t('nav.securityRoleMode')}
                 </div>
                 {roleOptions.map((role) => (
                   <button
@@ -161,7 +161,7 @@ export default function AppHeader() {
 
                 {/* Functional Bureau Positions Switcher */}
                 <div className="px-2 pt-2.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-1.5">
-                  Bureau Position Workspaces
+                  {t('nav.bureauWorkspaces')}
                 </div>
                 <div className="grid grid-cols-1 gap-0.5">
                   {bureauPositionList.map((bp) => (
@@ -193,7 +193,7 @@ export default function AppHeader() {
           {/* NFC Ready Capsule */}
           <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-600">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span className="text-[11px] font-medium tracking-wide">NFC Pass</span>
+            <span className="text-[11px] font-medium tracking-wide">{t('nav.nfcPass')}</span>
           </div>
 
           {/* Quick Admin Role Management Shortcut */}
@@ -203,7 +203,7 @@ export default function AppHeader() {
               className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200/70 text-rose-700 text-xs font-medium transition-colors"
             >
               <Shield className="w-3.5 h-3.5 text-rose-700" />
-              <span>Roles</span>
+              <span>{t('nav.roles')}</span>
             </Link>
           )}
 
@@ -214,7 +214,7 @@ export default function AppHeader() {
           <div className="relative">
             <button
               onClick={() => setShowNotifPanel(!showNotifPanel)}
-              aria-label="Notifications"
+              aria-label={t('notifications.title')}
               className="w-8 h-8 relative flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
             >
               <Bell className="w-4 h-4" />
@@ -228,14 +228,14 @@ export default function AppHeader() {
               <div className="absolute right-0 top-full mt-1.5 w-80 sm:w-92 bg-white rounded-xl shadow-lg border border-slate-200 p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-xs text-slate-900">Notifications</span>
+                    <span className="font-semibold text-xs text-slate-900">{t('notifications.title')}</span>
                     {unreadCount > 0 ? (
                       <span className="px-1.5 py-0.2 rounded-md bg-rose-50 text-rose-700 border border-rose-200/60 text-[10px] font-medium">
-                        {unreadCount} new
+                        {t('nav.newNotificationsCount', { count: unreadCount })}
                       </span>
                     ) : (
                       <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-medium">
-                        All caught up
+                        {t('nav.allCaughtUp')}
                       </span>
                     )}
                   </div>
@@ -244,7 +244,7 @@ export default function AppHeader() {
                       onClick={markAllNotificationsRead}
                       className="text-[10px] font-medium text-emerald-700 hover:text-emerald-900 transition-colors"
                     >
-                      Mark all read
+                      {t('common.markAllRead')}
                     </button>
                   )}
                 </div>
@@ -252,7 +252,7 @@ export default function AppHeader() {
                 <div className="flex flex-col gap-1 max-h-80 overflow-y-auto pt-2 no-scrollbar">
                   {notifications.length === 0 ? (
                     <div className="py-6 text-center text-xs text-slate-400">
-                      No notifications
+                      {t('nav.noNotifications')}
                     </div>
                   ) : (
                     notifications.slice(0, 10).map((n) => {
@@ -277,12 +277,12 @@ export default function AppHeader() {
                               </span>
                               {n.priority === 'urgent' && (
                                 <span className="px-1 py-0.2 rounded bg-rose-100 text-rose-700 text-[9px] font-semibold uppercase shrink-0">
-                                  Urgent
+                                  {t('common.urgent')}
                                 </span>
                               )}
                               {n.priority === 'high' && (
                                 <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-semibold uppercase shrink-0">
-                                  High
+                                  {t('common.high')}
                                 </span>
                               )}
                             </div>
@@ -295,7 +295,7 @@ export default function AppHeader() {
                               <span>
                                 {n.created_at
                                   ? new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
-                                  : 'Recently'}
+                                  : t('time.now')}
                               </span>
                             </div>
                           </div>
@@ -314,7 +314,7 @@ export default function AppHeader() {
                     onClick={() => setShowNotifPanel(false)}
                     className="w-full text-center py-1.5 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 border border-slate-200"
                   >
-                    <span>View all notifications</span>
+                    <span>{t('nav.viewAllNotifications')}</span>
                     <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
                   </Link>
                 </div>
@@ -327,7 +327,7 @@ export default function AppHeader() {
             <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden hover:ring-2 hover:ring-emerald-700 transition-all">
               <img
                 src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-                alt={user?.full_name || 'Member profile'}
+                alt={user?.full_name || t('nav.memberProfile')}
                 className="w-full h-full object-cover"
               />
             </div>

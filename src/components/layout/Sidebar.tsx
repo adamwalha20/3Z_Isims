@@ -177,19 +177,19 @@ export default function Sidebar() {
           className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
         >
           <Settings className="w-4 h-4 text-slate-400" />
-          <span>My Profile & Preferences</span>
+          <span>{t('nav.profileAndPreferences')}</span>
         </Link>
         <div className="flex items-center justify-between px-3 py-1 text-[11px] font-semibold text-emerald-800">
           <Link href="/signup" className="hover:underline flex items-center gap-1">
-            <span>+ Apply to Join</span>
+            <span>{t('nav.applyToJoin')}</span>
           </Link>
           <Link href="/login" className="text-slate-500 hover:text-slate-900 hover:underline">
-            Switch User
+            {t('nav.switchUser')}
           </Link>
         </div>
         <div className="px-3 py-1.5 rounded-xl bg-slate-50 text-[10px] text-slate-500 font-mono flex items-center justify-between">
-          <span>v2.0 • Sfax Release</span>
-          <span className="text-emerald-700 font-bold">LIVE DB</span>
+          <span>{t('nav.versionRelease')}</span>
+          <span className="text-emerald-700 font-bold">{t('nav.liveDb')}</span>
         </div>
       </div>
     </aside>

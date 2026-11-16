@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/lib/i18n/context';
 import {
   Layers,
   Users,
@@ -18,6 +19,7 @@ import {
 
 export default function DepartmentsPage() {
   const { departments, tasks, projects } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <AppShell>
@@ -29,12 +31,12 @@ export default function DepartmentsPage() {
               <Layers className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">Club Departments</h1>
-              <p className="text-xs text-slate-500">ISIMS Chapter Operational Divisions & Task Pools</p>
+              <h1 className="font-extrabold text-lg sm:text-xl text-slate-900">{t('departments.title')}</h1>
+              <p className="text-xs text-slate-500">{t('departments.subtitle')}</p>
             </div>
           </div>
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold font-mono">
-            {departments.length} Units Active
+            {t('departments.unitsActive', { count: departments.length })}
           </span>
         </div>
 
@@ -46,11 +48,11 @@ export default function DepartmentsPage() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Department Spotlight
+                {t('departments.spotlight')}
               </span>
             </div>
             <span className="text-xs text-emerald-800 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Level 2 Academic Audit
+              {t('departments.auditLevel')}
             </span>
           </div>
 
@@ -62,25 +64,25 @@ export default function DepartmentsPage() {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-extrabold text-base sm:text-lg text-white leading-snug truncate">
-                  Training & Innovation
+                  {t('departments.trainingInnovation')}
                 </span>
                 <div className="flex items-center gap-1.5 mt-0.5 text-emerald-200 text-xs font-medium">
-                  <span>Lead: Amira M.</span>
+                  <span>{t('departments.lead', { name: 'Amira M.' })}</span>
                   <span>•</span>
                   <span className="text-white font-semibold">ISIMS Sfax</span>
                 </div>
               </div>
             </div>
             <span className="px-3 py-1 rounded-full bg-emerald-300 text-emerald-950 text-xs font-extrabold shrink-0 shadow-xs">
-              4 Projects
+              {t('departments.projectsCount', { count: 4 })}
             </span>
           </div>
 
           {/* Department Endorsements & Skills */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-              <span>DEPARTMENT PILLARS & TECH</span>
-              <span className="text-emerald-700 font-extrabold">5 Endorsed</span>
+              <span>{t('departments.pillarsAndTech')}</span>
+              <span className="text-emerald-700 font-extrabold">{t('departments.endorsedCount', { count: 5 })}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {[
@@ -103,19 +105,19 @@ export default function DepartmentsPage() {
           {/* Metrics Counters */}
           <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
             <div className="bg-white rounded-xl p-2.5 flex flex-col items-center shadow-xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Members</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('departments.membersCount')}</span>
               <span className="font-extrabold text-xl text-slate-900 mt-0.5">18</span>
-              <span className="text-[10px] text-emerald-700 font-semibold">Active</span>
+              <span className="text-[10px] text-emerald-700 font-semibold">{t('departments.activeCount')}</span>
             </div>
             <div className="bg-white rounded-xl p-2.5 flex flex-col items-center shadow-xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workshops</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('departments.workshopsCount')}</span>
               <span className="font-extrabold text-xl text-emerald-600 mt-0.5">3</span>
-              <span className="text-[10px] text-slate-500 font-medium">Completed</span>
+              <span className="text-[10px] text-slate-500 font-medium">{t('departments.completedCount')}</span>
             </div>
             <div className="bg-white rounded-xl p-2.5 flex flex-col items-center shadow-xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Club Rank</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('departments.clubRank')}</span>
               <span className="font-extrabold text-xl text-amber-500 mt-0.5">#4</span>
-              <span className="text-[10px] text-slate-500 font-medium">Campus Wide</span>
+              <span className="text-[10px] text-slate-500 font-medium">{t('departments.campusWide')}</span>
             </div>
           </div>
 
@@ -123,10 +125,10 @@ export default function DepartmentsPage() {
           <div className="rounded-2xl bg-gradient-to-r from-emerald-50/80 to-teal-50/80 p-3.5 border border-emerald-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
-                Flagship Student Submission
+                {t('departments.flagshipSubmission')}
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-emerald-800 text-[10px] font-bold shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Feasibility Review
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {t('departments.feasibilityReview')}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -148,7 +150,7 @@ export default function DepartmentsPage() {
 
         {/* All Departments Grid */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-base font-extrabold text-slate-900">All Club Units</h2>
+          <h2 className="text-base font-extrabold text-slate-900">{t('departments.allClubUnits')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {departments.map((dept) => {
               const deptTasks = tasks.filter((t) => t.department_id === dept.id);
@@ -167,10 +169,10 @@ export default function DepartmentsPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-600">
-                    <span className="font-medium">{deptProjects.length} Projects</span>
-                    <span className="font-medium">{deptTasks.length} Assigned Tasks</span>
+                    <span className="font-medium">{t('departments.projectsCount', { count: deptProjects.length })}</span>
+                    <span className="font-medium">{t('departments.tasksCount', { count: deptTasks.length })}</span>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px]">
-                      Active
+                      {t('departments.activeCount')}
                     </span>
                   </div>
                 </div>

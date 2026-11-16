@@ -81,6 +81,8 @@ test('ZEC Campus Hub — Multilingual & Internationalization Engine', async (t) 
       'profile',
       'admin',
       'time',
+      'departments',
+      'documents',
     ];
 
     for (const ns of requiredNamespaces) {
