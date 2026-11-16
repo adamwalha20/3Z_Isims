@@ -200,12 +200,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       try {
         const d = typeof date === 'string' ? new Date(date) : date;
         const intlLocale = locale === 'ar-TN' ? 'ar-TN' : locale === 'fr' ? 'fr-TN' : 'en-TN';
-        return new Intl.DateTimeFormat(intlLocale, {
-          timeZone: 'Africa/Tunis',
+        const formatOptions: Intl.DateTimeFormatOptions = options || {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
-          ...options,
+        };
+        return new Intl.DateTimeFormat(intlLocale, {
+          timeZone: 'Africa/Tunis',
+          ...formatOptions,
         }).format(d);
       } catch {
         return String(date);
