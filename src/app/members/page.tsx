@@ -21,6 +21,7 @@ import {
   Unlock,
   Terminal,
 } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export default function MembersDirectoryPage() {
   const { user, activeRole, setActiveRole, members, departments, documents, auditLogs, signOut } = useAuth();
@@ -363,7 +364,7 @@ export default function MembersDirectoryPage() {
         {/* =========================================================================
             5. ADMINISTRATION CONTROLS (Audit & Permissions)
         ========================================================================= */}
-        {user?.email?.toLowerCase() === 'adamwalha20@gmail.com' && (
+        {isSuperAdminEmail(user?.email) && (
           <section className="rounded-3xl bg-white p-5 shadow-xs border border-rose-100 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">

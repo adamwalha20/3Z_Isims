@@ -10,7 +10,7 @@ export async function createClient() {
     return null;
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient<any>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

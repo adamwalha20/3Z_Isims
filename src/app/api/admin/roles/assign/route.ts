@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { isSuperAdminEmail, RESTRICTED_NON_ADMIN_EMAILS } from '@/lib/constants/auth';
 
 function isUuid(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -17,10 +19,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const callerEmail = user.email?.toLowerCase() || '';
+    const callerEmail = user.email?.toLowerCase().trim() || '';
 
     // mahdihelmin@gmail.com is strictly excluded from administrative privileges
-    if (callerEmail === 'mahdihelmin@gmail.com') {
+    if (RESTRICTED_NON_ADMIN_EMAILS.some((r) => r.toLowerCase() === callerEmail)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized: This account does not have administrative privileges.' },
         { status: 403 }
@@ -28,10 +30,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if caller is superadmin or has admin role in database
-    const isSuperAdminEmail = callerEmail === 'adamwalha20@gmail.com';
+    const isSuperAdmin = isSuperAdminEmail(callerEmail);
     let isDbAdmin = false;
 
-    if (!isSuperAdminEmail) {
+    if (!isSuperAdmin) {
       const { data: roleRecords } = await supabase
         .from('user_roles')
         .select('roles(key)')
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
       isDbAdmin = roleRecords?.some((r: any) => r.roles?.key === 'admin') || false;
     }
 
-    if (!isSuperAdminEmail && !isDbAdmin) {
+    if (!isSuperAdmin && !isDbAdmin) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized: Only club administrators can assign bureau mandates.' },
         { status: 403 }
@@ -53,8 +55,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Position key is required' }, { status: 400 });
     }
 
+    // Determine database client: prefer service-role admin client to prevent RLS false rejections
+    let db = supabase;
+    try {
+      const adminClient = getSupabaseAdmin();
+      if (adminClient) {
+        db = adminClient as any;
+      }
+    } catch {
+      // Fallback to session client if admin key not set
+    }
+
     // 1. Fetch bureau position
-    const { data: pos, error: posErr } = await supabase
+    const { data: pos, error: posErr } = await db
       .from('bureau_positions')
       .select('id, key, display_name')
       .eq('key', positionKey)
@@ -68,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Capture previous assignment for undo and audit trail
-    const { data: prevAssign } = await supabase
+    const { data: prevAssign } = await db
       .from('user_bureau_positions')
       .select('user_id, profiles!user_bureau_positions_user_id_fkey(full_name)')
       .eq('position_id', pos.id)
@@ -78,7 +91,7 @@ export async function POST(req: NextRequest) {
     const prevMemberName = (prevAssign as any)?.profiles?.full_name || 'Unassigned';
 
     // 3. Clear previous occupant
-    const { error: delErr } = await supabase
+    const { error: delErr } = await db
       .from('user_bureau_positions')
       .delete()
       .eq('position_id', pos.id);
@@ -92,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     if (isAssigningNewMember) {
       // 4. Insert new assignment
-      const { error: insErr } = await supabase
+      const { error: insErr } = await db
         .from('user_bureau_positions')
         .insert({
           position_id: pos.id,
@@ -106,14 +119,14 @@ export async function POST(req: NextRequest) {
       }
 
       // 5. Ensure member has 'bureau' role in user_roles
-      const { data: bRole } = await supabase
+      const { data: bRole } = await db
         .from('roles')
         .select('id')
         .eq('key', 'bureau')
         .maybeSingle();
 
       if (bRole) {
-        await supabase.from('user_roles').upsert({
+        await db.from('user_roles').upsert({
           user_id: targetUserId,
           role_id: bRole.id,
         });
@@ -122,7 +135,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Record in audit_logs with reversible states
     const finalMemberName = isAssigningNewMember ? (memberName || 'Member') : 'Unassigned';
-    await supabase.from('audit_logs').insert({
+    await db.from('audit_logs').insert({
       action: 'ASSIGN_BUREAU_POSITION',
       actor_id: user.id,
       entity_type: 'bureau_position',

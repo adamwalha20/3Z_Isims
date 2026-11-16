@@ -228,24 +228,24 @@ export default function AttendanceScannerPage() {
     const activeSession = selectedSessionRef.current || selectedSession;
 
     // Guard 1: Verify a session is selected
-    if (!activeSessionId) {
+    if (!activeSessionId || !activeSession) {
       setScanResult({
         success: false,
         alreadyRegistered: false,
         member: { id: '', name: 'No Session Selected', position: 'Action Required' },
         session: { id: '', title: 'None Selected' },
         attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
-        message: 'Please select or create an active session above before scanning.',
+        message: 'Please select an in-person session above before scanning.',
       });
       return;
     }
 
     // Guard 2: Verify session attendance is currently open
-    if (activeSession && activeSession.attendance_status !== 'open') {
+    if (activeSession.attendance_status !== 'open') {
       setScanResult({
         success: false,
         alreadyRegistered: false,
-        member: { id: '', name: 'Attendance Not Open', position: activeSession.attendance_status.toUpperCase() },
+        member: { id: '', name: 'Attendance Not Open', position: (activeSession.attendance_status || 'closed').toUpperCase() },
         session: { id: activeSession.id, title: activeSession.title },
         attendance: { checkedInAt: new Date().toISOString(), arrivalTimeFormatted: '--:--', status: 'error', xpAwarded: 0 },
         message: `Session attendance is currently "${activeSession.attendance_status}". Click "Open Attendance" above to begin scanning.`,
@@ -309,12 +309,12 @@ export default function AttendanceScannerPage() {
     const activeSessionId = selectedSessionIdRef.current || selectedSessionId;
     const activeSession = selectedSessionRef.current || selectedSession;
 
-    if (!activeSessionId) {
+    if (!activeSessionId || !activeSession) {
       alert('Please select an active session first.');
       return;
     }
 
-    if (activeSession && activeSession.attendance_status !== 'open') {
+    if (activeSession.attendance_status !== 'open') {
       alert(`Attendance is currently ${activeSession.attendance_status}. Please open attendance first.`);
       return;
     }
@@ -326,7 +326,7 @@ export default function AttendanceScannerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           manualMemberId: memberId,
-          sessionId: selectedSessionId,
+          sessionId: activeSessionId,
         }),
       });
 

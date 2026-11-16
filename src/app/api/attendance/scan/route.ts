@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { parseQRPayload, verifyCredentialSecret, hashTokenSecret } from '@/lib/attendance/qr-security';
 import { formatTunisTime } from '@/lib/email/timezone-utils';
+import { isSuperAdminEmail, isScannerAuthorizedPosition } from '@/lib/constants/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,14 +17,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Strict Authorization: Only President, Vice President, Secretary General, and Administrator can operate scanner
-    const isSuperAdminEmail = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
+    const isSuperAdmin = isSuperAdminEmail(user.email);
 
     // 1. Check if user has admin role
     const { data: roleRecords } = await supabase
       .from('user_roles')
       .select('roles(key)')
       .eq('user_id', user.id);
-    const isAdmin = isSuperAdminEmail || roleRecords?.some((r: any) => r.roles?.key === 'admin');
+    const isAdmin = isSuperAdmin || roleRecords?.some((r: any) => r.roles?.key === 'admin');
 
     // 2. Check functional bureau positions (President, Vice President, Secretary General)
     const { data: userPosData } = await supabase
@@ -35,10 +36,7 @@ export async function POST(req: NextRequest) {
       .map((p: any) => p.bureau_positions?.key?.toLowerCase())
       .filter(Boolean);
 
-    const allowedPositions = ['president', 'vice_president', 'secretary_general', 'secretary'];
-    const hasAuthorizedPosition = positions.some(
-      (pos) => allowedPositions.includes(pos) || pos.includes('secretary')
-    );
+    const hasAuthorizedPosition = positions.some(isScannerAuthorizedPosition);
 
     if (!isAdmin && !hasAuthorizedPosition) {
       return NextResponse.json(

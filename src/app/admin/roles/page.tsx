@@ -22,6 +22,7 @@ import {
   Briefcase,
   GraduationCap,
 } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export default function AdminRolesPage() {
   const { user, bureauMembers, assignBureauPosition, setUserRole, members, approveMembership, isAdmin, activeRole } = useAuth();
@@ -31,7 +32,7 @@ export default function AdminRolesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN');
+  const isAuthorized = isAdmin || activeRole === 'admin' || isSuperAdminEmail(user?.email) || user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN');
 
   if (!isAuthorized) {
     return (
@@ -362,7 +363,7 @@ export default function AdminRolesPage() {
                           >
                             {currentRole}
                           </span>
-                          {member.membership?.membership_status === 'pending' && member.email?.toLowerCase() !== 'adamwalha20@gmail.com' ? (
+                          {member.membership?.membership_status === 'pending' && !isSuperAdminEmail(member.email) ? (
                             <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200">
                               Pending Approval
                             </span>
@@ -399,7 +400,7 @@ export default function AdminRolesPage() {
 
                     {/* Role Change Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                      {member.membership?.membership_status === 'pending' && member.email?.toLowerCase() !== 'adamwalha20@gmail.com' && (
+                      {member.membership?.membership_status === 'pending' && !isSuperAdminEmail(member.email) && (
                         <button
                           onClick={() => handleApproveMember(member.id, member.full_name)}
                           className="px-3 py-1 text-xs rounded-lg font-semibold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs flex items-center gap-1"

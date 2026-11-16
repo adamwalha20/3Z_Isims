@@ -64,6 +64,7 @@ import {
   BureauMemberAssignment,
 } from '@/lib/mock-data';
 import { createClient } from '@/lib/supabase/client';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export type ActiveRole = 'admin' | 'bureau' | 'lead' | 'member';
 export type ActiveBureauPosition = 'all' | BureauPositionKey;
@@ -291,7 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         const currentEmail = session.user.email || profile?.email || '';
-        const isAdam = currentEmail.toLowerCase() === 'adamwalha20@gmail.com';
+        const isAdam = isSuperAdminEmail(currentEmail);
 
         const approved = isAdam || userMembership?.membership_status === 'active';
         setIsApproved(approved);
@@ -428,7 +429,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             membership: mem || {
               id: `mem-${p.id}`,
               user_id: p.id,
-              membership_status: p.email?.toLowerCase() === 'adamwalha20@gmail.com' ? 'active' : 'pending',
+              membership_status: isSuperAdminEmail(p.email) ? 'active' : 'pending',
               created_at: p.created_at,
               updated_at: p.updated_at,
             },
@@ -839,7 +840,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     points: number,
     reason: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    const isUserAdmin = isSuperAdminEmail(user?.email) || activeRole === 'admin';
     if (!isUserAdmin) {
       return { success: false, error: 'Unauthorized: Only administrators can adjust XP.' };
     }
@@ -907,7 +908,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isActive: boolean,
     requiresVerification: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    const isUserAdmin = isSuperAdminEmail(user?.email) || activeRole === 'admin';
     if (!isUserAdmin) {
       return { success: false, error: 'Unauthorized: Only administrators can configure XP rules.' };
     }
@@ -976,7 +977,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Strict Task Creation: Members CANNOT create tasks
   const addTask = async (newTaskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
-    const isUserAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || activeRole === 'admin';
+    const isUserAdmin = isSuperAdminEmail(user?.email) || activeRole === 'admin';
     if (activeRole === 'member' && !isUserAdmin) {
       console.error('Access Denied: Ordinary members cannot create tasks.');
       return;
@@ -2337,13 +2338,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const apiData = await apiRes.json();
       if (!apiRes.ok || !apiData.success) {
-        // If server returned an explicit permission or validation error, return it
-        if (apiRes.status === 403 || apiRes.status === 401) {
-          return { success: false, error: apiData.error || 'Unauthorized action' };
-        }
-        console.warn('API route assign notice, falling back to direct client:', apiData?.error);
-      } else {
-        // Server assignment succeeded! Update local state and return success
+        return { success: false, error: apiData?.error || 'Failed to update bureau assignment' };
+      }
+
+      // Server assignment succeeded! Update local state and return success
         setBureauMembers((prev) =>
           prev.map((bm) =>
             bm.position_key === positionKey
@@ -2370,7 +2368,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         return { success: true };
-      }
     } catch (apiErr) {
       console.warn('Admin API route unavailable, proceeding with direct client:', apiErr);
     }
@@ -3104,7 +3101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isApproved,
         isLoading,
         isLiveSupabase,
-        isAdmin: user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
+        isAdmin: isSuperAdminEmail(user?.email) || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
         tasks,
         projects,
         events,

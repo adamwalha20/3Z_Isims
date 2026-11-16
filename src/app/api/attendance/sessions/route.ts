@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: isAuth } = await supabase.rpc('is_bureau_or_admin', { user_uuid: user.id });
-    const isAdam = user.email?.toLowerCase() === 'adamwalha20@gmail.com';
+    const isAdam = isSuperAdminEmail(user.email);
     if (!isAuth && !isAdam) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Only bureau officers and administrators can create physical sessions' }, { status: 403 });
     }
@@ -164,7 +165,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const { data: isAuth } = await supabase.rpc('is_bureau_or_admin', { user_uuid: user.id });
-    const isAdam = user.email?.toLowerCase() === 'adamwalha20@gmail.com';
+    const isAdam = isSuperAdminEmail(user.email);
     if (!isAuth && !isAdam) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
     }

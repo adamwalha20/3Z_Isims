@@ -16,12 +16,13 @@ import {
   Mail,
   GraduationCap,
 } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export default function AdminMembersApprovalPage() {
   const { user, members, approveMembership, rejectMembership } = useAuth();
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const isAuthorized = isSuperAdminEmail(user?.email);
 
   if (!isAuthorized) {
     return (
@@ -43,7 +44,7 @@ export default function AdminMembersApprovalPage() {
   }
 
   const pendingMembers = members.filter(
-    (m) => m.membership?.membership_status === 'pending' && m.email?.toLowerCase() !== 'adamwalha20@gmail.com'
+    (m) => m.membership?.membership_status === 'pending' && !isSuperAdminEmail(m.email)
   );
 
   const handleApprove = async (id: string, name: string) => {

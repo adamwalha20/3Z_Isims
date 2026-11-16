@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 import {
   X,
   ChevronRight,
@@ -32,7 +33,7 @@ export default function BottomNav() {
   const { t, isRtl } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdminEmail(user?.email) || isAdmin;
   const canScan = canAccessAttendanceScanner({
     activeRole,
     isAdmin,
@@ -84,7 +85,7 @@ export default function BottomNav() {
       title: t('nav.adminControls'),
       items: [
         { label: t('nav.profile'), href: '/profile', icon: 'qr_code_2', desc: t('profile.subtitle') },
-        ...(user?.email?.toLowerCase() === 'adamwalha20@gmail.com'
+        ...(isSuperAdminEmail(user?.email)
           ? [
               { label: t('nav.adminGovernance'), href: '/admin', icon: 'admin_panel_settings', desc: t('bureau.subtitle'), badge: 'Admin' },
               { label: t('bureau.mandatesTab', { count: 12 }), href: '/admin/roles', icon: 'shield_person', desc: t('bureau.subtitle') },

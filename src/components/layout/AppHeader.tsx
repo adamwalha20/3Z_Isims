@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, ActiveRole } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 import { NotificationItem } from '@/types/database.types';
 import {
   Bell,
@@ -31,7 +32,7 @@ export default function AppHeader() {
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   const unreadCount = unreadNotificationCount ?? notifications.filter((n) => !n.is_read && !n.read_at).length;
-  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const isSuperAdmin = isSuperAdminEmail(user?.email);
 
   const handleNotificationClick = (n: NotificationItem) => {
     markNotificationRead(n.id);

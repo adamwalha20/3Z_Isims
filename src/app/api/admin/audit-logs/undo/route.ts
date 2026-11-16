@@ -1,11 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { isSuperAdminEmail, RESTRICTED_NON_ADMIN_EMAILS } from '@/lib/constants/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
     if (!supabase) {
       return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 500 });
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+
+    const callerEmail = user.email?.toLowerCase().trim() || '';
+
+    if (RESTRICTED_NON_ADMIN_EMAILS.some((r) => r.toLowerCase() === callerEmail)) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: This account does not have administrative privileges.' },
+        { status: 403 }
+      );
+    }
+
+    const isSuperAdmin = isSuperAdminEmail(callerEmail);
+    let isDbAdmin = false;
+
+    if (!isSuperAdmin) {
+      const { data: roleRecords } = await supabase
+        .from('user_roles')
+        .select('roles(key)')
+        .eq('user_id', user.id);
+      isDbAdmin = roleRecords?.some((r: any) => r.roles?.key === 'admin') || false;
+    }
+
+    if (!isSuperAdmin && !isDbAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Only club administrators can revert actions.' },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -15,8 +49,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Audit log ID is required' }, { status: 400 });
     }
 
+    // Determine database client
+    let db = supabase;
+    try {
+      const adminClient = getSupabaseAdmin();
+      if (adminClient) db = adminClient as any;
+    } catch {}
+
     // 1. Fetch audit log entry
-    const { data: log, error: fetchErr } = await supabase
+    const { data: log, error: fetchErr } = await db
       .from('audit_logs')
       .select('*')
       .eq('id', logId)
@@ -44,14 +85,14 @@ export async function POST(req: NextRequest) {
 
       if (position_id) {
         // Clear current assignment
-        await supabase
+        await db
           .from('user_bureau_positions')
           .delete()
           .eq('position_id', position_id);
 
         // If there was a previous user assigned, restore them
         if (prevUserId) {
-          await supabase
+          await db
             .from('user_bureau_positions')
             .insert({
               position_id,
@@ -67,10 +108,10 @@ export async function POST(req: NextRequest) {
     } else if (action === 'ASSIGN_USER_ROLE' && previous_state) {
       const { user_id, role: prevRole } = previous_state as any;
       if (user_id && prevRole) {
-        const { data: roleRow } = await supabase.from('roles').select('id').eq('key', prevRole).single();
+        const { data: roleRow } = await db.from('roles').select('id').eq('key', prevRole).single();
         if (roleRow) {
-          await supabase.from('user_roles').delete().eq('user_id', user_id);
-          await supabase.from('user_roles').insert({
+          await db.from('user_roles').delete().eq('user_id', user_id);
+          await db.from('user_roles').insert({
             user_id,
             role_id: roleRow.id,
           });
@@ -79,76 +120,64 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (action === 'CORRECT_ATTENDANCE' && previous_state) {
-      const { attendance_id, previous_status, previous_xp } = previous_state as any;
+      const { attendance_id, attendance_status, xp_awarded } = previous_state as any;
       if (attendance_id) {
-        await supabase
+        await db
           .from('session_attendance')
           .update({
-            attendance_status: previous_status,
-            xp_awarded: previous_xp || 0,
-            updated_at: new Date().toISOString(),
+            attendance_status,
+            xp_awarded,
           })
           .eq('id', attendance_id);
-
         revertSuccess = true;
-        revertMessage = `Reverted attendance record to ${previous_status}.`;
-      }
-    } else if (action === 'ADMIN_XP_ADJUSTMENT' && log.metadata) {
-      const { points } = log.metadata as any;
-      const targetUserId = entity_id;
-
-      if (targetUserId && points) {
-        // Apply inverse XP adjustment
-        const delta = -Number(points);
-        await supabase.rpc('award_member_xp', {
-          p_user_id: targetUserId,
-          p_points: delta,
-          p_reason: `Undo of adjustment (Log ID: ${logId.slice(0, 8)})`,
-          p_category: 'admin_adjustment',
-        });
-
-        revertSuccess = true;
-        revertMessage = `Reversed XP transaction by ${delta > 0 ? '+' : ''}${delta} XP.`;
+        revertMessage = 'Reverted attendance status to previous record.';
       }
     } else {
-      // Generic undo fallback
-      revertSuccess = true;
-      revertMessage = 'Action marked as reverted.';
+      // Generic reversal: update the entity directly if possible
+      if (entity_type && entity_id && previous_state) {
+        await db
+          .from(entity_type)
+          .update(previous_state)
+          .eq('id', entity_id);
+        revertSuccess = true;
+        revertMessage = `Reverted changes for ${entity_type}.`;
+      }
     }
 
     if (!revertSuccess) {
-      return NextResponse.json({ success: false, error: 'Could not execute automated reversal for this log.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Could not automatically reverse this action.' }, { status: 400 });
     }
 
-    // 3. Mark audit log as undone
-    const { error: updateErr } = await supabase
+    // 3. Mark the log as undone
+    await db
       .from('audit_logs')
       .update({
         is_undone: true,
         undone_at: new Date().toISOString(),
+        undone_by: user.id,
       })
       .eq('id', logId);
 
-    if (updateErr) {
-      console.error('Error marking audit log undone:', updateErr);
-    }
-
-    // 4. Insert an audit log of the undo event
-    await supabase.from('audit_logs').insert({
+    // 4. Log the UNDO action in the audit log
+    await db.from('audit_logs').insert({
       action: 'UNDO_ACTION',
-      entity_type: entity_type || 'audit_logs',
-      entity_id: logId,
-      details: `Admin undone action ${action}: ${revertMessage}`,
-      metadata: { original_log_id: logId, original_action: action },
+      actor_id: user.id,
+      entity_type,
+      entity_id,
+      details: `Reverted action "${action}": ${revertMessage}`,
+      previous_state: { reverted_log_id: logId, previous_action: action },
+      new_state: { undone: true },
       can_undo: false,
     });
 
     return NextResponse.json({
       success: true,
-      message: revertMessage || 'Successfully undone change.',
+      message: revertMessage,
     });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Failed to undo action' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err?.message || 'Failed to revert action' },
+      { status: 500 }
+    );
   }
 }
-

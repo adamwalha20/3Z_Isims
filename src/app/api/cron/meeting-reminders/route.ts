@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 import { sendTransactionalEmail } from '@/lib/email/resend-service';
 import { generateMeetingEmailHtml } from '@/lib/email/email-templates';
 
@@ -36,7 +37,7 @@ async function processDueReminders(req: NextRequest) {
         .maybeSingle();
 
       const roleName = (roleRow as any)?.roles?.name || (roleRow as any)?.roles?.[0]?.name;
-      if (roleName !== 'admin' && user.email?.toLowerCase() !== 'adamwalha20@gmail.com') {
+      if (roleName !== 'admin' && !isSuperAdminEmail(user.email)) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access required' }, { status: 403 });
       }
     }

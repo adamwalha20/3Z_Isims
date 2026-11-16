@@ -17,14 +17,15 @@ import {
   Bell,
   Undo2,
 } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export default function AdminGovernancePage() {
   const { user, auditLogs, members, bureauMembers } = useAuth();
 
-  const isAuthorized = user?.email?.toLowerCase() === 'adamwalha20@gmail.com';
+  const isAuthorized = isSuperAdminEmail(user?.email);
 
   const pendingMembers = members.filter(
-    (m) => m.membership?.membership_status === 'pending' && m.email?.toLowerCase() !== 'adamwalha20@gmail.com'
+    (m) => m.membership?.membership_status === 'pending' && !isSuperAdminEmail(m.email)
   );
 
   const handleExportAuditLedger = () => {

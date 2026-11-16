@@ -273,6 +273,89 @@ export interface MeetingRecordingJob {
   completed_at?: string | null;
 }
 
+export interface MeetingBotSession {
+  id: string;
+  meeting_id: string;
+  provider: 'meeting_baas' | string;
+  provider_bot_id: string;
+  bot_status: 'dispatched' | 'joining' | 'waiting_admission' | 'recording' | 'processing' | 'completed' | 'failed' | 'kicked';
+  dispatched_by?: string | null;
+  dispatched_at: string;
+  started_at?: string | null;
+  ended_at?: string | null;
+  failure_reason?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingDecision {
+  id: string;
+  meeting_id: string;
+  summary_id?: string | null;
+  title: string;
+  description?: string | null;
+  evidence?: string | null;
+  source_timestamp: number;
+  decision_type: 'confirmed' | 'proposal' | 'unresolved';
+  review_status: 'pending' | 'approved' | 'rejected' | 'clarification_needed';
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  meeting_id: string;
+  summary_id?: string | null;
+  title: string;
+  description?: string | null;
+  suggested_assignee?: string | null;
+  confirmed_assignee_id?: string | null;
+  confirmed_assignee?: Profile | null;
+  deadline?: string | null;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  evidence?: string | null;
+  source_timestamp: number;
+  review_status: 'pending' | 'approved' | 'rejected';
+  created_task_id?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingWebhookEvent {
+  id: string;
+  provider: string;
+  provider_event_id: string;
+  provider_bot_id?: string | null;
+  event_type: string;
+  payload: Record<string, any>;
+  processing_status: 'pending' | 'processed' | 'failed';
+  error_message?: string | null;
+  received_at: string;
+  processed_at?: string | null;
+}
+
+export interface MeetingProcessingJob {
+  id: string;
+  meeting_id: string;
+  job_type: 'download_artifacts' | 'transcribe' | 'ai_summarize' | 'extract_decisions' | string;
+  idempotency_key: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  attempts: number;
+  max_attempts: number;
+  last_error?: string | null;
+  scheduled_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  payload?: Record<string, any>;
+  result?: Record<string, any>;
+  created_at: string;
+}
+
 export interface Meeting {
   id: string;
   title: string;
@@ -307,6 +390,9 @@ export interface Meeting {
   transcripts?: MeetingTranscript[];
   summary?: MeetingSummary | null;
   recording_jobs?: MeetingRecordingJob[];
+  bot_sessions?: MeetingBotSession[];
+  decisions?: MeetingDecision[];
+  extracted_action_items?: MeetingActionItem[];
 }
 
 export interface MeetingAction {

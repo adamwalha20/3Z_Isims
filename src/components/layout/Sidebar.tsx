@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
 import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -31,7 +32,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { t, isRtl } = useTranslation();
   const { activeRole, user, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
-  const isSuperAdmin = user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || isAdmin;
+  const isSuperAdmin = isSuperAdminEmail(user?.email) || isAdmin;
   const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
   const canScan = canAccessAttendanceScanner({
     activeRole,

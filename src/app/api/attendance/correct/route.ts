@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isSuperAdminEmail, isScannerAuthorizedPosition } from '@/lib/constants/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,12 +15,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Strict Authorization: Only President, Vice President, Secretary General, and Administrator can correct attendance records
-    const isSuperAdminEmail = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
+    const isSuperAdmin = isSuperAdminEmail(user.email);
     const { data: roleRecords } = await supabase
       .from('user_roles')
       .select('roles(key)')
       .eq('user_id', user.id);
-    const isAdmin = isSuperAdminEmail || roleRecords?.some((r: any) => r.roles?.key === 'admin');
+    const isAdmin = isSuperAdmin || roleRecords?.some((r: any) => r.roles?.key === 'admin');
 
     const { data: userPosData } = await supabase
       .from('user_bureau_positions')
@@ -30,10 +31,7 @@ export async function POST(req: NextRequest) {
       .map((p: any) => p.bureau_positions?.key?.toLowerCase())
       .filter(Boolean);
 
-    const allowedPositions = ['president', 'vice_president', 'secretary_general', 'secretary'];
-    const hasAuthorizedPosition = positions.some(
-      (pos) => allowedPositions.includes(pos) || pos.includes('secretary')
-    );
+    const hasAuthorizedPosition = positions.some(isScannerAuthorizedPosition);
 
     if (!isAdmin && !hasAuthorizedPosition) {
       return NextResponse.json(

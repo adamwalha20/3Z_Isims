@@ -22,6 +22,7 @@ import {
   Server,
   Zap,
 } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 interface HealthReport {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -80,7 +81,7 @@ export default function AdminSystemHealthPage() {
   const isAuthorized =
     isAdmin ||
     activeRole === 'admin' ||
-    user?.email?.toLowerCase() === 'adamwalha20@gmail.com' ||
+    isSuperAdminEmail(user?.email) ||
     Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
 
   const fetchHealth = async () => {

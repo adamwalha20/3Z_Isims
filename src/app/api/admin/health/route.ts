@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const isAdam = user.email?.toLowerCase() === 'adamwalha20@gmail.com';
+    const isAdam = isSuperAdminEmail(user.email);
     const { data: isAdminRpc } = await supabase.rpc('is_admin', { user_uuid: user.id });
     if (!isAdam && !isAdminRpc) {
       return NextResponse.json(

@@ -22,6 +22,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { formatTunisDate, formatTunisTime } from '@/lib/email/timezone-utils';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 interface AuditLogItem {
   id: string;
@@ -56,7 +57,7 @@ export default function AdminAuditLogsPage() {
   const [undoingLogId, setUndoingLogId] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const isAuthorized = isAdmin || activeRole === 'admin' || user?.email?.toLowerCase() === 'adamwalha20@gmail.com' || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
+  const isAuthorized = isAdmin || activeRole === 'admin' || isSuperAdminEmail(user?.email) || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
 
   const fetchLogs = async () => {
     setIsLoading(true);
