@@ -29,7 +29,10 @@ import {
   AlertCircle,
   Eye,
   CheckCircle2,
-  ListTodo
+  ListTodo,
+  Square,
+  PhoneOff,
+  RefreshCw,
 } from 'lucide-react';
 import { Meeting, MeetingSummaryItem, MeetingTranscriptSegment } from '@/types/database.types';
 
@@ -52,6 +55,8 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
   const [copiedLink, setCopiedLink] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isBotDispatching, setIsBotDispatching] = useState(false);
+  const [isBotStopping, setIsBotStopping] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -171,6 +176,54 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
         type: 'error',
         text: res.error || 'Failed to dispatch recording bot.',
       });
+    }
+  };
+
+  const handleStopBot = async () => {
+    setIsBotStopping(true);
+    setFeedbackMessage(null);
+
+    const res = await dispatchMeetingRecordingBot(meeting.id, 'leave');
+    setIsBotStopping(false);
+
+    if (res.success) {
+      setFeedbackMessage({
+        type: 'success',
+        text: 'Bot leave command acknowledged. The bot is leaving the Google Meet session.',
+      });
+    } else {
+      setFeedbackMessage({
+        type: 'error',
+        text: res.error || 'Failed to stop recording bot.',
+      });
+    }
+  };
+
+  const handleSyncRecording = async () => {
+    setIsSyncing(true);
+    setFeedbackMessage(null);
+
+    try {
+      const res = await fetch('/api/meetings/recording/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetingId: meeting.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Sync failed');
+
+      setFeedbackMessage({
+        type: 'success',
+        text: 'Meeting recording and AI analysis successfully synced! Updating view...',
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sync failed';
+      setFeedbackMessage({ type: 'error', text: msg });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -425,17 +478,46 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
                 <span>Organizer Controls:</span>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Bot Dispatch */}
-                {meeting.status !== 'completed' && meeting.meeting_url && (
-                  <button
-                    onClick={handleDispatchBot}
-                    disabled={isBotDispatching}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
-                  >
-                    <Bot className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>{isBotDispatching ? 'Dispatching...' : 'Dispatch Recording Bot'}</span>
-                  </button>
+                {/* Bot Controls */}
+                {['live', 'recording', 'joining', 'requested', 'waiting_admission'].includes(meeting.recording_status || '') ? (
+                  <>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 inline-block" />
+                      <span>Bot In Call</span>
+                    </div>
+                    <button
+                      onClick={handleStopBot}
+                      disabled={isBotStopping}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                      title="Instruct the recording bot to leave Google Meet"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <span>{isBotStopping ? 'Stopping Bot...' : 'Stop Recording & Leave'}</span>
+                    </button>
+                  </>
+                ) : (
+                  meeting.status !== 'completed' && meeting.meeting_url && (
+                    <button
+                      onClick={handleDispatchBot}
+                      disabled={isBotDispatching}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                    >
+                      <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>{isBotDispatching ? 'Dispatching...' : 'Dispatch Recording Bot'}</span>
+                    </button>
+                  )
                 )}
+
+                {/* Sync AI Intelligence & Recording */}
+                <button
+                  onClick={handleSyncRecording}
+                  disabled={isSyncing}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                  title="Sync latest recording and AI intelligence from Meeting BaaS"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync Recording & AI'}</span>
+                </button>
 
                 {/* Upload Recording */}
                 <button
@@ -630,6 +712,7 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
         {activeTab === 'recording' && (
           <section className="flex flex-col gap-4">
             <MeetingPlayer
+              meetingId={meeting.id}
               playbackUrl={activeRecording?.playback_url}
               storagePath={activeRecording?.storage_path}
               title={meeting.title}

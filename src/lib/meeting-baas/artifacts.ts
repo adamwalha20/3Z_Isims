@@ -18,12 +18,15 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
     return { fullText: '', utterances: [], detectedLanguage: 'en' };
   }
 
+  // Handle wrappers (e.g. Gladia or Meeting BaaS returning { provider: 'gladia', result: { utterances: [...] } })
+  const payload = data.result || data;
+
   const utterances: MeetingBaaSUtterance[] = [];
   let detectedLanguage = 'en';
 
   // Format 1: Meeting BaaS output_transcription.json standard
-  if (Array.isArray(data.transcriptions) && data.transcriptions.length > 0) {
-    for (const tBlock of data.transcriptions) {
+  if (Array.isArray(payload.transcriptions) && payload.transcriptions.length > 0) {
+    for (const tBlock of payload.transcriptions) {
       const tx = tBlock.transcription;
       if (tx?.languages && Array.isArray(tx.languages) && tx.languages[0]) {
         detectedLanguage = tx.languages[0];
@@ -41,9 +44,15 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
     }
   }
 
-  // Format 2: Direct utterances array
-  if (utterances.length === 0 && Array.isArray(data.utterances)) {
-    for (const u of data.utterances) {
+  // Format 2: Direct utterances array (or payload.utterances or data.utterances)
+  const directUtterances = Array.isArray(payload.utterances)
+    ? payload.utterances
+    : Array.isArray(data.utterances)
+    ? data.utterances
+    : null;
+
+  if (utterances.length === 0 && directUtterances) {
+    for (const u of directUtterances) {
       utterances.push({
         speaker: u.speaker || u.speaker_label || 'Participant',
         start: Number(u.start ?? u.start_seconds ?? 0),
@@ -51,14 +60,16 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
         text: (u.text || u.content || '').trim(),
       });
     }
-    if (data.languages && Array.isArray(data.languages) && data.languages[0]) {
-      detectedLanguage = data.languages[0];
+    const langs = payload.languages || data.languages;
+    if (langs && Array.isArray(langs) && langs[0]) {
+      detectedLanguage = langs[0];
     }
   }
 
   // Format 3: Gladia native prediction
-  if (utterances.length === 0 && Array.isArray(data.prediction)) {
-    for (const p of data.prediction) {
+  const predictions = Array.isArray(payload.prediction) ? payload.prediction : Array.isArray(data.prediction) ? data.prediction : null;
+  if (utterances.length === 0 && predictions) {
+    for (const p of predictions) {
       utterances.push({
         speaker: p.speaker || 'Speaker ' + (p.speaker_id ?? 1),
         start: Number(p.time_begin || 0),
@@ -69,8 +80,9 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
   }
 
   // Format 4: Segments array
-  if (utterances.length === 0 && Array.isArray(data.segments)) {
-    for (const s of data.segments) {
+  const segments = Array.isArray(payload.segments) ? payload.segments : Array.isArray(data.segments) ? data.segments : null;
+  if (utterances.length === 0 && segments) {
+    for (const s of segments) {
       utterances.push({
         speaker: s.speaker || s.speaker_label || 'Speaker',
         start: Number(s.start || s.start_seconds || 0),
@@ -84,7 +96,9 @@ export function normalizeTranscriptionPayload(data: any): NormalizedTranscript {
   utterances.sort((a, b) => a.start - b.start);
 
   const fullText =
+    payload.full_text ||
     data.full_text ||
+    payload.content ||
     data.content ||
     utterances.map((u) => `${u.speaker}: ${u.text}`).join('\n\n');
 

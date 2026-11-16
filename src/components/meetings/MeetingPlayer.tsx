@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 interface MeetingPlayerProps {
+  meetingId?: string;
   storagePath?: string | null;
   playbackUrl?: string | null;
   durationSeconds?: number;
@@ -30,6 +31,7 @@ interface MeetingPlayerProps {
 }
 
 export default function MeetingPlayer({
+  meetingId,
   storagePath,
   playbackUrl,
   durationSeconds = 1800,
@@ -50,9 +52,32 @@ export default function MeetingPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [resolvedStreamUrl, setResolvedStreamUrl] = useState<string | null>(playbackUrl || null);
 
   const displayTitle = title || meetingTitle || 'Meeting Recording';
   const effectiveSeek = seekToSeconds !== undefined ? seekToSeconds : seekToTime;
+
+  // Fetch signed streaming URL for private storage recordings
+  useEffect(() => {
+    if (playbackUrl && (playbackUrl.startsWith('http://') || playbackUrl.startsWith('https://'))) {
+      setResolvedStreamUrl(playbackUrl);
+      return;
+    }
+
+    if (meetingId) {
+      fetch(`/api/meetings/recording/stream?meetingId=${encodeURIComponent(meetingId)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.playbackUrl) {
+            setResolvedStreamUrl(data.playbackUrl);
+            if (data.durationSeconds && data.durationSeconds > 0) {
+              setDuration(data.durationSeconds);
+            }
+          }
+        })
+        .catch((err) => console.warn('Stream fetch error:', err));
+    }
+  }, [meetingId, playbackUrl, storagePath]);
 
   // Sync external seek request (e.g. from clicking a transcript timestamp)
   useEffect(() => {
@@ -141,14 +166,14 @@ export default function MeetingPlayer({
   };
 
   // Video source resolution: check if valid external URL or Supabase storage path
-  const rawUrl = playbackUrl || storagePath;
+  const rawUrl = resolvedStreamUrl || playbackUrl || storagePath;
   const isDirectUrl = rawUrl?.startsWith('http://') || rawUrl?.startsWith('https://') || rawUrl?.startsWith('blob:');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const videoSrc: string = isDirectUrl && rawUrl
     ? rawUrl
     : rawUrl
-    ? `${supabaseUrl}/storage/v1/object/authenticated/meeting-recordings/${rawUrl}`
-    : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'; // Graceful preview fallback
+    ? `${supabaseUrl}/storage/v1/object/public/meeting-recordings/${rawUrl}`
+    : '';
 
   return (
     <div className="bg-slate-950 rounded-3xl overflow-hidden shadow-xl border border-slate-800 text-white flex flex-col">

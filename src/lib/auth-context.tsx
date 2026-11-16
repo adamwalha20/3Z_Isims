@@ -159,7 +159,7 @@ interface AuthContextType {
       priority?: TaskPriority;
     }
   ) => Promise<{ success: boolean; task?: Task; error?: string }>;
-  dispatchMeetingRecordingBot: (meetingId: string) => Promise<{ success: boolean; status?: string; message?: string; error?: string }>;
+  dispatchMeetingRecordingBot: (meetingId: string, action?: 'dispatch' | 'leave') => Promise<{ success: boolean; status?: string; message?: string; error?: string }>;
 
   // Role-Specific Workspaces mutations
   addTransaction: (tx: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => void;
@@ -1933,10 +1933,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const dispatchMeetingRecordingBot = async (meetingId: string): Promise<{ success: boolean; status?: string; message?: string; error?: string }> => {
+  const dispatchMeetingRecordingBot = async (
+    meetingId: string,
+    action: 'dispatch' | 'leave' = 'dispatch'
+  ): Promise<{ success: boolean; status?: string; message?: string; error?: string }> => {
     const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
     if (!isBureauOrAdmin) {
-      return { success: false, error: 'Unauthorized: Only bureau officers can dispatch the recording bot.' };
+      return { success: false, error: 'Unauthorized: Only bureau officers can control the recording bot.' };
     }
 
     const meeting = meetings.find((m) => m.id === meetingId);
@@ -1946,18 +1949,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/meetings/recording/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetingId, meetingUrl: meeting.meeting_url }),
+        body: JSON.stringify({ meetingId, action, meetingUrl: meeting.meeting_url }),
       });
       const data = await res.json();
 
-      await updateMeeting(meetingId, { recording_status: data.status || 'requested', recording_enabled: true });
+      const newStatus = action === 'leave' ? 'completed' : (data.status || 'requested');
+      await updateMeeting(meetingId, { recording_status: newStatus, recording_enabled: action === 'dispatch' });
       return { success: data.success, status: data.status, message: data.message };
     } catch (e: any) {
-      await updateMeeting(meetingId, { recording_status: 'requested', recording_enabled: true });
       return {
-        success: true,
-        status: 'requested',
-        message: 'Recording bot requested for scheduled session. Participants will be notified upon bot entry.',
+        success: false,
+        error: e?.message || 'Failed to communicate with bot service.',
       };
     }
   };

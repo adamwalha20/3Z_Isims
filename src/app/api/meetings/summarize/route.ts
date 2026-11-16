@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     // 1. Fetch meeting
     const { data: meeting, error: meetErr } = await adminDb
       .from('meetings')
-      .select('*, organizer:profiles!meetings_organizer_id_fkey(id, email, full_name, preferred_language)')
+      .select('*, organizer:profiles!meetings_organizer_id_fkey(id, email, full_name, preferred_locale)')
       .eq('id', meetingId)
       .single();
 
