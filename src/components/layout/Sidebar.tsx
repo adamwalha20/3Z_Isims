@@ -76,8 +76,8 @@ export default function Sidebar() {
         <div className="w-7 h-7 rounded-md bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
           3Z
         </div>
-        <div className="min-w-0">
-          <div className="text-xs font-semibold text-slate-900 truncate">{t('common.chapterName')}</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold text-slate-900 truncate" title={t('common.chapterName')}>{t('common.chapterName')}</div>
           <div className="text-[10px] text-slate-500 font-medium">{t('common.academicNode')}</div>
         </div>
       </div>
