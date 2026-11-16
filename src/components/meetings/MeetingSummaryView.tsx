@@ -36,7 +36,31 @@ export default function MeetingSummaryView({
   const [isApproving, setIsApproving] = useState(false);
 
   const handleTaskConvert = onConvertToTask || onCreateTask;
-  const content = summary?.content || summary?.summary_content;
+  const sumAny = summary as any;
+  const content: any =
+    summary?.content ||
+    summary?.summary_content ||
+    (sumAny?.summary_json
+      ? {
+          overview:
+            sumAny.summary_json.executive_summary?.purpose ||
+            sumAny.summary_json.executive_summary?.outcomes_overview,
+          key_topics: sumAny.summary_json.topics?.map((t: any) => t.title),
+          important_updates: sumAny.summary_json.important_notes?.announcements || [],
+          decisions: sumAny.summary_json.decisions?.map((d: any) => d.title || d.explanation) || [],
+          challenges: sumAny.summary_json.important_notes?.risks_and_challenges || [],
+          questions: sumAny.summary_json.important_notes?.unresolved_questions || [],
+          action_items:
+            sumAny.summary_json.action_items?.map((a: any) => ({
+              title: a.title,
+              task: a.title,
+              responsible: a.suggested_assignee,
+              assignee: a.suggested_assignee,
+              deadline: a.deadline,
+            })) || [],
+          next_steps: sumAny.summary_json.next_meeting?.proposed_agenda || [],
+        }
+      : null);
 
   if (!summary || !content) {
     return (
@@ -50,7 +74,7 @@ export default function MeetingSummaryView({
     );
   }
 
-  const summaryContent: MeetingSummaryContent = content;
+  const summaryContent: any = content;
   const isApproved = summary.review_status === 'approved' || Boolean(summary.approved_at);
 
   const handleApprove = async () => {
@@ -128,7 +152,7 @@ export default function MeetingSummaryView({
             <span>2. Main Topics Discussed</span>
           </span>
           <ul className="flex flex-col gap-1.5 text-xs text-slate-700 list-disc list-inside">
-            {content.key_topics?.map((topic, i) => (
+            {content.key_topics?.map((topic: string, i: number) => (
               <li key={i} className="leading-snug">
                 {topic}
               </li>
@@ -143,7 +167,7 @@ export default function MeetingSummaryView({
             <span>3. Important Updates</span>
           </span>
           <ul className="flex flex-col gap-1.5 text-xs text-slate-700 list-disc list-inside">
-            {content.important_updates?.map((upd, i) => (
+            {content.important_updates?.map((upd: string, i: number) => (
               <li key={i} className="leading-snug">
                 {upd}
               </li>
@@ -159,7 +183,7 @@ export default function MeetingSummaryView({
           <span>4. Formal Decisions Adopted</span>
         </span>
         <div className="flex flex-col gap-1.5">
-          {content.decisions_made?.map((dec, i) => (
+          {(content.decisions_made || content.decisions)?.map((dec: string, i: number) => (
             <div key={i} className="p-2.5 rounded-xl bg-white border border-emerald-200/80 text-xs font-semibold text-slate-900 flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0"></span>
               <span>{dec}</span>
@@ -177,7 +201,7 @@ export default function MeetingSummaryView({
             <span>5. Problems & Challenges</span>
           </span>
           <ul className="flex flex-col gap-1 text-xs text-slate-700 list-disc list-inside">
-            {content.problems_and_challenges?.map((prob, i) => (
+            {(content.problems_and_challenges || content.challenges)?.map((prob: string, i: number) => (
               <li key={i} className="leading-snug">
                 {prob}
               </li>
@@ -192,7 +216,7 @@ export default function MeetingSummaryView({
             <span>6. Questions For Human Review</span>
           </span>
           <ul className="flex flex-col gap-1 text-xs text-slate-700 list-disc list-inside">
-            {content.pending_questions?.map((q, i) => (
+            {(content.pending_questions || content.questions)?.map((q: string, i: number) => (
               <li key={i} className="leading-snug">
                 {q}
               </li>
@@ -208,7 +232,7 @@ export default function MeetingSummaryView({
           <span>7. Action Items & Designated Responsibilities</span>
         </span>
         <div className="flex flex-col gap-2">
-          {content.action_items?.map((item, idx) => (
+          {content.action_items?.map((item: any, idx: number) => (
             <div
               key={idx}
               className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
@@ -257,7 +281,7 @@ export default function MeetingSummaryView({
           8. Next Steps
         </span>
         <ul className="flex flex-col gap-1 text-xs text-slate-700 list-disc list-inside">
-          {content.next_steps?.map((step, i) => (
+          {content.next_steps?.map((step: string, i: number) => (
             <li key={i} className="leading-snug">
               {step}
             </li>

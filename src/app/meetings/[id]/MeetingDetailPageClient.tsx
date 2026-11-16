@@ -61,6 +61,39 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Directly loaded intelligence data (transcripts, segments, summaries, decisions, action items)
+  const [intelData, setIntelData] = useState<{
+    transcript?: any;
+    summary?: any;
+    decisions?: any[];
+    actionItems?: any[];
+    recordings?: any[];
+  } | null>(null);
+
+  const fetchMeetingIntel = async (meetingId: string) => {
+    try {
+      const res = await fetch(`/api/meetings/intelligence?meetingId=${encodeURIComponent(meetingId)}`);
+      const data = await res.json();
+      if (data.success) {
+        setIntelData({
+          transcript: data.transcript,
+          summary: data.summary,
+          decisions: data.decisions,
+          actionItems: data.actionItems,
+          recordings: data.recordings,
+        });
+      }
+    } catch (err) {
+      console.warn('Meeting intelligence fetch failed:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchMeetingIntel(id);
+    }
+  }, [id]);
+
   // Video player seek controller
   const [seekTime, setSeekTime] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -212,6 +245,9 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Sync failed');
 
+      if (meeting?.id) {
+        await fetchMeetingIntel(meeting.id);
+      }
       setFeedbackMessage({
         type: 'success',
         text: 'Meeting recording and AI analysis successfully synced! Updating view...',
@@ -273,12 +309,49 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
     }
   };
 
-  const activeRecording = meeting.recordings?.[0];
-  const activeTranscript = meeting.transcript || meeting.transcripts?.[0];
-  const activeSummary = meeting.summary;
+  const mAny = meeting as any;
+
+  const activeRecording =
+    intelData?.recordings?.[0] ||
+    (Array.isArray(mAny?.recordings) ? mAny.recordings[0] : mAny?.recordings) ||
+    null;
+
+  const activeTranscript =
+    intelData?.transcript ||
+    mAny?.transcript ||
+    (Array.isArray(mAny?.transcripts) ? mAny.transcripts[0] : mAny?.transcripts) ||
+    null;
+
+  const activeSummary =
+    intelData?.summary ||
+    mAny?.summary ||
+    (Array.isArray(mAny?.summaries) ? mAny.summaries[0] : mAny?.summaries) ||
+    null;
+
   const summaryContent = activeSummary?.content || activeSummary?.summary_content;
-  const decisionsList = summaryContent?.decisions || summaryContent?.decisions_made || [];
-  const actionItemsList = summaryContent?.action_items || [];
+
+  const decisionsList: string[] =
+    (intelData?.decisions && intelData.decisions.length > 0
+      ? intelData.decisions.map((d: any) => d.title || d.description).filter(Boolean)
+      : null) ||
+    summaryContent?.decisions ||
+    summaryContent?.decisions_made ||
+    [];
+
+  const actionItemsList: any[] =
+    (intelData?.actionItems && intelData.actionItems.length > 0
+      ? intelData.actionItems.map((a: any) => ({
+          title: a.title,
+          task: a.title,
+          responsible: a.confirmed_assignee?.full_name || a.suggested_assignee,
+          assignee: a.confirmed_assignee?.full_name || a.suggested_assignee,
+          deadline: a.deadline ? a.deadline.slice(0, 10) : undefined,
+          priority: a.priority,
+          evidence: a.evidence,
+        }))
+      : null) ||
+    summaryContent?.action_items ||
+    [];
 
   const handleTriggerSummary = async () => {
     if (!activeTranscript) {
@@ -656,6 +729,28 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
                   <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100">
                     {meeting.minutes}
                   </div>
+                </section>
+              )}
+
+              {/* AI Executive Briefing */}
+              {summaryContent?.overview && (
+                <section className="bg-gradient-to-r from-emerald-50/80 to-teal-50/50 rounded-3xl p-6 border border-emerald-100 shadow-xs flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-emerald-800">
+                      <Sparkles className="w-4 h-4 text-emerald-700" />
+                      <h2 className="text-sm font-extrabold text-slate-900">AI Executive Briefing</h2>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('summary')}
+                      className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                    >
+                      <span>View Full 8D Analysis</span>
+                      <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white/70 p-3.5 rounded-2xl border border-emerald-100/60">
+                    {summaryContent.overview}
+                  </p>
                 </section>
               )}
             </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     const isConfidential = meeting.visibility === 'restricted' || meeting.visibility === 'confidential';
     if (isConfidential) {
-      const isSuperAdmin = (user.email?.toLowerCase() || '') === 'adamwalha20@gmail.com';
+      const isSuperAdmin = isSuperAdminEmail(user.email);
       const isOrganizer = meeting.organizer_id === user.id || meeting.created_by === user.id;
 
       const { data: roleRecords } = await supabase

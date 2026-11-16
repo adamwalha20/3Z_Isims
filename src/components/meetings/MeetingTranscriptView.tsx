@@ -64,7 +64,8 @@ export default function MeetingTranscriptView({
   const speakers = useMemo(() => {
     const set = new Set<string>();
     segments.forEach((s) => {
-      if (s.speaker_label) set.add(s.speaker_label);
+      const spk = s.speaker_label || (s as any).speaker_name || (s as any).speaker;
+      if (spk) set.add(spk);
     });
     return Array.from(set);
   }, [segments]);
@@ -72,12 +73,14 @@ export default function MeetingTranscriptView({
   // Filtered segments based on search query & speaker filter
   const filteredSegments = useMemo(() => {
     return segments.filter((s) => {
-      if (selectedSpeaker !== 'all' && s.speaker_label !== selectedSpeaker) {
+      const speaker = s.speaker_label || (s as any).speaker_name || (s as any).speaker || 'Speaker';
+      if (selectedSpeaker !== 'all' && speaker !== selectedSpeaker) {
         return false;
       }
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      return s.content.toLowerCase().includes(q) || s.speaker_label.toLowerCase().includes(q);
+      const content = s.content || (s as any).text || '';
+      return content.toLowerCase().includes(q) || speaker.toLowerCase().includes(q);
     });
   }, [segments, searchQuery, selectedSpeaker]);
 
@@ -240,11 +243,11 @@ export default function MeetingTranscriptView({
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-[11px] text-slate-900">
-                      {seg.speaker_label || 'Speaker'}
+                      {seg.speaker_label || (seg as any).speaker_name || (seg as any).speaker || 'Speaker'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-700 leading-relaxed">
-                    {highlightMatches(seg.content, searchQuery)}
+                    {highlightMatches(seg.content || (seg as any).text || '', searchQuery)}
                   </p>
                 </div>
               </div>

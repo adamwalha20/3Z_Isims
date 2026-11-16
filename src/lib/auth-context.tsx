@@ -528,13 +528,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('starts_at', { ascending: false });
 
       if (dbMeetings && dbMeetings.length > 0) {
-        const mappedMeetings: Meeting[] = dbMeetings.map((m: any) => ({
-          ...m,
-          recordings: m.recordings || [],
-          transcript: m.transcripts?.[0] || null,
-          summary: m.summaries?.[0] || null,
-          action_items: m.action_items || [],
-        }));
+        const mappedMeetings: Meeting[] = dbMeetings.map((m: any) => {
+          const rawRecordings = Array.isArray(m.recordings)
+            ? m.recordings
+            : m.recordings
+            ? [m.recordings]
+            : [];
+          const rawTranscript = Array.isArray(m.transcripts)
+            ? m.transcripts[0]
+            : m.transcripts || m.transcript || null;
+          const rawSummary = Array.isArray(m.summaries)
+            ? m.summaries[0]
+            : m.summaries || m.summary || null;
+          const rawActionItems = Array.isArray(m.action_items)
+            ? m.action_items
+            : m.action_items
+            ? [m.action_items]
+            : [];
+
+          return {
+            ...m,
+            recordings: rawRecordings,
+            transcript: rawTranscript,
+            transcripts: rawTranscript ? [rawTranscript] : [],
+            summary: rawSummary,
+            summaries: rawSummary ? [rawSummary] : [],
+            action_items: rawActionItems,
+          };
+        });
         setMeetings(mappedMeetings);
       } else {
         setMeetings([]);
