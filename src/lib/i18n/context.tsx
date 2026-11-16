@@ -294,5 +294,6 @@ export function useLanguage() {
   return ctx;
 }
 
-// Convenient alias
+// Convenient aliases
 export const useTranslation = useLanguage;
+export const useI18n = useLanguage;

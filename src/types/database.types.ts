@@ -201,9 +201,12 @@ export interface MeetingTranscriptSegment {
   transcript_id?: string;
   meeting_id?: string;
   speaker_label: string;
+  speaker_name?: string;
   start_seconds: number;
   end_seconds: number;
   content: string;
+  text?: string;
+  translations?: Record<string, string>;
   created_at?: string;
 }
 
@@ -214,6 +217,7 @@ export interface MeetingTranscript {
   language: string;
   content?: string;
   full_text?: string;
+  translations?: Record<string, string>;
   is_edited?: boolean;
   edited_by?: string | null;
   processing_status?: 'processing' | 'completed' | 'failed' | 'ready';

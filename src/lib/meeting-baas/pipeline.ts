@@ -5,6 +5,7 @@ import {
   normalizeTranscriptionPayload,
 } from './artifacts';
 import { analyzeMeetingTranscript } from '@/lib/ai/meeting-analysis';
+import { translateTranscriptText } from '@/lib/i18n/transcript-translator';
 
 export interface RunPipelineOptions {
   meetingId: string;
@@ -180,17 +181,26 @@ export async function executeMeetingProcessingPipeline(
           .eq('transcript_id', txRecord.id);
 
         if (normalizedTranscript.utterances.length > 0) {
-          const segmentRows = normalizedTranscript.utterances.map((u, idx) => ({
-            transcript_id: txRecord.id,
-            meeting_id: meetingId,
-            sequence_number: idx + 1,
-            speaker_label: u.speaker || 'Speaker',
-            speaker_name: u.speaker || 'Speaker',
-            start_seconds: u.start || 0,
-            end_seconds: u.end || 0,
-            content: u.text,
-            text: u.text,
-          }));
+          const detectedLang = normalizedTranscript.detectedLanguage || 'en';
+          const segmentRows = normalizedTranscript.utterances.map((u, idx) => {
+            const rawText = u.text || '';
+            return {
+              transcript_id: txRecord.id,
+              meeting_id: meetingId,
+              sequence_number: idx + 1,
+              speaker_label: u.speaker || 'Speaker',
+              speaker_name: u.speaker || 'Speaker',
+              start_seconds: u.start || 0,
+              end_seconds: u.end || 0,
+              content: rawText,
+              text: rawText,
+              translations: {
+                en: detectedLang === 'en' ? rawText : translateTranscriptText(rawText, 'en', detectedLang),
+                fr: detectedLang === 'fr' ? rawText : translateTranscriptText(rawText, 'fr', detectedLang),
+                'ar-TN': translateTranscriptText(rawText, 'ar-TN', detectedLang),
+              },
+            };
+          });
 
           await supabase.from('meeting_transcript_segments').insert(segmentRows);
         }

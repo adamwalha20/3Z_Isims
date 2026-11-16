@@ -123,7 +123,14 @@ export async function GET(req: NextRequest) {
       meeting,
       botSessions: botSessions || [],
       recordings: recordings || [],
-      transcript: transcripts?.[0] || null,
+      transcript: transcripts?.[0]
+        ? {
+            ...transcripts[0],
+            segments: (transcripts[0].segments || []).sort(
+              (a: any, b: any) => (a.sequence_number || 0) - (b.sequence_number || 0)
+            ),
+          }
+        : null,
       summary: summary || null,
       decisions: decisions || [],
       actionItems: actionItems || [],
