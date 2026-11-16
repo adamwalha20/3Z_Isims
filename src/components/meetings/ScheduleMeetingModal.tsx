@@ -87,6 +87,22 @@ export default function ScheduleMeetingModal({
     setIsSubmitting(false);
 
     if (res.success) {
+      if (recordingEnabled && meetingUrl.trim() && res.meeting?.id) {
+        const startsTime = new Date(starts).getTime();
+        // If meeting is scheduled within 5 minutes (or right now), dispatch bot immediately
+        if (startsTime - Date.now() <= 5 * 60 * 1000) {
+          fetch('/api/meetings/recording/dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              meetingId: res.meeting.id,
+              meetingUrl: meetingUrl.trim(),
+              action: 'dispatch',
+              isAutoDispatch: true,
+            }),
+          }).catch((err) => console.warn('Pre-meeting auto-dispatch notice:', err));
+        }
+      }
       onClose();
     } else {
       setErrorMsg(res.error || 'Failed to schedule meeting.');

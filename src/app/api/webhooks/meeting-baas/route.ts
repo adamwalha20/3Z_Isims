@@ -73,38 +73,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Handle Bot State Transitions
-    if (eventType === 'bot.status_change') {
-      const status = payload.data?.status || 'in_meeting';
-      const subCode = payload.data?.sub_code;
+    // 6. Handle Bot State Transitions & Automated Sync
+    const isCompletedEvent =
+      eventType === 'complete' ||
+      eventType === 'bot.completed' ||
+      eventType === 'bot.done' ||
+      eventType === 'recording.ready' ||
+      eventType === 'transcription_complete' ||
+      eventType === 'transcription.completed' ||
+      (eventType === 'bot.status_change' &&
+        (payload.data?.status === 'completed' || payload.data?.status === 'ended'));
 
-      let mappedStatus = 'live';
-      if (status === 'joining') mappedStatus = 'joining';
-      else if (status === 'waiting_admission') mappedStatus = 'waiting_admission';
-      else if (status === 'recording' || status === 'in_meeting') mappedStatus = 'live';
-      else if (status === 'failed' || subCode === 'recording_permission_denied') mappedStatus = 'failed';
-
-      if (botId) {
-        await supabase
-          .from('meeting_bot_sessions')
-          .update({
-            bot_status: status,
-            failure_reason: subCode || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('provider_bot_id', botId);
-      }
-
-      if (meetingId) {
-        await supabase
-          .from('meetings')
-          .update({
-            recording_status: mappedStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', meetingId);
-      }
-    } else if (eventType === 'bot.completed' || eventType === 'bot.done' || eventType === 'recording.ready') {
+    if (isCompletedEvent) {
       if (botId) {
         await supabase
           .from('meeting_bot_sessions')
@@ -148,6 +128,36 @@ export async function POST(req: NextRequest) {
           botId,
           jobId: jobRecord?.id,
         }).catch((err) => console.error('Background pipeline error:', err));
+      }
+    } else if (eventType === 'bot.status_change') {
+      const status = payload.data?.status || 'in_meeting';
+      const subCode = payload.data?.sub_code;
+
+      let mappedStatus = 'live';
+      if (status === 'joining') mappedStatus = 'joining';
+      else if (status === 'waiting_admission') mappedStatus = 'waiting_admission';
+      else if (status === 'recording' || status === 'in_meeting') mappedStatus = 'live';
+      else if (status === 'failed' || subCode === 'recording_permission_denied') mappedStatus = 'failed';
+
+      if (botId) {
+        await supabase
+          .from('meeting_bot_sessions')
+          .update({
+            bot_status: status,
+            failure_reason: subCode || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('provider_bot_id', botId);
+      }
+
+      if (meetingId) {
+        await supabase
+          .from('meetings')
+          .update({
+            recording_status: mappedStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', meetingId);
       }
     } else if (eventType === 'bot.failed' || eventType === 'bot.kicked' || eventType === 'bot.stopped') {
       const failureReason = payload.data?.failure_reason || payload.data?.sub_code || eventType;

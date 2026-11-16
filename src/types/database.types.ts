@@ -166,7 +166,17 @@ export type MeetingType =
   | 'Other';
 export type MeetingStatus = 'scheduled' | 'live' | 'processing' | 'completed' | 'cancelled';
 export type MeetingVisibility = 'club' | 'department' | 'confidential' | 'restricted' | 'public';
-export type RecordingStatus = 'none' | 'requested' | 'live' | 'processing' | 'available' | 'failed';
+export type RecordingStatus =
+  | 'none'
+  | 'requested'
+  | 'joining'
+  | 'waiting_admission'
+  | 'live'
+  | 'recording'
+  | 'processing'
+  | 'available'
+  | 'completed'
+  | 'failed';
 export type RecordingConsentStatus = 'pending' | 'obtained' | 'exempt' | 'declined';
 export type RecordingProvider =
   | 'upload'

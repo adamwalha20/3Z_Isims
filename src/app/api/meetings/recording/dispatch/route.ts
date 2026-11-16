@@ -48,9 +48,11 @@ export async function POST(req: NextRequest) {
       .select('roles(key)')
       .eq('user_id', user.id);
 
+    const isParticipant = (meeting.participant_ids || []).includes(user.id);
     const hasLeadershipRole =
       isSuperAdmin ||
       isOrganizer ||
+      (body.isAutoDispatch && (isParticipant || meeting.recording_enabled)) ||
       roleRecords?.some((r: any) => ['admin', 'bureau'].includes(r.roles?.key));
 
     if (!hasLeadershipRole) {

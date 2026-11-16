@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
@@ -100,6 +100,104 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
 
   // Find meeting by ID from live Supabase / auth state
   const meeting = meetings.find((m) => m.id === id);
+
+  // Auto-sync recording & AI intelligence without manual button clicking
+  const autoSyncRecording = useCallback(
+    async (silent = true) => {
+      if (!id) return;
+      if (!silent) setIsSyncing(true);
+      try {
+        const res = await fetch(`/api/meetings/recording/sync?meetingId=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (data.success && data.isReady) {
+          await fetchMeetingIntel(id);
+          if (!silent) {
+            setFeedbackMessage({
+              type: 'success',
+              text: 'Meeting recording and AI analysis successfully synced!',
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Auto-sync check failed silently:', err);
+        if (!silent) {
+          setFeedbackMessage({ type: 'error', text: 'Sync failed' });
+        }
+      } finally {
+        if (!silent) setIsSyncing(false);
+      }
+    },
+    [id]
+  );
+
+  // Background auto-sync polling when recording is active, processing, or completed without transcript
+  useEffect(() => {
+    if (!meeting || !meeting.recording_enabled) return;
+
+    const needsSync =
+      meeting.recording_status === 'processing' ||
+      meeting.recording_status === 'recording' ||
+      meeting.recording_status === 'live' ||
+      meeting.recording_status === 'waiting_admission' ||
+      meeting.recording_status === 'joining' ||
+      (meeting.recording_status === 'completed' && !intelData?.transcript);
+
+    if (!needsSync) return;
+
+    // Check immediately once
+    autoSyncRecording(true);
+
+    // Poll every 12 seconds while in flight until completed
+    const interval = setInterval(() => {
+      autoSyncRecording(true);
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [meeting?.recording_status, meeting?.recording_enabled, intelData?.transcript, autoSyncRecording]);
+
+  // Auto-dispatch bot 5 minutes before scheduled start time
+  useEffect(() => {
+    if (!meeting || !meeting.recording_enabled || !meeting.meeting_url) return;
+    if (meeting.recording_status !== 'none' && meeting.recording_status !== 'requested') return;
+    if (!meeting.starts_at) return;
+
+    const startTimeMs = new Date(meeting.starts_at).getTime();
+    if (isNaN(startTimeMs)) return;
+
+    const now = Date.now();
+    const leadTimeMs = 5 * 60 * 1000; // 5 minutes before start
+    const dispatchTargetTime = startTimeMs - leadTimeMs;
+    const msUntilDispatch = dispatchTargetTime - now;
+
+    const triggerAutoDispatch = async () => {
+      try {
+        await dispatchMeetingRecordingBot(meeting.id, 'dispatch');
+      } catch (err) {
+        console.warn('Auto-dispatch error:', err);
+      }
+    };
+
+    // If within 5 minutes of start (or past start time but within 3 hours): dispatch immediately!
+    if (msUntilDispatch <= 0 && now - startTimeMs < 3 * 60 * 60 * 1000) {
+      triggerAutoDispatch();
+      return;
+    }
+
+    // If scheduled in the future beyond 5 minutes, set an exact timer for T-minus 5 minutes!
+    if (msUntilDispatch > 0 && msUntilDispatch < 24 * 60 * 60 * 1000) {
+      const timerId = setTimeout(() => {
+        triggerAutoDispatch();
+      }, msUntilDispatch);
+      return () => clearTimeout(timerId);
+    }
+  }, [
+    meeting?.id,
+    meeting?.starts_at,
+    meeting?.recording_status,
+    meeting?.recording_enabled,
+    meeting?.meeting_url,
+    dispatchMeetingRecordingBot,
+  ]);
 
   const getDeptName = (dept: Meeting['department']) => (typeof dept === 'string' ? dept : dept?.name || '');
   const getOrgName = (org: Meeting['organizer']) => (typeof org === 'string' ? org : org?.full_name || 'Organizer');
@@ -570,27 +668,54 @@ export default function MeetingDetailPageClient({ id }: MeetingDetailPageClientP
                   </>
                 ) : (
                   meeting.status !== 'completed' && meeting.meeting_url && (
-                    <button
-                      onClick={handleDispatchBot}
-                      disabled={isBotDispatching}
-                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
-                    >
-                      <Bot className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>{isBotDispatching ? 'Dispatching...' : 'Dispatch Recording Bot'}</span>
-                    </button>
+                    <>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-2xs">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Auto-joins 5m early</span>
+                      </div>
+                      <button
+                        onClick={handleDispatchBot}
+                        disabled={isBotDispatching}
+                        className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                        title="Manually dispatch recording bot immediately"
+                      >
+                        <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{isBotDispatching ? 'Dispatching...' : 'Dispatch Bot Now'}</span>
+                      </button>
+                    </>
                   )
                 )}
 
-                {/* Sync AI Intelligence & Recording */}
-                <button
-                  onClick={handleSyncRecording}
-                  disabled={isSyncing}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
-                  title="Sync latest recording and AI intelligence from Meeting BaaS"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{isSyncing ? 'Syncing...' : 'Sync Recording & AI'}</span>
-                </button>
+                {/* Real-time Automatic Sync Indicator & Force Refresh */}
+                {isSyncing ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold animate-pulse shadow-2xs">
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-700 animate-spin" />
+                    <span>Auto-Syncing AI & Recording...</span>
+                  </div>
+                ) : activeTranscript ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-bold shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Real-time Synced</span>
+                    <button
+                      onClick={handleSyncRecording}
+                      disabled={isSyncing}
+                      className="ml-1 p-0.5 rounded text-emerald-700 hover:text-emerald-950"
+                      title="Force re-sync latest intelligence"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSyncRecording}
+                    disabled={isSyncing}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                    title="Auto-syncs automatically, or click to force sync"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                  </button>
+                )}
 
                 {/* Upload Recording */}
                 <button

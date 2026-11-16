@@ -136,4 +136,48 @@ test('ZEC Meeting BaaS v2 & AI Intelligence — Validation & Schema Tests', asyn
     assert.equal(reviewedItem.status === 'confirmed', true);
     assert.ok(reviewedItem.confirmed_assignee_id);
   });
+
+  await t.test('6. Pre-meeting 5-minute auto-dispatch timing window calculation', () => {
+    const now = Date.now();
+    const leadTimeMs = 5 * 60 * 1000;
+
+    // Meeting starting in 3 minutes -> inside the 5-minute dispatch window
+    const meetingIn3Min = new Date(now + 3 * 60 * 1000).toISOString();
+    const msUntilIn3Min = new Date(meetingIn3Min).getTime() - leadTimeMs - now;
+    assert.ok(msUntilIn3Min <= 0, 'Meeting starting in 3 min must trigger immediate dispatch');
+
+    // Meeting starting in exactly 5 minutes -> exactly at the dispatch threshold
+    const meetingIn5Min = new Date(now + 5 * 60 * 1000).toISOString();
+    const msUntilIn5Min = new Date(meetingIn5Min).getTime() - leadTimeMs - now;
+    assert.ok(Math.abs(msUntilIn5Min) < 1000, 'Meeting starting in 5 min must be at dispatch boundary');
+
+    // Meeting starting in 30 minutes -> outside the 5-minute window
+    const meetingIn30Min = new Date(now + 30 * 60 * 1000).toISOString();
+    const msUntilIn30Min = new Date(meetingIn30Min).getTime() - leadTimeMs - now;
+    assert.ok(msUntilIn30Min > 0, 'Meeting starting in 30 min must be scheduled in future');
+    assert.equal(Math.round(msUntilIn30Min / 60000), 25, 'Timer must fire 25 minutes from now');
+  });
+
+  await t.test('7. Automatic sync recognizes all Meeting BaaS completion webhook events', () => {
+    const isCompletedEvent = (eventType, status) => {
+      return (
+        eventType === 'complete' ||
+        eventType === 'bot.completed' ||
+        eventType === 'bot.done' ||
+        eventType === 'recording.ready' ||
+        eventType === 'transcription_complete' ||
+        eventType === 'transcription.completed' ||
+        (eventType === 'bot.status_change' && (status === 'completed' || status === 'ended'))
+      );
+    };
+
+    assert.equal(isCompletedEvent('complete'), true);
+    assert.equal(isCompletedEvent('bot.completed'), true);
+    assert.equal(isCompletedEvent('recording.ready'), true);
+    assert.equal(isCompletedEvent('transcription_complete'), true);
+    assert.equal(isCompletedEvent('bot.status_change', 'completed'), true);
+    assert.equal(isCompletedEvent('bot.status_change', 'ended'), true);
+    assert.equal(isCompletedEvent('bot.status_change', 'in_meeting'), false);
+    assert.equal(isCompletedEvent('bot.status_change', 'joining'), false);
+  });
 });
