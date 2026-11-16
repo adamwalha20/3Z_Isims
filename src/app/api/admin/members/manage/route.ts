@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    const db = supabase;
 
     // Fetch caller profile & roles to construct permission context
     const { data: callerProfile } = await db.from('profiles').select('*').eq('id', caller.id).single();

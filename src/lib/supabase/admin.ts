@@ -3,8 +3,17 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 let adminClient: SupabaseClient<any, 'public', any> | null = null;
 
 /**
- * Returns a server-side Supabase client with elevated privileges for background jobs,
- * webhooks, storage artifact ingestion, and administrative operations.
+ * Returns true if the true administrative service-role key is configured in the environment.
+ */
+export function hasServiceRoleKey(): boolean {
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+/**
+ * Returns a server-side Supabase client for background jobs, webhooks, and administrative operations.
+ * Uses SUPABASE_SERVICE_ROLE_KEY when available; falls back to ANON key for background tasks.
+ * NOTE: For user-facing API routes, always use the cookie-authenticated client from `createClient()`
+ * to ensure Postgres RLS policies evaluate against the user's authenticated session.
  */
 export function getSupabaseAdmin(): SupabaseClient<any, 'public', any> {
   if (adminClient) return adminClient;
@@ -29,3 +38,5 @@ export function getSupabaseAdmin(): SupabaseClient<any, 'public', any> {
 
   return adminClient;
 }
+
+

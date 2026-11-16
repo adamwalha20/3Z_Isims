@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    // Use authenticated client with session cookies for RLS authorization
+    const db = supabase;
 
     // Check authorization: Admin, President, Secretary General, HR Manager
     const { data: userRoles } = await db.from('user_roles').select('roles(key)').eq('user_id', user.id);
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
     const { count: actionsToday } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).gte('created_at', `${todayIso}T00:00:00Z`);
     const { count: memberRemovals } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).in('action', ['MEMBER_REMOVE', 'MEMBER_SUSPEND', 'MEMBER_DELETE_ACCOUNT']);
     const { count: accountDeletions } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).in('action', ['MEMBER_DELETE_ACCOUNT', 'MEMBER_PERMANENT_DELETE']);
-    const { count: eventModifications } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).in('action', ['EVENT_EDIT', 'EVENT_DELETE', 'EVENT_RESTORE']);
+    const { count: eventModifications } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).in('action', ['EVENT_EDIT', 'EVENT_DELETE', 'EVENT_RESTORE', 'MEETING_EDIT', 'MEETING_DELETE', 'MEETING_RESTORE']);
     const { count: permissionChanges } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).in('action', ['ASSIGN_BUREAU_POSITION', 'ASSIGN_USER_ROLE']);
     const { count: reversibleActions } = await db.from('audit_logs').select('*', { count: 'exact', head: true }).eq('can_undo', true).eq('is_undone', false);
 

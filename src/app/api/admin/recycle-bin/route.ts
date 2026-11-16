@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    // Use authenticated user client for RLS compliance
+    const db = supabase;
 
     // Verify Admin permission
     const { data: userRoles } = await db.from('user_roles').select('roles(key)').eq('user_id', user.id);
@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    // Use authenticated user client for RLS compliance
+    const db = supabase;
 
     const { data: userRoles } = await db.from('user_roles').select('roles(key)').eq('user_id', user.id);
     const isSuperAdmin = isSuperAdminEmail(user.email);
@@ -246,17 +246,18 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================================================================
-    // PERMANENT DELETE (PURGE) ACTION - SUPER ADMIN ONLY
+    // PERMANENT DELETE (PURGE) ACTION - ADMINISTRATORS ONLY
     // =========================================================================
     if (action === 'permanent_delete') {
-      if (!isSuperAdmin) {
+      if (!isAdmin) {
         return NextResponse.json(
-          { success: false, error: 'Unauthorized: Permanent destruction requires Super Admin credentials.' },
+          { success: false, error: 'Unauthorized: Permanent destruction requires Administrator credentials.' },
           { status: 403 }
         );
       }
 
       if (tableName === 'profiles') {
+        const adminDb = getSupabaseAdmin();
         if (adminDb?.auth?.admin) {
           try {
             await adminDb.auth.admin.deleteUser(recordId);
@@ -276,7 +277,7 @@ export async function POST(req: NextRequest) {
         {
           actorUserId: user.id,
           actorNameSnapshot: user.email,
-          actorRoleSnapshot: 'Super Admin',
+          actorRoleSnapshot: isSuperAdmin ? 'Super Admin' : 'Admin',
           action: 'PERMANENT_PURGE',
           entityType,
           entityId: recordId,
@@ -284,10 +285,10 @@ export async function POST(req: NextRequest) {
           oldValues: record,
           newValues: { purged: true },
           reason: reason || 'Permanently erased from Recycle Bin.',
-          details: `Permanent destruction of ${entityType} "${itemTitle}" executed by Super Admin.`,
+          details: `Permanent destruction of ${entityType} "${itemTitle}" executed by Administrator.`,
           canUndo: false,
         },
-        db
+        supabase
       );
 
       return NextResponse.json({

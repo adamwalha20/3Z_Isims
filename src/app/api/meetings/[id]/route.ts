@@ -24,8 +24,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    const db = supabase;
 
     // Construct permission context
     const { data: userProfile } = await db.from('profiles').select('*').eq('id', user.id).single();
@@ -155,8 +154,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    const db = supabase;
 
     const { data: userProfile } = await db.from('profiles').select('*').eq('id', user.id).single();
     const { data: userRoles } = await db.from('user_roles').select('roles(key)').eq('user_id', user.id);
@@ -269,8 +267,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
-    const adminDb = getSupabaseAdmin();
-    const db = adminDb || supabase;
+    const db = supabase;
 
     const { data: userProfile } = await db.from('profiles').select('*').eq('id', user.id).single();
     const { data: userRoles } = await db.from('user_roles').select('roles(key)').eq('user_id', user.id);

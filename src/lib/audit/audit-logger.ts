@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from '../supabase/admin.ts';
+import { getSupabaseAdmin, hasServiceRoleKey } from '../supabase/admin.ts';
 
 export interface AuditLogPayload {
   actorUserId?: string | null;
@@ -62,7 +62,22 @@ export async function logAuditEvent(
   clientOverride?: any
 ): Promise<{ success: boolean; logId?: string; error?: string }> {
   try {
-    const db = clientOverride || getSupabaseAdmin();
+    let db = clientOverride;
+    if (!db && hasServiceRoleKey()) {
+      db = getSupabaseAdmin();
+    }
+    if (!db) {
+      try {
+        const { createClient } = await import('@/lib/supabase/server');
+        db = await createClient();
+      } catch (err: any) {
+        console.warn('Could not initialize session Supabase client for audit log:', err?.message);
+      }
+    }
+    if (!db) {
+      db = getSupabaseAdmin();
+    }
+
     if (!db) {
       return { success: false, error: 'Database client unavailable' };
     }
@@ -77,7 +92,7 @@ export async function logAuditEvent(
       actor_role_snapshot: payload.actorRoleSnapshot || null,
       action: payload.action,
       entity_type: payload.entityType,
-      entity_id: payload.entityId || null,
+      entity_id: payload.entityId ? String(payload.entityId) : null,
       entity_label_snapshot: payload.entityLabelSnapshot || null,
       previous_state: cleanOld || null,
       old_values: cleanOld || null,

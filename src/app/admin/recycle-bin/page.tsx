@@ -345,7 +345,7 @@ export default function AdminRecycleBinPage() {
                       <span>{t('admin.restoreItem')}</span>
                     </button>
 
-                    {isSuperAdmin && (
+                    {(isSuperAdmin || isAdmin || activeRole === 'admin') && (
                       <button
                         onClick={() => handlePurge(item)}
                         disabled={isOperating}

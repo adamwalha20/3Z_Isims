@@ -53,11 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Audit log ID is required' }, { status: 400 });
     }
 
-    let db = supabase;
-    try {
-      const adminClient = getSupabaseAdmin();
-      if (adminClient) db = adminClient as any;
-    } catch {}
+    const db = supabase;
 
     // 1. Fetch audit log entry
     const { data: log, error: fetchErr } = await db
