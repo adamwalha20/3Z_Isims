@@ -21,10 +21,13 @@ import {
   MoreVertical,
   TreePine,
   Trash2,
+  Pencil,
+  AlertTriangle,
 } from 'lucide-react';
+import { canEditProject, canDeleteProject } from '@/lib/permissions/permission-checks';
 
 export default function ProjectsPage() {
-  const { user, projects, addProject } = useAuth();
+  const { user, activeRole, userBureauPositions, projects, addProject, editProject, deleteProject } = useAuth();
   const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'active' | 'planning' | 'completed'>('all');
   const [showProposeModal, setShowProposeModal] = useState(false);
@@ -32,6 +35,79 @@ export default function ProjectsPage() {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('500');
   const [dueDate, setDueDate] = useState('');
+
+  // Edit / Delete Project State
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editStatus, setEditStatus] = useState<ProjectStatus>('planning');
+  const [editBudget, setEditBudget] = useState('500');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+
+  const permCtx = {
+    userId: user?.id,
+    email: user?.email,
+    role: activeRole,
+    bureauPositions: userBureauPositions || [],
+    departmentId: (user as any)?.department_id,
+  };
+
+  const openEditModal = (p: Project) => {
+    setEditingProject(p);
+    setEditName(p.name || '');
+    setEditDesc(p.description || '');
+    setEditStatus(p.status || 'planning');
+    setEditBudget(String(p.budget_tnd || 0));
+    setEditDueDate(p.due_date || '');
+    setEditReason('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject || !editName.trim() || !editReason.trim()) return;
+
+    setIsSavingEdit(true);
+    try {
+      const updates = {
+        name: editName.trim(),
+        description: editDesc.trim(),
+        status: editStatus,
+        budget_tnd: parseFloat(editBudget) || 0,
+        due_date: editDueDate || null,
+      };
+
+      const res = await editProject(editingProject.id, updates, editReason.trim());
+      if (res.success) {
+        setEditingProject(null);
+      } else {
+        alert(res.error || 'Failed to update project');
+      }
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProject || !deleteReason.trim()) return;
+
+    setIsDeletingProject(true);
+    try {
+      const res = await deleteProject(deletingProject.id, deleteReason.trim());
+      if (res.success) {
+        setDeletingProject(null);
+      } else {
+        alert(res.error || 'Failed to delete project');
+      }
+    } finally {
+      setIsDeletingProject(false);
+    }
+  };
 
   const filteredProjects = projects.filter((p) => {
     if (filter === 'all') return true;
@@ -275,13 +351,36 @@ export default function ProjectsPage() {
                       <span className="text-[11px] text-slate-500 font-medium">Volunteers Active</span>
                     </div>
 
-                    <Link
-                      href="/tasks"
-                      className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-black transition-all active:scale-95 shadow-xs"
-                    >
-                      <span>Task Board</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      {canEditProject(permCtx, project) && (
+                        <button
+                          onClick={() => openEditModal(project)}
+                          className="p-1.5 rounded-xl border border-slate-200 hover:border-emerald-500 bg-white text-slate-700 hover:text-emerald-800 transition-colors shadow-2xs"
+                          title="Edit Project"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteProject(permCtx, project) && (
+                        <button
+                          onClick={() => {
+                            setDeletingProject(project);
+                            setDeleteReason('');
+                          }}
+                          className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-100 bg-rose-50 text-rose-700 transition-colors shadow-2xs"
+                          title="Move to Recycle Bin"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <Link
+                        href="/tasks"
+                        className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-black transition-all active:scale-95 shadow-xs"
+                      >
+                        <span>Task Board</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -379,6 +478,181 @@ export default function ProjectsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Edit Project</h3>
+                  <p className="text-[11px] text-slate-500">Tracked modification with audit logging</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingProject(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-700">Project Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700">Description</label>
+                <textarea
+                  rows={2}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 font-medium bg-white"
+                  >
+                    <option value="planning">In Planning</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Budget (TND)</label>
+                  <input
+                    type="number"
+                    value={editBudget}
+                    onChange={(e) => setEditBudget(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700">Due Date</label>
+                <input
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Reason for Changes *</span>
+                  <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Required Audit Log</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="e.g. Budget increase / Updated delivery roadmap."
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingProject(null)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit || !editReason.trim()}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save & Log Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Project Modal (Soft-delete to Recycle Bin) */}
+      {deletingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Move Project to Recycle Bin</h3>
+                <p className="text-[11px] text-slate-500">Non-destructive soft-delete with full recovery</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 text-rose-950 text-xs flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Permanent Preservation Guaranteed</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-rose-900/80">
+                Project <strong>{deletingProject.name}</strong> will be moved to the Recycle Bin. Associated tasks, member contributions, and micro-grant records remain safely preserved and can be restored at any time by an administrator.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Reason for Deletion *</span>
+                <span className="text-[10px] text-rose-700 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">Required</span>
+              </label>
+              <textarea
+                rows={2}
+                required
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g. Budget reallocation / Cycle concluded."
+                className="w-full mt-1.5 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-rose-500 font-medium"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingProject(null)}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingProject || !deleteReason.trim()}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeletingProject ? 'Deleting...' : 'Move to Recycle Bin'}
+              </button>
+            </div>
           </div>
         </div>
       )}

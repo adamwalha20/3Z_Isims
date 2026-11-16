@@ -37,6 +37,8 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
   const isHR = positions.has('hr_manager');
   const isEventsManager = positions.has('events_manager');
   const isPartnerships = positions.has('partnerships_sponsorship_manager');
+  const isProjectManager = positions.has('project_manager');
+  const isSustainableManager = positions.has('sustainable_campus_manager');
   const isBureau = role === 'bureau' || positions.size > 0;
 
   switch (permission) {
@@ -73,10 +75,13 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
     case 'tasks:create':
       return isBureau;
     case 'tasks:edit_own':
-      return true;
+      return isBureau;
     case 'tasks:edit_any':
+      return isPres || isVP || isSecGen;
     case 'tasks:delete':
       return isPres || isVP || isSecGen;
+    case 'tasks:restore':
+      return false; // Reserved exclusively for Club Administrator
     case 'tasks:submit_verification':
       return true;
     case 'tasks:verify':
@@ -106,9 +111,36 @@ export function hasPermission(ctx: UserPermissionContext | null | undefined, per
     case 'meetings:create':
       return isBureau;
     case 'meetings:edit':
+    case 'meetings:edit_own':
+      return isBureau;
+    case 'meetings:edit_all':
+      return isPres || isVP || isSecGen;
+    case 'meetings:delete':
+    case 'meetings:delete_own':
+      return isPres || isVP || isSecGen || isBureau;
+    case 'meetings:delete_all':
+      return isPres || isVP || isSecGen;
+    case 'meetings:restore':
+      return false; // Reserved exclusively for Club Administrator
     case 'meetings:dispatch_bot':
     case 'meetings:sync':
       return isBureau;
+
+    // --- Projects ---
+    case 'projects:view':
+      return true;
+    case 'projects:create':
+      return isPres || isVP || isProjectManager || isSustainableManager || isBureau;
+    case 'projects:edit_own':
+      return isPres || isVP || isProjectManager || isSustainableManager || isBureau;
+    case 'projects:edit_all':
+      return isPres || isVP || isProjectManager;
+    case 'projects:delete_own':
+      return isPres || isVP || isProjectManager;
+    case 'projects:delete_all':
+      return isPres || isVP;
+    case 'projects:restore':
+      return false; // Reserved exclusively for Club Administrator
 
     // --- Attendance ---
     case 'attendance:view_own':

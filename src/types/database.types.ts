@@ -106,6 +106,11 @@ export interface Project {
   created_by: string;
   created_at: string;
   updated_at: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
   department?: Department;
   owner?: Profile;
   tasks_count?: number;
@@ -130,6 +135,11 @@ export interface Task {
   xp_awarded?: boolean;
   created_at: string;
   updated_at: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  version?: number;
   project?: Project;
   department?: Department;
   creator?: Profile;

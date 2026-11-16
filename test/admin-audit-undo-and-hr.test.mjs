@@ -12,6 +12,12 @@ import {
   canRestoreRecord,
   canAccessRecycleBin,
   canPermanentDelete,
+  canEditMeeting,
+  canDeleteMeeting,
+  canEditTask,
+  canDeleteTask,
+  canEditProject,
+  canDeleteProject,
 } from '../src/lib/permissions/permission-checks.ts';
 
 import { hasPermission } from '../src/lib/permissions/access-control.ts';
@@ -152,6 +158,106 @@ test('ZEC Campus Hub — Event Management & Deletion Permissions', async (t) => 
 
   await t.test('4. Unrelated bureau manager (e.g. Treasurer) cannot delete someone else’s event', () => {
     assert.equal(canDeleteEvent(treasurerContext, sampleEvent), false);
+  });
+});
+
+test('ZEC Campus Hub — Meetings, Tasks & Projects Edit/Delete Authority & RBAC', async (t) => {
+  const superAdminCtx = {
+    userId: 'usr-admin-001',
+    email: 'adam.walha@isims.tn', // Super admin email
+    role: 'admin',
+    bureauPositions: [],
+  };
+
+  const presidentCtx = {
+    userId: 'usr-pres-001',
+    email: 'president@isims.tn',
+    role: 'bureau',
+    bureauPositions: ['president'],
+  };
+
+  const organizerCtx = {
+    userId: 'usr-organizer-001',
+    email: 'organizer@isims.tn',
+    role: 'bureau',
+    bureauPositions: ['communication_manager'],
+  };
+
+  const projectManagerCtx = {
+    userId: 'usr-pm-001',
+    email: 'project.manager@isims.tn',
+    role: 'bureau',
+    bureauPositions: ['project_manager'],
+  };
+
+  const ordinaryMemberCtx = {
+    userId: 'usr-member-999',
+    email: 'student@isims.tn',
+    role: 'member',
+    bureauPositions: [],
+  };
+
+  const sampleMeeting = {
+    id: 'meet-001',
+    title: 'Weekly Hub Sync',
+    organizer_id: 'usr-organizer-001',
+    created_by: 'usr-organizer-001',
+  };
+
+  const sampleTask = {
+    id: 'task-001',
+    title: 'Build IoT Solar Sensor',
+    creator_id: 'usr-pm-001',
+  };
+
+  const sampleProject = {
+    id: 'proj-001',
+    name: '3Z Lab Green Roof',
+    owner_id: 'usr-pm-001',
+    created_by: 'usr-pm-001',
+  };
+
+  // Meetings Tests
+  await t.test('1. Organizer and Super Admin CAN edit and soft-delete their meeting', () => {
+    assert.equal(canEditMeeting(organizerCtx, sampleMeeting), true);
+    assert.equal(canDeleteMeeting(organizerCtx, sampleMeeting), true);
+    assert.equal(canEditMeeting(superAdminCtx, sampleMeeting), true);
+    assert.equal(canDeleteMeeting(superAdminCtx, sampleMeeting), true);
+    assert.equal(canEditMeeting(presidentCtx, sampleMeeting), true);
+    assert.equal(canDeleteMeeting(presidentCtx, sampleMeeting), true);
+  });
+
+  await t.test('2. Ordinary member CANNOT edit or delete a meeting', () => {
+    assert.equal(canEditMeeting(ordinaryMemberCtx, sampleMeeting), false);
+    assert.equal(canDeleteMeeting(ordinaryMemberCtx, sampleMeeting), false);
+  });
+
+  // Tasks Tests
+  await t.test('3. Task creator and Super Admin CAN edit and soft-delete task', () => {
+    assert.equal(canEditTask(projectManagerCtx, sampleTask), true);
+    assert.equal(canDeleteTask(projectManagerCtx, sampleTask), true);
+    assert.equal(canEditTask(superAdminCtx, sampleTask), true);
+    assert.equal(canDeleteTask(superAdminCtx, sampleTask), true);
+  });
+
+  await t.test('4. Ordinary member CANNOT edit or delete a task', () => {
+    assert.equal(canEditTask(ordinaryMemberCtx, sampleTask), false);
+    assert.equal(canDeleteTask(ordinaryMemberCtx, sampleTask), false);
+  });
+
+  // Projects Tests
+  await t.test('5. Project Manager, Owner, and Super Admin CAN edit and soft-delete project', () => {
+    assert.equal(canEditProject(projectManagerCtx, sampleProject), true);
+    assert.equal(canDeleteProject(projectManagerCtx, sampleProject), true);
+    assert.equal(canEditProject(superAdminCtx, sampleProject), true);
+    assert.equal(canDeleteProject(superAdminCtx, sampleProject), true);
+    assert.equal(canEditProject(presidentCtx, sampleProject), true);
+    assert.equal(canDeleteProject(presidentCtx, sampleProject), true);
+  });
+
+  await t.test('6. Ordinary member CANNOT edit or delete a project', () => {
+    assert.equal(canEditProject(ordinaryMemberCtx, sampleProject), false);
+    assert.equal(canDeleteProject(ordinaryMemberCtx, sampleProject), false);
   });
 });
 

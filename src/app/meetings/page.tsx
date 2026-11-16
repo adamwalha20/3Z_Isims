@@ -18,13 +18,17 @@ import {
   Eye,
   ChevronRight,
   Play,
-  ListTodo
+  ListTodo,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Meeting, MeetingType } from '@/types/database.types';
+import { canEditMeeting, canDeleteMeeting } from '@/lib/permissions/permission-checks';
 
 export default function MeetingsPage() {
   const { t, isRtl } = useTranslation();
-  const { user, activeRole, meetings } = useAuth();
+  const { user, activeRole, userBureauPositions, meetings, editMeeting, deleteMeeting } = useAuth();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [tab, setTab] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +37,92 @@ export default function MeetingsPage() {
   const [onlyWithRecording, setOnlyWithRecording] = useState(false);
   const [onlyWithTranscript, setOnlyWithTranscript] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
+
+  // Edit / Delete meeting state
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editStartsAt, setEditStartsAt] = useState('');
+  const [editEndsAt, setEditEndsAt] = useState('');
+  const [editMeetingUrl, setEditMeetingUrl] = useState('');
+  const [editVisibility, setEditVisibility] = useState('public');
+  const [editReason, setEditReason] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const [deletingMeeting, setDeletingMeeting] = useState<Meeting | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeletingMeeting, setIsDeletingMeeting] = useState(false);
+
+  const permCtx = {
+    userId: user?.id,
+    email: user?.email,
+    role: activeRole,
+    bureauPositions: userBureauPositions || [],
+    departmentId: (user as any)?.department_id,
+  };
+
+  const toInputDateTime = (isoStr?: string | null) => {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 16);
+  };
+
+  const openEditModal = (m: Meeting) => {
+    setEditingMeeting(m);
+    setEditTitle(m.title || '');
+    setEditDescription(m.description || '');
+    setEditLocation(m.location || '');
+    setEditStartsAt(toInputDateTime(m.starts_at));
+    setEditEndsAt(toInputDateTime(m.ends_at));
+    setEditMeetingUrl(m.meeting_url || '');
+    setEditVisibility(m.visibility || 'public');
+    setEditReason('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMeeting || !editTitle.trim() || !editReason.trim()) return;
+
+    setIsSavingEdit(true);
+    try {
+      const updates = {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        location: editLocation.trim(),
+        starts_at: editStartsAt ? new Date(editStartsAt).toISOString() : editingMeeting.starts_at,
+        ends_at: editEndsAt ? new Date(editEndsAt).toISOString() : editingMeeting.ends_at,
+        meeting_url: editMeetingUrl.trim() || null,
+        visibility: editVisibility as any,
+      };
+
+      const res = await editMeeting(editingMeeting.id, updates, editReason.trim());
+      if (res.success) {
+        setEditingMeeting(null);
+      } else {
+        alert(res.error || 'Failed to update meeting');
+      }
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingMeeting || !deleteReason.trim()) return;
+
+    setIsDeletingMeeting(true);
+    try {
+      const res = await deleteMeeting(deletingMeeting.id, deleteReason.trim());
+      if (res.success) {
+        setDeletingMeeting(null);
+      } else {
+        alert(res.error || 'Failed to delete meeting');
+      }
+    } finally {
+      setIsDeletingMeeting(false);
+    }
+  };
 
   React.useEffect(() => {
     setNow(new Date());
@@ -358,9 +448,9 @@ export default function MeetingsPage() {
                       </p>
                     </div>
 
-                    {/* Prominent Google Meet Join Button */}
-                    {meet.meeting_url && (
-                      <div className="flex items-center gap-2 shrink-0">
+                    {/* Actions: Google Meet, Edit, Delete */}
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                      {meet.meeting_url && (
                         <a
                           href={meet.meeting_url}
                           target="_blank"
@@ -371,8 +461,29 @@ export default function MeetingsPage() {
                           <span>Join Google Meet</span>
                           <ExternalLink className="w-3 h-3 opacity-80" />
                         </a>
-                      </div>
-                    )}
+                      )}
+                      {canEditMeeting(permCtx, meet) && (
+                        <button
+                          onClick={() => openEditModal(meet)}
+                          className="p-2 rounded-lg border border-slate-200 hover:border-emerald-500 bg-white text-slate-700 hover:text-emerald-800 transition-colors shadow-2xs"
+                          title="Edit Meeting"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteMeeting(permCtx, meet) && (
+                        <button
+                          onClick={() => {
+                            setDeletingMeeting(meet);
+                            setDeleteReason('');
+                          }}
+                          className="p-2 rounded-lg border border-rose-200 hover:bg-rose-100 bg-rose-50 text-rose-700 transition-colors shadow-2xs"
+                          title="Move to Recycle Bin"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Metadata Row */}
@@ -449,6 +560,209 @@ export default function MeetingsPage() {
           isOpen={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
         />
+
+        {/* Modal: Edit Meeting */}
+        {editingMeeting && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                    <Pencil className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900">Edit Meeting Details</h3>
+                    <p className="text-[11px] text-slate-500">Authorized change tracked in club audit trail</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingMeeting(null)}
+                  className="text-slate-400 hover:text-slate-600 font-bold text-sm p-1 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Meeting Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Meeting title"
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Description</label>
+                  <textarea
+                    rows={2}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Meeting agenda and discussion topics..."
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700">Start Time *</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={editStartsAt}
+                      onChange={(e) => setEditStartsAt(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700">End Time *</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={editEndsAt}
+                      onChange={(e) => setEditEndsAt(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Google Meet URL / Room Link</label>
+                  <input
+                    type="url"
+                    value={editMeetingUrl}
+                    onChange={(e) => setEditMeetingUrl(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700">Physical Location</label>
+                    <input
+                      type="text"
+                      value={editLocation}
+                      onChange={(e) => setEditLocation(e.target.value)}
+                      placeholder="e.g. Room 104 / Online"
+                      className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700">Visibility</label>
+                    <select
+                      value={editVisibility}
+                      onChange={(e) => setEditVisibility(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 font-medium bg-white"
+                    >
+                      <option value="public">Club-Wide</option>
+                      <option value="department">Department Only</option>
+                      <option value="restricted">Restricted / Invite Only</option>
+                      <option value="confidential">Confidential Bureau</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                    <span>Reason for Changes *</span>
+                    <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Required Audit Log</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                    placeholder="e.g. Rescheduled timing / Updated Google Meet room."
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMeeting(null)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit || !editReason.trim()}
+                    className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {isSavingEdit ? 'Saving...' : 'Save & Log Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Delete Meeting */}
+        {deletingMeeting && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100">
+                  <Trash2 className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Move Meeting to Recycle Bin</h3>
+                  <p className="text-[11px] text-slate-500">Non-destructive soft-delete with recovery</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 text-rose-950 text-xs flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Preservation Notice</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-rose-900/80">
+                  Meeting <strong>{deletingMeeting.title}</strong> will be moved to the Recycle Bin. Recordings, transcripts, AI summaries, and decisions remain safely preserved in storage and database.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Reason for Deletion *</span>
+                  <span className="text-[10px] text-rose-700 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">Required</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="e.g. Cancelled / Duplicate meeting."
+                  className="w-full mt-1.5 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-rose-500 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDeletingMeeting(null)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeletingMeeting || !deleteReason.trim()}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isDeletingMeeting ? 'Deleting...' : 'Move to Recycle Bin'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

@@ -190,6 +190,21 @@ interface AuthContextType {
   deleteEvent: (eventId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
   restoreEvent: (eventId: string) => Promise<{ success: boolean; error?: string }>;
 
+  // Meeting Management Authority
+  editMeeting: (meetingId: string, updates: Partial<Meeting>, reason?: string) => Promise<{ success: boolean; error?: string; meeting?: Meeting }>;
+  deleteMeeting: (meetingId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  restoreMeeting: (meetingId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Task Management Authority
+  editTask: (taskId: string, updates: Partial<Task>, reason?: string) => Promise<{ success: boolean; error?: string; task?: Task }>;
+  deleteTask: (taskId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  restoreTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Project Management Authority
+  editProject: (projectId: string, updates: Partial<Project>, reason?: string) => Promise<{ success: boolean; error?: string; project?: Project }>;
+  deleteProject: (projectId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  restoreProject: (projectId: string) => Promise<{ success: boolean; error?: string }>;
+
   // Recycle Bin & Recovery
   restoreRecycleBinRecord: (entityType: string, recordId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
   permanentPurgeRecord: (entityType: string, recordId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
@@ -496,10 +511,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('created_at', { ascending: false });
 
       if (dbTasks && dbTasks.length > 0) {
-        const mappedTasks: Task[] = dbTasks.map((t: any) => ({
-          ...t,
-          assignees: t.task_assignees?.map((ta: any) => ta.profiles).filter(Boolean) || [],
-        }));
+        const mappedTasks: Task[] = dbTasks
+          .filter((t: any) => !t.is_deleted)
+          .map((t: any) => ({
+            ...t,
+            assignees: t.task_assignees?.map((ta: any) => ta.profiles).filter(Boolean) || [],
+          }));
         setTasks(mappedTasks);
       } else {
         setTasks([]);
@@ -541,7 +558,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('starts_at', { ascending: false });
 
       if (dbMeetings && dbMeetings.length > 0) {
-        const mappedMeetings: Meeting[] = dbMeetings.map((m: any) => {
+        const mappedMeetings: Meeting[] = dbMeetings
+          .filter((m: any) => !m.is_deleted)
+          .map((m: any) => {
           const rawRecordings = Array.isArray(m.recordings)
             ? m.recordings
             : m.recordings
@@ -583,14 +602,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('projects')
         .select('*, owner:profiles!projects_owner_id_fkey(*)')
         .order('created_at', { ascending: false });
-      setProjects(dbProjects || []);
+      setProjects((dbProjects || []).filter((p: any) => !p.is_deleted));
 
       // 15. Fetch events
       const { data: dbEvents } = await supabase
         .from('events')
         .select('*, organizer:profiles!events_organizer_id_fkey(*), department:departments(*)')
         .order('starts_at', { ascending: true });
-      setEvents(dbEvents || []);
+      setEvents((dbEvents || []).filter((e: any) => !e.is_deleted));
 
       // 16. Fetch announcements
       const { data: dbAnnouncements } = await supabase
@@ -3209,6 +3228,213 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // =========================================================================
+  // MEETING MANAGEMENT FUNCTIONS
+  // =========================================================================
+  const editMeeting = async (
+    meetingId: string,
+    updates: Partial<Meeting>,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string; meeting?: Meeting }> => {
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to update meeting' };
+      }
+
+      if (data.meeting) {
+        setMeetings((prev) => prev.map((m) => (m.id === meetingId ? { ...m, ...data.meeting } : m)));
+      }
+
+      return { success: true, meeting: data.meeting };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error updating meeting' };
+    }
+  };
+
+  const deleteMeeting = async (meetingId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to delete meeting' };
+      }
+
+      setMeetings((prev) => prev.filter((m) => m.id !== meetingId));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error deleting meeting' };
+    }
+  };
+
+  const restoreMeeting = async (meetingId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to restore meeting' };
+      }
+
+      if (data.meeting) {
+        setMeetings((prev) => [data.meeting, ...prev.filter((m) => m.id !== meetingId)]);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error restoring meeting' };
+    }
+  };
+
+  // =========================================================================
+  // TASK MANAGEMENT FUNCTIONS
+  // =========================================================================
+  const editTask = async (
+    taskId: string,
+    updates: Partial<Task>,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string; task?: Task }> => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to update task' };
+      }
+
+      if (data.task) {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...data.task } : t)));
+      }
+
+      return { success: true, task: data.task };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error updating task' };
+    }
+  };
+
+  const deleteTask = async (taskId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to delete task' };
+      }
+
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error deleting task' };
+    }
+  };
+
+  const restoreTask = async (taskId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to restore task' };
+      }
+
+      if (data.task) {
+        setTasks((prev) => [data.task, ...prev.filter((t) => t.id !== taskId)]);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error restoring task' };
+    }
+  };
+
+  // =========================================================================
+  // PROJECT MANAGEMENT FUNCTIONS
+  // =========================================================================
+  const editProject = async (
+    projectId: string,
+    updates: Partial<Project>,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string; project?: Project }> => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to update project' };
+      }
+
+      if (data.project) {
+        setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, ...data.project } : p)));
+      }
+
+      return { success: true, project: data.project };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error updating project' };
+    }
+  };
+
+  const deleteProject = async (projectId: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to delete project' };
+      }
+
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error deleting project' };
+    }
+  };
+
+  const restoreProject = async (projectId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to restore project' };
+      }
+
+      if (data.project) {
+        setProjects((prev) => [data.project, ...prev.filter((p) => p.id !== projectId)]);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error restoring project' };
+    }
+  };
+
+  // =========================================================================
   // RECYCLE BIN FUNCTIONS
   // =========================================================================
   const restoreRecycleBinRecord = async (
@@ -3480,6 +3706,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         editEvent,
         deleteEvent,
         restoreEvent,
+        editMeeting,
+        deleteMeeting,
+        restoreMeeting,
+        editTask,
+        deleteTask,
+        restoreTask,
+        editProject,
+        deleteProject,
+        restoreProject,
         restoreRecycleBinRecord,
         permanentPurgeRecord,
         updateUserProfile,

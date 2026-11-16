@@ -237,3 +237,128 @@ export function canUndoAuditLog(ctx: UserPermissionContext | null | undefined): 
   // Strictly restricted to Club Administrator
   return isSuperAdminEmail(ctx.email) || ctx.role === 'admin';
 }
+
+export function canEditMeeting(ctx: UserPermissionContext | null | undefined, meeting?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'meetings:edit_all')) return true;
+
+  // Meeting organizer or creator can edit their own meeting
+  if (
+    (meeting?.organizer_id && ctx.userId && meeting.organizer_id === ctx.userId) ||
+    (meeting?.created_by && ctx.userId && meeting.created_by === ctx.userId)
+  ) {
+    return hasPermission(ctx, 'meetings:edit_own');
+  }
+
+  // Department lead can edit department meetings
+  if (meeting?.department_id && canAccessDepartment(ctx, meeting.department_id)) {
+    return hasPermission(ctx, 'meetings:edit_own');
+  }
+
+  return false;
+}
+
+export function canDeleteMeeting(ctx: UserPermissionContext | null | undefined, meeting?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'meetings:delete_all')) return true;
+
+  // Organizer or creator can delete their own meeting
+  if (
+    (meeting?.organizer_id && ctx.userId && meeting.organizer_id === ctx.userId) ||
+    (meeting?.created_by && ctx.userId && meeting.created_by === ctx.userId)
+  ) {
+    return hasPermission(ctx, 'meetings:delete_own');
+  }
+
+  // Department lead can delete their department meeting
+  if (meeting?.department_id && canAccessDepartment(ctx, meeting.department_id)) {
+    return hasPermission(ctx, 'meetings:delete_own');
+  }
+
+  return false;
+}
+
+export function canEditTask(ctx: UserPermissionContext | null | undefined, task?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'tasks:edit_any')) return true;
+
+  // Task creator can edit their task
+  if (task?.creator_id && ctx.userId && task.creator_id === ctx.userId) {
+    return hasPermission(ctx, 'tasks:edit_own');
+  }
+
+  // Department lead can edit tasks belonging to their department
+  if (task?.department_id && canAccessDepartment(ctx, task.department_id)) {
+    return hasPermission(ctx, 'tasks:edit_own');
+  }
+
+  return false;
+}
+
+export function canDeleteTask(ctx: UserPermissionContext | null | undefined, task?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'tasks:delete')) return true;
+
+  // Task creator can delete their own task
+  if (task?.creator_id && ctx.userId && task.creator_id === ctx.userId) {
+    return hasPermission(ctx, 'tasks:edit_own');
+  }
+
+  // Department lead can delete tasks belonging to their department
+  if (task?.department_id && canAccessDepartment(ctx, task.department_id)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function canEditProject(ctx: UserPermissionContext | null | undefined, project?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'projects:edit_all')) return true;
+
+  const positions = new Set((ctx.bureauPositions || []).map((p) => String(p).toLowerCase()));
+  if (positions.has('project_manager') || positions.has('sustainable_campus_manager')) {
+    return true;
+  }
+
+  // Project owner or creator can edit their own project
+  if (
+    (project?.owner_id && ctx.userId && project.owner_id === ctx.userId) ||
+    (project?.created_by && ctx.userId && project.created_by === ctx.userId)
+  ) {
+    return hasPermission(ctx, 'projects:edit_own');
+  }
+
+  // Department lead can edit projects in their department
+  if (project?.department_id && canAccessDepartment(ctx, project.department_id)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function canDeleteProject(ctx: UserPermissionContext | null | undefined, project?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  if (hasPermission(ctx, 'projects:delete_all')) return true;
+
+  const positions = new Set((ctx.bureauPositions || []).map((p) => String(p).toLowerCase()));
+  if (positions.has('project_manager')) {
+    return true;
+  }
+
+  // Project owner can delete their own project
+  if (
+    (project?.owner_id && ctx.userId && project.owner_id === ctx.userId) ||
+    (project?.created_by && ctx.userId && project.created_by === ctx.userId)
+  ) {
+    return hasPermission(ctx, 'projects:delete_own');
+  }
+
+  return false;
+}

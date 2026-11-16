@@ -23,13 +23,18 @@ import {
   XCircle,
   AlertCircle,
   ShieldAlert,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { canEditTask, canDeleteTask } from '@/lib/permissions/permission-checks';
 
 export default function TasksPage() {
   const { t, isRtl } = useTranslation();
   const {
     user,
     activeRole,
+    userBureauPositions,
     isAdmin,
     tasks,
     members,
@@ -37,6 +42,8 @@ export default function TasksPage() {
     submitTaskForVerification,
     verifyTask,
     addTask,
+    editTask,
+    deleteTask,
   } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +63,79 @@ export default function TasksPage() {
   // Revision Modal State
   const [rejectModalTask, setRejectModalTask] = useState<Task | null>(null);
   const [rejectionNote, setRejectionNote] = useState('');
+
+  // Edit / Delete Task State
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editPriority, setEditPriority] = useState<TaskPriority>('medium');
+  const [editStatus, setEditStatus] = useState<TaskStatus>('todo');
+  const [editDueAt, setEditDueAt] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
+
+  const permCtx = {
+    userId: user?.id,
+    email: user?.email,
+    role: activeRole,
+    bureauPositions: userBureauPositions || [],
+    departmentId: (user as any)?.department_id,
+  };
+
+  const openEditModal = (t: Task) => {
+    setEditingTask(t);
+    setEditTitle(t.title || '');
+    setEditDesc(t.description || '');
+    setEditPriority(t.priority || 'medium');
+    setEditStatus(t.status || 'todo');
+    setEditDueAt(t.due_at ? t.due_at.slice(0, 10) : '');
+    setEditReason('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask || !editTitle.trim() || !editReason.trim()) return;
+
+    setIsSavingEdit(true);
+    try {
+      const updates = {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        priority: editPriority,
+        status: editStatus,
+        due_at: editDueAt ? new Date(editDueAt).toISOString() : editingTask.due_at,
+      };
+
+      const res = await editTask(editingTask.id, updates, editReason.trim());
+      if (res.success) {
+        setEditingTask(null);
+      } else {
+        alert(res.error || 'Failed to update task');
+      }
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingTask || !deleteReason.trim()) return;
+
+    setIsDeletingTask(true);
+    try {
+      const res = await deleteTask(deletingTask.id, deleteReason.trim());
+      if (res.success) {
+        setDeletingTask(null);
+      } else {
+        alert(res.error || 'Failed to delete task');
+      }
+    } finally {
+      setIsDeletingTask(false);
+    }
+  };
 
   // Check if task is assigned to current user
   const currentUserId = user?.id || 'usr-admin-001';
@@ -279,6 +359,13 @@ export default function TasksPage() {
                   task={task}
                   isBureauOrAdmin={isBureauOrAdmin}
                   currentUserId={user?.id}
+                  canEdit={canEditTask(permCtx, task)}
+                  canDelete={canDeleteTask(permCtx, task)}
+                  onEdit={() => openEditModal(task)}
+                  onDelete={() => {
+                    setDeletingTask(task);
+                    setDeleteReason('');
+                  }}
                   onSubmit={() => submitTaskForVerification(task.id)}
                   onApprove={() => verifyTask(task.id, true)}
                   onReject={() => setRejectModalTask(task)}
@@ -305,6 +392,13 @@ export default function TasksPage() {
                   key={task.id}
                   task={task}
                   isBureauOrAdmin={isBureauOrAdmin}
+                  canEdit={canEditTask(permCtx, task)}
+                  canDelete={canDeleteTask(permCtx, task)}
+                  onEdit={() => openEditModal(task)}
+                  onDelete={() => {
+                    setDeletingTask(task);
+                    setDeleteReason('');
+                  }}
                   onSubmit={() => submitTaskForVerification(task.id)}
                 />
               ))}
@@ -322,6 +416,13 @@ export default function TasksPage() {
                   key={task.id}
                   task={task}
                   isBureauOrAdmin={isBureauOrAdmin}
+                  canEdit={canEditTask(permCtx, task)}
+                  canDelete={canDeleteTask(permCtx, task)}
+                  onEdit={() => openEditModal(task)}
+                  onDelete={() => {
+                    setDeletingTask(task);
+                    setDeleteReason('');
+                  }}
                   onSubmit={() => submitTaskForVerification(task.id)}
                 />
               ))}
@@ -339,6 +440,13 @@ export default function TasksPage() {
                   key={task.id}
                   task={task}
                   isBureauOrAdmin={isBureauOrAdmin}
+                  canEdit={canEditTask(permCtx, task)}
+                  canDelete={canDeleteTask(permCtx, task)}
+                  onEdit={() => openEditModal(task)}
+                  onDelete={() => {
+                    setDeletingTask(task);
+                    setDeleteReason('');
+                  }}
                   onApprove={() => verifyTask(task.id, true)}
                   onReject={() => setRejectModalTask(task)}
                 />
@@ -353,7 +461,18 @@ export default function TasksPage() {
                 </span>
               </div>
               {completedTasks.map((task) => (
-                <TaskBoardCard key={task.id} task={task} isBureauOrAdmin={isBureauOrAdmin} />
+                <TaskBoardCard
+                  key={task.id}
+                  task={task}
+                  isBureauOrAdmin={isBureauOrAdmin}
+                  canEdit={canEditTask(permCtx, task)}
+                  canDelete={canDeleteTask(permCtx, task)}
+                  onEdit={() => openEditModal(task)}
+                  onDelete={() => {
+                    setDeletingTask(task);
+                    setDeleteReason('');
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -503,6 +622,190 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          EDIT TASK MODAL (Authorized roles only)
+      ========================================================================= */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Edit Task</h3>
+                  <p className="text-[11px] text-slate-500">Tracked modification with audit logging</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-700">Task Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700">Description</label>
+                <textarea
+                  rows={2}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Priority</label>
+                  <select
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value as any)}
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 font-medium bg-white"
+                  >
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                    <option value="urgent">Urgent Priority</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 font-medium bg-white"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="waiting_verification">Waiting Verification</option>
+                    <option value="done">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700">Due Date</label>
+                <input
+                  type="date"
+                  value={editDueAt}
+                  onChange={(e) => setEditDueAt(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Reason for Changes *</span>
+                  <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Required Audit Log</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="e.g. Scope adjusted / Deliverable prioritized for next sprint."
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingTask(null)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit || !editReason.trim()}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save & Log Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          DELETE TASK MODAL (Soft-delete to Recycle Bin)
+      ========================================================================= */}
+      {deletingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Move Task to Recycle Bin</h3>
+                <p className="text-[11px] text-slate-500">Non-destructive soft-delete with full recovery</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 text-rose-950 text-xs flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Contributions & XP Preserved</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-rose-900/80">
+                Task <strong>{deletingTask.title}</strong> will be moved to the Recycle Bin. Member submissions, XP awards, and activity logs are safely preserved and can be restored at any time by an administrator.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Reason for Deletion *</span>
+                <span className="text-[10px] text-rose-700 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">Required</span>
+              </label>
+              <textarea
+                rows={2}
+                required
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g. Task redundant / Replaced by combined deliverable."
+                className="w-full mt-1.5 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-rose-500 font-medium"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingTask(null)}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingTask || !deleteReason.trim()}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeletingTask ? 'Deleting...' : 'Move to Recycle Bin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
@@ -515,6 +818,10 @@ function TaskListItem({
   task,
   isBureauOrAdmin,
   currentUserId,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
   onSubmit,
   onApprove,
   onReject,
@@ -522,6 +829,10 @@ function TaskListItem({
   task: Task;
   isBureauOrAdmin: boolean;
   currentUserId?: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onSubmit: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -604,6 +915,24 @@ function TaskListItem({
 
       {/* Action Area */}
       <div className="shrink-0 flex items-center gap-1.5">
+        {canEdit && onEdit && (
+          <button
+            onClick={onEdit}
+            className="p-1 rounded-lg border border-slate-200 hover:border-emerald-500 bg-white text-slate-600 hover:text-emerald-800 transition-colors shadow-2xs"
+            title="Edit Task"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {canDelete && onDelete && (
+          <button
+            onClick={onDelete}
+            className="p-1 rounded-lg border border-rose-200 hover:bg-rose-100 bg-rose-50 text-rose-700 transition-colors shadow-2xs"
+            title="Move to Recycle Bin"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
         {isWaiting ? (
           isBureauOrAdmin ? (
             <div className="flex items-center gap-1">
@@ -650,12 +979,20 @@ function TaskListItem({
 function TaskBoardCard({
   task,
   isBureauOrAdmin,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
   onSubmit,
   onApprove,
   onReject,
 }: {
   task: Task;
   isBureauOrAdmin: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onSubmit?: () => void;
   onApprove?: () => void;
   onReject?: () => void;
@@ -678,11 +1015,31 @@ function TaskBoardCard({
           >
             {task.priority}
           </span>
-          {task.due_at && (
-            <span className="text-[9px] font-mono text-slate-400">
-              {new Date(task.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            {canEdit && onEdit && (
+              <button
+                onClick={onEdit}
+                className="p-0.5 text-slate-400 hover:text-emerald-700"
+                title="Edit Task"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+            {canDelete && onDelete && (
+              <button
+                onClick={onDelete}
+                className="p-0.5 text-slate-400 hover:text-rose-600"
+                title="Move to Recycle Bin"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+            {task.due_at && (
+              <span className="text-[9px] font-mono text-slate-400 ml-1">
+                {new Date(task.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+          </div>
         </div>
 
         <h4 className={`font-semibold text-xs text-slate-900 mt-1.5 ${isDone ? 'line-through text-slate-400' : ''}`}>
