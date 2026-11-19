@@ -44,6 +44,13 @@ export function canAccessDepartment(
   return false;
 }
 
+export function canViewDepartment(
+  ctx: UserPermissionContext | null | undefined,
+  targetDeptSlugOrId: string | null | undefined
+): boolean {
+  return canAccessDepartment(ctx, targetDeptSlugOrId);
+}
+
 export function canManageDepartment(
   ctx: UserPermissionContext | null | undefined,
   targetDeptSlugOrId: string | null | undefined

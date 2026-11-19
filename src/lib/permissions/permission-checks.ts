@@ -60,6 +60,24 @@ export function canAccessPage(
   return { allowed: true };
 }
 
+export function canAccessAdminPanel(ctx: UserPermissionContext | null | undefined): boolean {
+  if (!ctx) return false;
+  return isSuperAdminEmail(ctx.email) || ctx.role === 'admin';
+}
+
+export function canViewTask(ctx: UserPermissionContext | null | undefined, task?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+
+  // If task has a department, check department isolation
+  if (task?.department_id || task?.department_slug) {
+    return canAccessDepartment(ctx, task.department_slug || task.department_id);
+  }
+
+  // Club-wide task
+  return true;
+}
+
 export function canManageTask(ctx: UserPermissionContext | null | undefined, task?: any): boolean {
   if (!ctx) return false;
   if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
@@ -174,6 +192,24 @@ export function canDeleteMemberAccount(ctx: UserPermissionContext | null | undef
     return isSuperAdminEmail(ctx.email); // Only Super Admin can delete an admin account
   }
   return hasPermission(ctx, 'members:delete_account');
+}
+
+export function canViewEvent(ctx: UserPermissionContext | null | undefined, event?: any): boolean {
+  if (!ctx) return false;
+  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+
+  const vis = event?.visibility || 'club';
+  if (vis === 'public' || vis === 'club') return true;
+
+  if (event?.organizer_id && ctx.userId && event.organizer_id === ctx.userId) return true;
+  if (event?.department_id && canAccessDepartment(ctx, event.department_id)) return true;
+
+  return hasPermission(ctx, 'events:view');
+}
+
+export function canManageEvent(ctx: UserPermissionContext | null | undefined, event?: any): boolean {
+  if (!ctx) return false;
+  return canEditEvent(ctx, event);
 }
 
 export function canEditEvent(ctx: UserPermissionContext | null | undefined, event?: any): boolean {
