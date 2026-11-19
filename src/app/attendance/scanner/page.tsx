@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { PhysicalSession, Profile } from '@/types/database.types';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   Camera,
   QrCode,
@@ -686,7 +687,7 @@ export default function AttendanceScannerPage() {
                     <div key={m.id} className="py-2.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={m.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                          src={getSafeAvatar(m.avatar_path)}
                           alt={m.full_name}
                           className="w-8 h-8 rounded-full object-cover"
                         />

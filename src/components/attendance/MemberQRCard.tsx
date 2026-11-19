@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Profile } from '@/types/database.types';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   QrCode,
   Download,
@@ -120,7 +121,7 @@ export default function MemberQRCard({ user, bureauPositions = [], onRegenerate 
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full border border-slate-200 p-0.5 bg-white shadow-xs overflow-hidden">
           <img
-            src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+            src={getSafeAvatar(user?.avatar_path)}
             alt={user?.full_name || 'Member profile'}
             className="w-full h-full rounded-full object-cover"
           />

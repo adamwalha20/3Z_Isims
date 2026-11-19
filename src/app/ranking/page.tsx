@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
 import { getRankLevel, RANK_LEVELS, MemberXp } from '@/types/database.types';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   Trophy,
   Award,
@@ -76,7 +77,7 @@ export default function RankingPage() {
       scoresMap.set(m.id, {
         userId: m.id,
         fullName: m.full_name,
-        avatar: m.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+        avatar: getSafeAvatar(m.avatar_path),
         studyField: m.study_field || 'General Student',
         studentId: m.student_id || 'ISIMS',
         totalXp: periodFilter === 'all' ? (liveXp?.total_xp || 0) : 0,

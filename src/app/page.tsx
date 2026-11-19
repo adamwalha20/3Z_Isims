@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import { getRankLevel, RANK_LEVELS, Task } from '@/types/database.types';
 import {
   CheckCircle,
@@ -202,7 +203,7 @@ export default function DashboardPage() {
                 <img
                   alt={user?.full_name || 'Member'}
                   className="w-full h-full object-cover"
-                  src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                  src={getSafeAvatar(user?.avatar_path)}
                 />
               </div>
 

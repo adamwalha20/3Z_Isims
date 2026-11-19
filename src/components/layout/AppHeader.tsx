@@ -7,6 +7,7 @@ import { useAuth, ActiveRole } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { isSuperAdminEmail } from '@/lib/constants/auth';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import { NotificationItem } from '@/types/database.types';
 import {
   Bell,
@@ -326,7 +327,7 @@ export default function AppHeader() {
           <Link href="/profile" className="relative shrink-0">
             <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden hover:ring-2 hover:ring-emerald-700 transition-all">
               <img
-                src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                src={getSafeAvatar(user?.avatar_path)}
                 alt={user?.full_name || t('nav.memberProfile')}
                 className="w-full h-full object-cover"
               />

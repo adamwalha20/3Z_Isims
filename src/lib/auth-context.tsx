@@ -37,6 +37,7 @@ import {
   XpRule,
   MemberAchievement,
 } from '@/types/database.types';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   INITIAL_USER,
   INITIAL_TASKS,
@@ -488,7 +489,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             position_key: bp.key,
             position_name: bp.display_name,
             member_name: assignedProfile?.full_name || 'Unassigned',
-            avatar: assignedProfile?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+            avatar: getSafeAvatar(assignedProfile?.avatar_path),
             department: bp.display_name,
             email: assignedProfile ? `${assignedProfile.full_name.toLowerCase().replace(/\s+/g, '.')}@isims.tn` : 'bureau@isims.tn',
           };
@@ -2378,7 +2379,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const matchedMember = members.find((m) => m.id === userIdOrName || m.full_name.toLowerCase() === userIdOrName.toLowerCase());
     const finalName = memberName || matchedMember?.full_name || (userIdOrName === 'unassigned' ? 'Unassigned' : userIdOrName);
     const finalUserId = matchedMember?.id || (userIdOrName !== 'unassigned' ? userIdOrName : null);
-    const finalAvatar = matchedMember?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
+    const finalAvatar = getSafeAvatar(matchedMember?.avatar_path);
 
     // Try server-side admin API route first for rock-solid authorization and transactional reliability
     try {

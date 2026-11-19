@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { PhysicalSession, SessionAttendance, AttendancePunctuality } from '@/types/database.types';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   Users,
   CheckCircle2,
@@ -454,7 +455,7 @@ export default function SessionAttendanceClient({ id: sessionId }: { id: string 
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
                             <img
-                              src={rec.member?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                              src={getSafeAvatar(rec.member?.avatar_path)}
                               alt={rec.member?.full_name || 'Member'}
                               className="w-7 h-7 rounded-full object-cover shrink-0"
                             />

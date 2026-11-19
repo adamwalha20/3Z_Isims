@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   Clock,
   ShieldCheck,
@@ -127,7 +128,7 @@ export default function PendingApprovalScreen() {
             <div className="flex items-center gap-3.5">
               <div className="relative shrink-0">
                 <img
-                  src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                  src={getSafeAvatar(user?.avatar_path)}
                   alt="Avatar"
                   className="w-14 h-14 rounded-2xl object-cover ring-2 ring-emerald-400 shrink-0"
                 />

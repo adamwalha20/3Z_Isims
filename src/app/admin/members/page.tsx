@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from '@/lib/i18n/context';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   UserCheck,
   Check,
@@ -345,7 +346,7 @@ export default function AdminMembersManagementPage() {
                   {/* Left: Info */}
                   <div className="flex items-center gap-3.5 min-w-0">
                     <img
-                      src={m.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                      src={getSafeAvatar(m.avatar_path)}
                       alt={m.full_name}
                       className="w-12 h-12 rounded-2xl object-cover ring-2 ring-emerald-500/80 shrink-0"
                     />
@@ -538,7 +539,7 @@ export default function AdminMembersManagementPage() {
               {/* Target info card */}
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
                 <img
-                  src={selectedMember.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                  src={getSafeAvatar(selectedMember.avatar_path)}
                   alt={selectedMember.full_name}
                   className="w-10 h-10 rounded-xl object-cover ring-2 ring-emerald-500"
                 />

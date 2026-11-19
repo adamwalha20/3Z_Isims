@@ -23,6 +23,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { isSuperAdminEmail } from '@/lib/constants/auth';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 
 export default function AdminRolesPage() {
   const { user, bureauMembers, assignBureauPosition, setUserRole, members, approveMembership, isAdmin, activeRole } = useAuth();
@@ -344,7 +345,7 @@ export default function AdminRolesPage() {
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 shrink-0">
                         <img
-                          src={member.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                          src={getSafeAvatar(member.avatar_path)}
                           alt={member.full_name}
                           className="w-full h-full object-cover"
                         />

@@ -25,14 +25,7 @@ import {
   ArrowRight,
   QrCode,
 } from 'lucide-react';
-
-const AVATAR_PRESETS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&q=80',
-];
+import { DEFAULT_AVATAR, OFFICIAL_AVATAR_PRESETS, getSafeAvatar } from '@/lib/constants/avatars';
 
 export default function ProfilePage() {
   const { t, isRtl } = useTranslation();
@@ -41,7 +34,7 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [studentId, setStudentId] = useState(user?.student_id || '');
   const [studyField, setStudyField] = useState(user?.study_field || '');
-  const [avatarPath, setAvatarPath] = useState(user?.avatar_path || AVATAR_PRESETS[0]);
+  const [avatarPath, setAvatarPath] = useState(getSafeAvatar(user?.avatar_path));
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [bio, setBio] = useState(user?.bio || '');
   const [skills, setSkills] = useState<string[]>(user?.skills || ['Climate Action', 'Innovation']);
@@ -84,7 +77,7 @@ export default function ProfilePage() {
       setFullName(user.full_name || '');
       setStudentId(user.student_id || '');
       setStudyField(user.study_field || '');
-      setAvatarPath(user.avatar_path || AVATAR_PRESETS[0]);
+      setAvatarPath(getSafeAvatar(user.avatar_path));
       setBio(user.bio || '');
       setSkills(user.skills || ['Climate Action', 'Innovation']);
       setEmailNotifs(user.contact_preferences?.email ?? true);
@@ -177,7 +170,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4 min-w-0">
                 <div className="relative shrink-0 group">
                   <img
-                    src={user?.avatar_path || avatarPath}
+                    src={getSafeAvatar(user?.avatar_path || avatarPath)}
                     alt={user?.full_name || 'Profile'}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-emerald-500 shadow-md group-hover:opacity-90 transition-opacity"
                   />
@@ -391,21 +384,45 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 3. Preset Avatars */}
-                <div className="flex flex-col gap-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-600">Or select an official avatar preset:</span>
-                  <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-                    {AVATAR_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setAvatarPath(preset)}
-                        className={`w-10 h-10 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
-                          avatarPath === preset ? 'border-emerald-600 ring-2 ring-emerald-300 scale-105' : 'border-transparent hover:opacity-80'
-                        }`}
-                      >
-                        <img src={preset} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Official 3D Cartoon Avatar Presets:</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Eco & Campus Hub Theme
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 pt-0.5">
+                    {OFFICIAL_AVATAR_PRESETS.map((preset, idx) => {
+                      const isSelected = avatarPath === preset;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setAvatarPath(preset)}
+                          className={`relative group rounded-2xl overflow-hidden border-2 transition-all p-1 bg-white shadow-xs hover:shadow-md ${
+                            isSelected
+                              ? 'border-emerald-600 ring-2 ring-emerald-300 scale-105 bg-emerald-50/40'
+                              : 'border-slate-200 hover:border-emerald-400 hover:scale-102'
+                          }`}
+                        >
+                          <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-100">
+                            <img
+                              src={preset}
+                              alt={`Cartoon Avatar ${idx + 1}`}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            />
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-xs">
+                              <CheckCircle2 className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

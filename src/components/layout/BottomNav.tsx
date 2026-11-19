@@ -8,6 +8,7 @@ import { useTranslation } from '@/lib/i18n/context';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { canAccessAttendanceScanner } from '@/lib/attendance/attendance-auth';
 import { isSuperAdminEmail } from '@/lib/constants/auth';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 import {
   X,
   ChevronRight,
@@ -202,7 +203,7 @@ export default function BottomNav() {
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 shrink-0">
                     <img
-                      src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                      src={getSafeAvatar(user?.avatar_path)}
                       alt={user?.full_name || t('nav.memberProfile')}
                       className="w-full h-full object-cover"
                     />

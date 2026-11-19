@@ -22,6 +22,7 @@ import {
   Terminal,
 } from 'lucide-react';
 import { isSuperAdminEmail } from '@/lib/constants/auth';
+import { getSafeAvatar } from '@/lib/constants/avatars';
 
 export default function MembersDirectoryPage() {
   const { user, activeRole, setActiveRole, members, departments, documents, auditLogs, signOut } = useAuth();
@@ -68,7 +69,7 @@ export default function MembersDirectoryPage() {
                 <div className="relative shrink-0">
                   <img
                     className="w-16 h-16 rounded-2xl object-cover ring-2 ring-emerald-500 shadow-md"
-                    src={user?.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                    src={getSafeAvatar(user?.avatar_path)}
                     alt={user?.full_name || 'Profile'}
                   />
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center ring-2 ring-white">
@@ -332,7 +333,7 @@ export default function MembersDirectoryPage() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img
-                    src={m.avatar_path || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+                    src={getSafeAvatar(m.avatar_path)}
                     alt={m.full_name}
                     className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500 shrink-0"
                   />
