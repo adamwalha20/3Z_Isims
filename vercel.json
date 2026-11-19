@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/meetings/auto-dispatch",
-      "schedule": "* * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
