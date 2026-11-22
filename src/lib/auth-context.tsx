@@ -388,33 +388,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setActiveBureauPosition('all');
         }
 
-        // 4. Fetch user's achievements
-        const { data: dbAch } = await supabase
-          .from('member_achievements')
-          .select('*')
-          .eq('user_id', session.user.id);
-        if (dbAch && dbAch.length > 0) {
-          setUserAchievements(dbAch);
-        } else {
-          setUserAchievements([]);
-        }
+        // 4. Fetch user's achievements, notifications & email preferences concurrently
+        const [
+          { data: dbAch },
+          { data: dbNotifs },
+          { data: dbPrefs },
+        ] = await Promise.all([
+          supabase.from('member_achievements').select('*').eq('user_id', session.user.id),
+          supabase.from('notifications').select('*').or(`recipient_id.eq.${session.user.id},recipient_user_id.eq.${session.user.id}`).order('created_at', { ascending: false }),
+          supabase.from('email_preferences').select('*').eq('user_id', session.user.id).maybeSingle(),
+        ]);
 
-        // 5. Fetch user's notifications
-        const { data: dbNotifs } = await supabase
-          .from('notifications')
-          .select('*')
-          .or(`recipient_id.eq.${session.user.id},recipient_user_id.eq.${session.user.id}`)
-          .order('created_at', { ascending: false });
+        setUserAchievements(dbAch && dbAch.length > 0 ? dbAch : []);
         if (dbNotifs && dbNotifs.length > 0) {
           setNotifications(dbNotifs as unknown as NotificationItem[]);
         }
-
-        // 6. Fetch user's email preferences
-        const { data: dbPrefs } = await supabase
-          .from('email_preferences')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
         if (dbPrefs) {
           setEmailPreferences(dbPrefs as unknown as EmailPreferences);
         } else {
@@ -433,21 +421,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserAchievements(INITIAL_MEMBER_ACHIEVEMENTS.filter((a) => a.user_id === INITIAL_USER.id));
       }
 
-      // 6. Fetch club-wide profiles & memberships
-      const { data: allProfiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const { data: allMemberships } = await supabase
-        .from('club_memberships')
-        .select('*');
+      // 5. Fetch all club operational datasets concurrently via Promise.all
+      const [
+        { data: allProfiles },
+        { data: allMemberships },
+        { data: allRoles },
+        { data: posData },
+        { data: dbTasks },
+        { data: dbXp },
+        { data: dbRules },
+        { data: dbTx },
+        { data: dbMeetings },
+        { data: dbDepts },
+        { data: dbProjects },
+        { data: dbEvents },
+        { data: dbAnnouncements },
+        { data: dbDocs },
+        { data: dbFin },
+        { data: dbBudgets },
+        { data: dbPartners },
+        { data: dbCamps },
+        { data: dbInits },
+        { data: dbDecs },
+        { data: dbApps },
+        { data: dbLogs },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('club_memberships').select('*'),
+        supabase.from('user_roles').select('user_id, roles(key, display_name)'),
+        supabase.from('bureau_positions').select(`
+          id, key, display_name, description, order_index,
+          user_bureau_positions (
+            user_id,
+            profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
+          )
+        `).order('order_index', { ascending: true }),
+        supabase.from('tasks').select(`
+          *,
+          department:departments(*),
+          project:projects(*),
+          creator:profiles!tasks_creator_id_fkey(*),
+          task_assignees(user_id, profiles(*))
+        `).order('created_at', { ascending: false }),
+        supabase.from('member_xp').select('*, profile:profiles(*)').order('total_xp', { ascending: false }),
+        supabase.from('xp_rules').select('*').order('points', { ascending: true }),
+        supabase.from('xp_transactions').select('*, user:profiles!xp_transactions_user_id_fkey(*)').order('created_at', { ascending: false }),
+        supabase.from('meetings').select(`
+          *,
+          organizer:profiles!meetings_organizer_id_fkey(*),
+          department:departments(*),
+          recordings:meeting_recordings(*),
+          transcripts:meeting_transcripts(*, segments:meeting_transcript_segments(*)),
+          summaries:meeting_summaries(*),
+          action_items:meeting_action_items(*)
+        `).order('starts_at', { ascending: false }),
+        supabase.from('departments').select('*').order('name'),
+        supabase.from('projects').select('*, owner:profiles!projects_owner_id_fkey(*)').order('created_at', { ascending: false }),
+        supabase.from('events').select('*, organizer:profiles!events_organizer_id_fkey(*), department:departments(*)').order('starts_at', { ascending: true }),
+        supabase.from('announcements').select('*, author:profiles!announcements_author_id_fkey(*), department:departments(*)').order('created_at', { ascending: false }),
+        supabase.from('documents').select('*, uploader:profiles!documents_uploaded_by_fkey(*), department:departments(*)').order('created_at', { ascending: false }),
+        supabase.from('financial_transactions').select('*').order('date', { ascending: false }),
+        supabase.from('budgets').select('*').order('created_at', { ascending: false }),
+        supabase.from('partners').select('*').order('created_at', { ascending: false }),
+        supabase.from('marketing_campaigns').select('*').order('planned_date', { ascending: true }),
+        supabase.from('sustainability_initiatives').select('*').order('created_at', { ascending: false }),
+        supabase.from('decisions').select('*').order('decided_at', { ascending: false }),
+        supabase.from('recruitment_applications').select('*').order('created_at', { ascending: false }),
+        supabase.from('audit_logs').select('*, actor:profiles!audit_logs_actor_id_fkey(*)').order('created_at', { ascending: false }).limit(50),
+      ]);
 
       if (allProfiles && allProfiles.length > 0) {
-        const { data: allRoles } = await supabase
-          .from('user_roles')
-          .select('user_id, roles(key, display_name)');
-
         const formatted: Profile[] = allProfiles.map((p) => {
           const userRole = allRoles?.find((r) => r.user_id === p.id);
           const rKey = (userRole?.roles as any)?.key || 'member';
@@ -469,18 +512,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setMembers([]);
       }
 
-      // 7. Fetch all bureau positions & assigned officers
-      const { data: posData } = await supabase
-        .from('bureau_positions')
-        .select(`
-          id, key, display_name, description, order_index,
-          user_bureau_positions (
-            user_id,
-            profiles!user_bureau_positions_user_id_fkey ( id, full_name, avatar_path, student_id )
-          )
-        `)
-        .order('order_index', { ascending: true });
-
       if (posData && posData.length > 0) {
         const mappedBureau: BureauMemberAssignment[] = posData.map((bp: any) => {
           const assignment = bp.user_bureau_positions?.[0];
@@ -499,18 +530,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setBureauMembers([]);
       }
 
-      // 8. Fetch live tasks with assignees
-      const { data: dbTasks } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          department:departments(*),
-          project:projects(*),
-          creator:profiles!tasks_creator_id_fkey(*),
-          task_assignees(user_id, profiles(*))
-        `)
-        .order('created_at', { ascending: false });
-
       if (dbTasks && dbTasks.length > 0) {
         const mappedTasks: Task[] = dbTasks
           .filter((t: any) => !t.is_deleted)
@@ -523,40 +542,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTasks([]);
       }
 
-      // 9. Fetch XP leaderboard data
-      const { data: dbXp } = await supabase
-        .from('member_xp')
-        .select('*, profile:profiles(*)')
-        .order('total_xp', { ascending: false });
       setMemberXpList(dbXp || []);
-
-      // 10. Fetch XP rules
-      const { data: dbRules } = await supabase
-        .from('xp_rules')
-        .select('*')
-        .order('points', { ascending: true });
       setXpRules(dbRules || []);
-
-      // 11. Fetch XP transactions
-      const { data: dbTx } = await supabase
-        .from('xp_transactions')
-        .select('*, user:profiles!xp_transactions_user_id_fkey(*)')
-        .order('created_at', { ascending: false });
       setXpTransactions(dbTx || []);
-
-      // 12. Fetch live meetings with recordings, transcripts, summaries & action items
-      const { data: dbMeetings } = await supabase
-        .from('meetings')
-        .select(`
-          *,
-          organizer:profiles!meetings_organizer_id_fkey(*),
-          department:departments(*),
-          recordings:meeting_recordings(*),
-          transcripts:meeting_transcripts(*, segments:meeting_transcript_segments(*)),
-          summaries:meeting_summaries(*),
-          action_items:meeting_actions(*)
-        `)
-        .order('starts_at', { ascending: false });
 
       if (dbMeetings && dbMeetings.length > 0) {
         const mappedMeetings: Meeting[] = dbMeetings
@@ -594,61 +582,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setMeetings([]);
       }
 
-      // 13. Fetch departments
-      const { data: dbDepts } = await supabase.from('departments').select('*').order('name');
       setDepartments(dbDepts || []);
-
-      // 14. Fetch projects
-      const { data: dbProjects } = await supabase
-        .from('projects')
-        .select('*, owner:profiles!projects_owner_id_fkey(*)')
-        .order('created_at', { ascending: false });
       setProjects((dbProjects || []).filter((p: any) => !p.is_deleted));
-
-      // 15. Fetch events
-      const { data: dbEvents } = await supabase
-        .from('events')
-        .select('*, organizer:profiles!events_organizer_id_fkey(*), department:departments(*)')
-        .order('starts_at', { ascending: true });
       setEvents((dbEvents || []).filter((e: any) => !e.is_deleted));
-
-      // 16. Fetch announcements
-      const { data: dbAnnouncements } = await supabase
-        .from('announcements')
-        .select('*, author:profiles!announcements_author_id_fkey(*), department:departments(*)')
-        .order('created_at', { ascending: false });
       setAnnouncements(dbAnnouncements || []);
-
-      // 17. Fetch documents
-      const { data: dbDocs } = await supabase
-        .from('documents')
-        .select('*, uploader:profiles!documents_uploaded_by_fkey(*), department:departments(*)')
-        .order('created_at', { ascending: false });
       setDocuments(dbDocs || []);
-
-      // 18. Fetch role-specific operational workspace tables
-      const { data: dbFin } = await supabase.from('financial_transactions').select('*').order('date', { ascending: false });
       setTransactions(dbFin || []);
-
-      const { data: dbBudgets } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
       setBudgets(dbBudgets || []);
-
-      const { data: dbPartners } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
       setPartners(dbPartners || []);
-
-      const { data: dbCamps } = await supabase.from('marketing_campaigns').select('*').order('planned_date', { ascending: true });
       setCampaigns(dbCamps || []);
-
-      const { data: dbInits } = await supabase.from('sustainability_initiatives').select('*').order('created_at', { ascending: false });
       setInitiatives(dbInits || []);
-
-      const { data: dbDecs } = await supabase.from('decisions').select('*').order('decided_at', { ascending: false });
       setDecisions(dbDecs || []);
-
-      const { data: dbApps } = await supabase.from('recruitment_applications').select('*').order('created_at', { ascending: false });
       setRecruitmentApps(dbApps || []);
-
-      const { data: dbLogs } = await supabase.from('audit_logs').select('*, actor:profiles!audit_logs_actor_id_fkey(*)').order('created_at', { ascending: false }).limit(50);
       setAuditLogs(dbLogs || []);
     } catch (err) {
       console.error('Error fetching Supabase auth, tasks & XP data:', err);

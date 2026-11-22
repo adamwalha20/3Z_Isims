@@ -53,10 +53,10 @@ export default function EventsPage() {
   const [scheduleFilter, setScheduleFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [selectedDayIso, setSelectedDayIso] = useState<string | null>(null);
 
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date('2026-11-16T12:00:00Z'));
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date('2026-11-16T12:00:00Z'));
-  const [todayIso, setTodayIso] = useState<string>('2026-11-16');
-  const [nowTimestamp, setNowTimestamp] = useState<number>(() => new Date('2026-11-16T12:00:00Z').getTime());
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [todayIso, setTodayIso] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [nowTimestamp, setNowTimestamp] = useState<number>(() => Date.now());
 
   const [showQRPass, setShowQRPass] = useState(false);
   const [passEvent, setPassEvent] = useState<EventItem | null>(null);
@@ -106,6 +106,14 @@ export default function EventsPage() {
     setCurrentDate(now);
     setSelectedDate(now);
     setTodayIso(now.toISOString().split('T')[0]);
+
+    // Live sync timer: keep time accurate every minute without page refresh
+    const timer = setInterval(() => {
+      const liveNow = new Date();
+      setNowTimestamp(liveNow.getTime());
+      setTodayIso(liveNow.toISOString().split('T')[0]);
+    }, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const openEditModal = (event: EventItem) => {

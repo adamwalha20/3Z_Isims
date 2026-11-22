@@ -28,13 +28,28 @@ import {
   Compass,
 } from 'lucide-react';
 
+interface NavDrawerItem {
+  label: string;
+  href: string;
+  icon: string;
+  desc?: string;
+  badge?: string;
+  highlight?: boolean;
+}
+
+interface NavDrawerSection {
+  title: string;
+  items: NavDrawerItem[];
+}
+
 export default function BottomNav() {
   const pathname = usePathname();
   const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const { t, isRtl } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdminEmail(user?.email) || isAdmin;
+  const isSuperAdmin = isSuperAdminEmail(user?.email) || isAdmin || activeRole === 'admin';
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
   const canScan = canAccessAttendanceScanner({
     activeRole,
     isAdmin,
@@ -52,7 +67,7 @@ export default function BottomNav() {
   ];
 
   // All pages grouped for the expanded mobile drawer
-  const navigationSections = [
+  const navigationSections: NavDrawerSection[] = [
     {
       title: t('common.appName'),
       items: [
@@ -82,16 +97,23 @@ export default function BottomNav() {
           },
         ]
       : []),
+    ...(isSuperAdmin
+      ? [
+          {
+            title: t('nav.adminControls'),
+            items: [
+              { label: t('nav.adminGovernance'), href: '/admin', icon: 'admin_panel_settings', desc: t('bureau.subtitle'), badge: 'Admin' },
+              { label: t('nav.auditLogs'), href: '/admin/audit-logs', icon: 'security', desc: t('admin.auditLogs') || 'Audit logs' },
+              { label: t('nav.memberApprovals'), href: '/admin/members', icon: 'verified', desc: t('members.subtitle') },
+              { label: t('bureau.mandatesTab', { count: 12 }), href: '/admin/roles', icon: 'shield_person', desc: t('bureau.subtitle') },
+            ],
+          },
+        ]
+      : []),
     {
-      title: t('nav.adminControls'),
+      title: t('nav.profile'),
       items: [
         { label: t('nav.profile'), href: '/profile', icon: 'qr_code_2', desc: t('profile.subtitle') },
-        ...(isSuperAdminEmail(user?.email)
-          ? [
-              { label: t('nav.adminGovernance'), href: '/admin', icon: 'admin_panel_settings', desc: t('bureau.subtitle'), badge: 'Admin' },
-              { label: t('bureau.mandatesTab', { count: 12 }), href: '/admin/roles', icon: 'shield_person', desc: t('bureau.subtitle') },
-            ]
-          : []),
         { label: t('nav.signIn'), href: '/login', icon: 'login', desc: t('auth.loginSubtitle') },
         { label: t('nav.studentRegistration'), href: '/signup', icon: 'person_add', desc: t('auth.signupSubtitle'), highlight: true },
       ],
