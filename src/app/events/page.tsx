@@ -53,10 +53,10 @@ export default function EventsPage() {
   const [scheduleFilter, setScheduleFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [selectedDayIso, setSelectedDayIso] = useState<string | null>(null);
 
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
-  const [todayIso, setTodayIso] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [nowTimestamp, setNowTimestamp] = useState<number>(() => Date.now());
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date('2026-11-22T00:00:00Z'));
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date('2026-11-22T00:00:00Z'));
+  const [todayIso, setTodayIso] = useState<string>('2026-11-22');
+  const [nowTimestamp, setNowTimestamp] = useState<number>(() => new Date('2026-11-22T00:00:00Z').getTime());
 
   const [showQRPass, setShowQRPass] = useState(false);
   const [passEvent, setPassEvent] = useState<EventItem | null>(null);
