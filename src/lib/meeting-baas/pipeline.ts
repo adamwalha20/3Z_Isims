@@ -284,20 +284,20 @@ export async function executeMeetingProcessingPipeline(
 
         // 10. Persist structured AI Summary
         const summaryContentForLegacy = {
-          overview: analysisResult.executive_summary.purpose,
-          key_topics: analysisResult.topics.map((t: any) => t.title),
-          important_updates: analysisResult.important_notes.announcements,
-          decisions: analysisResult.decisions.map((d: any) => d.title),
-          challenges: analysisResult.important_notes.risks_and_challenges,
-          questions: analysisResult.important_notes.unresolved_questions,
-          action_items: analysisResult.action_items.map((a: any) => ({
+          overview: analysisResult.executive_summary?.purpose || analysisResult.executive_summary?.conclusion || '',
+          key_topics: (analysisResult.topics || []).map((t: any) => t.title),
+          important_updates: analysisResult.important_notes?.announcements || [],
+          decisions: (analysisResult.decisions || []).map((d: any) => d.title),
+          challenges: analysisResult.important_notes?.risks_and_challenges || [],
+          questions: analysisResult.important_notes?.unresolved_questions || [],
+          action_items: (analysisResult.action_items || []).map((a: any) => ({
             title: a.title,
             task: a.title,
-            assignee: a.suggested_assignee,
-            deadline: a.deadline,
-            transcript_timestamp: `${Math.floor(a.timestamp_seconds / 60)}:${String(Math.floor(a.timestamp_seconds % 60)).padStart(2, '0')}`,
+            assignee: a.suggested_assignee || 'Unassigned',
+            deadline: a.deadline || 'Not specified',
+            transcript_timestamp: `${Math.floor((a.timestamp_seconds || 0) / 60)}:${String(Math.floor((a.timestamp_seconds || 0) % 60)).padStart(2, '0')}`,
           })),
-          next_steps: analysisResult.next_meeting.proposed_agenda,
+          next_steps: analysisResult.next_meeting?.proposed_agenda || [],
         };
 
         const { data: summaryRecord } = await supabase

@@ -36,7 +36,7 @@ async function executeSyncForMeeting(meetingId: string) {
     .eq('meeting_id', meetingId)
     .maybeSingle();
 
-  if (meeting.recording_status === 'completed' && existingTranscript && existingSummary) {
+  if ((meeting.recording_status === 'completed' || meeting.recording_status === 'available') && existingTranscript && existingSummary) {
     return NextResponse.json({
       success: true,
       isReady: true,
@@ -95,12 +95,13 @@ async function executeSyncForMeeting(meetingId: string) {
   let botStatus = botSession?.bot_status || 'unknown';
   try {
     const details = await getBotDetails(botId);
-    const botData: any = details?.data;
+    const botData: any = details?.data || details;
     botStatus = botData?.status || botData?.bot?.status || botStatus;
     isFinished =
       botStatus === 'completed' ||
       botStatus === 'done' ||
       botStatus === 'ended' ||
+      Boolean(botData?.video) ||
       Boolean(botData?.output_transcription) ||
       Boolean(botData?.transcription) ||
       Boolean(botData?.mp4) ||
@@ -190,11 +191,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Check meeting permissions
-    const { data: meeting } = await supabase
+    let { data: meeting } = await supabase
       .from('meetings')
       .select('*')
       .eq('id', meetingId)
-      .single();
+      .maybeSingle();
+
+    if (!meeting) {
+      const { data: adminMeeting } = await getSupabaseAdmin()
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .maybeSingle();
+      meeting = adminMeeting;
+    }
 
     if (!meeting) {
       return NextResponse.json({ success: false, error: 'Meeting not found' }, { status: 404 });

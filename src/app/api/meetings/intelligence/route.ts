@@ -22,13 +22,22 @@ export async function GET(req: NextRequest) {
     const adminDb = getSupabaseAdmin();
 
     // 1. Fetch meeting & verify permission
-    const { data: meeting, error: meetErr } = await adminDb
+    let { data: meeting, error: meetErr } = await adminDb
       .from('meetings')
       .select('*, organizer:profiles!meetings_organizer_id_fkey(id, email, full_name, avatar_path)')
       .eq('id', meetingId)
-      .single();
+      .maybeSingle();
 
-    if (meetErr || !meeting) {
+    if (!meeting && user) {
+      const { data: userMeeting } = await supabase
+        .from('meetings')
+        .select('*, organizer:profiles!meetings_organizer_id_fkey(id, email, full_name, avatar_path)')
+        .eq('id', meetingId)
+        .maybeSingle();
+      meeting = userMeeting;
+    }
+
+    if (!meeting) {
       return NextResponse.json({ success: false, error: 'Meeting not found' }, { status: 404 });
     }
 
