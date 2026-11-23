@@ -8,7 +8,6 @@
 export const ADMIN_EMAILS = [
   'adamwalha20@gmail.com',
   'adamwalha.isims@gmail.com',
-  'adamwalha2@gmail.com',
 ] as const;
 
 export const RESTRICTED_NON_ADMIN_EMAILS = [
@@ -28,10 +27,7 @@ export function isSuperAdminEmail(email?: string | null): boolean {
   if (RESTRICTED_NON_ADMIN_EMAILS.some((r) => r.toLowerCase() === lower)) {
     return false;
   }
-  return (
-    ADMIN_EMAILS.some((a) => a.toLowerCase() === lower) ||
-    lower.startsWith('adamwalha')
-  );
+  return ADMIN_EMAILS.some((a) => a.toLowerCase() === lower);
 }
 
 export function isScannerAuthorizedPosition(positionKey?: string | null): boolean {

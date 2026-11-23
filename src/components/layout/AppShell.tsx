@@ -25,7 +25,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   } = useAuth();
 
   // If user is authenticated but pending approval, display approval notice gate
-  if (isAuthenticated && !isApproved && !isAdmin && !needsOnboarding) {
+  if (isAuthenticated && !isApproved && !isAdmin) {
+    if (needsOnboarding) {
+      return (
+        <div className="min-h-screen bg-[#f4f9f6] flex items-center justify-center p-4">
+          <OnboardingModal />
+        </div>
+      );
+    }
     return <PendingApprovalScreen />;
   }
 

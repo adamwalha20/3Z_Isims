@@ -28,7 +28,6 @@ export const EXECUTIVE_BOARD_POSITIONS: readonly BureauPositionKey[] = [
 export const ADMIN_EMAILS: readonly string[] = [
   'adamwalha20@gmail.com',
   'adamwalha.isims@gmail.com',
-  'adamwalha2@gmail.com',
 ] as const;
 
 export const POSITION_TO_DEPARTMENT_SLUG: Record<BureauPositionKey, string> = {
@@ -55,5 +54,5 @@ export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
   const lower = email.toLowerCase().trim();
   if (lower === 'mahdihelmin@gmail.com') return false; // Explicit restricted test user
-  return ADMIN_EMAILS.some((a) => a.toLowerCase() === lower) || lower.startsWith('adamwalha');
+  return ADMIN_EMAILS.some((a) => a.toLowerCase() === lower);
 }
