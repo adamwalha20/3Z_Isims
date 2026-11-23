@@ -28,6 +28,7 @@ import {
   Users,
   Megaphone,
 } from 'lucide-react';
+import MemberQRCard from '@/components/attendance/MemberQRCard';
 import {
   BureauPositionSelector,
   PresidentCockpit,
@@ -770,28 +771,21 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* QR Pass Modal */}
+      {/* QR Pass Modal - Real Cryptographic Pass identical to QR Attendance */}
       {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-lg border border-slate-200 flex flex-col items-center gap-3 text-center">
-            <h3 className="font-semibold text-sm text-slate-900">3ZERO Club Official ID Pass</h3>
-            <p className="text-xs text-slate-500">Scan at entrance for automated event registration & attendance verification.</p>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <QrCode className="w-48 h-48 text-emerald-950" />
-            </div>
-            <div className="font-mono text-xs text-slate-600">
-              {user?.student_id || 'ISIMS-MEMBER'} • {user?.full_name || 'Student Member'}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-mono">
-              <Clock className="w-3.5 h-3.5 animate-spin" />
-              <span>Refreshes in {countdown}s</span>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative max-w-md w-full">
             <button
               onClick={() => setShowQRModal(false)}
-              className="w-full py-2 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors"
+              className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 shadow-md text-sm font-bold transition-transform hover:scale-110"
+              title="Close Pass"
             >
-              Close Pass
+              ✕
             </button>
+            <MemberQRCard
+              user={user}
+              bureauPositions={userBureauPositions}
+            />
           </div>
         </div>
       )}
