@@ -20,9 +20,9 @@ import {
 import { isSuperAdminEmail } from '@/lib/constants/auth';
 
 export default function AdminGovernancePage() {
-  const { user, auditLogs, members, bureauMembers } = useAuth();
+  const { user, auditLogs, members, bureauMembers, activeRole, isAdmin } = useAuth();
 
-  const isAuthorized = isSuperAdminEmail(user?.email);
+  const isAuthorized = activeRole === 'admin' && (isAdmin || isSuperAdminEmail(user?.email));
 
   const pendingMembers = members.filter(
     (m) => m.membership?.membership_status === 'pending' && !isSuperAdminEmail(m.email)

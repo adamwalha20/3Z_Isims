@@ -14,8 +14,9 @@ export function canAccessPage(
     return { allowed: false, redirectPath: '/login', reason: 'Authentication required' };
   }
 
-  // Super Admin can access all pages
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') {
+  // Super Admin can access all pages ONLY when in active admin role
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin')) {
     return { allowed: true };
   }
 
@@ -62,12 +63,14 @@ export function canAccessPage(
 
 export function canAccessAdminPanel(ctx: UserPermissionContext | null | undefined): boolean {
   if (!ctx) return false;
-  return isSuperAdminEmail(ctx.email) || ctx.role === 'admin';
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  return effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin');
 }
 
 export function canViewTask(ctx: UserPermissionContext | null | undefined, task?: any): boolean {
   if (!ctx) return false;
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin') return true;
 
   // If task has a department, check department isolation
   if (task?.department_id || task?.department_slug) {

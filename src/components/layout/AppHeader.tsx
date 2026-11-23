@@ -28,12 +28,12 @@ import {
 export default function AppHeader() {
   const router = useRouter();
   const { t, isRtl } = useTranslation();
-  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead, signOut } = useAuth();
+  const { user, activeRole, setActiveRole, activeBureauPosition, setActiveBureauPosition, bureauMembers, notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead, signOut, isRealAdmin } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   const unreadCount = unreadNotificationCount ?? notifications.filter((n) => !n.is_read && !n.read_at).length;
-  const isSuperAdmin = isSuperAdminEmail(user?.email);
+  const isSuperAdmin = isRealAdmin || isSuperAdminEmail(user?.email);
 
   const handleNotificationClick = (n: NotificationItem) => {
     markNotificationRead(n.id);
@@ -65,24 +65,27 @@ export default function AppHeader() {
   };
 
   const allRoleOptions: { key: ActiveRole; label: string; desc: string; icon: string }[] = [
-    { key: 'bureau', label: 'Bureau Officer', desc: 'Full operational & publishing privileges', icon: 'verified_user' },
-    { key: 'admin', label: 'Administrator', desc: 'Membership approval & governance logs', icon: 'shield_person' },
+    { key: 'admin', label: 'Administrator (Super Admin)', desc: 'Membership approval & governance logs', icon: 'shield_person' },
+    { key: 'member', label: 'Active Member (Student View)', desc: 'Student view, assigned tasks & badge pass', icon: 'person' },
     { key: 'lead', label: 'Department Lead', desc: 'Manage Training & Innovation unit', icon: 'stars' },
-    { key: 'member', label: 'Active Member', desc: 'Student view, assigned tasks & badge pass', icon: 'person' },
+    { key: 'bureau', label: 'Bureau Officer (All Workspaces)', desc: 'Full operational & publishing privileges', icon: 'verified_user' },
   ];
 
   const roleOptions = allRoleOptions.filter((r) => r.key !== 'admin' || isSuperAdmin);
 
   const bureauPositionBase = [
+    { key: 'president', label: 'President', icon: 'verified' },
     { key: 'vice_president', label: 'Vice President', icon: 'shield_with_heart' },
     { key: 'secretary_general', label: 'Secretary General', icon: 'history_edu' },
     { key: 'treasurer', label: 'Treasurer', icon: 'payments' },
+    { key: 'training_innovation', label: 'Training & Innovation', icon: 'psychology' },
     { key: 'hr_manager', label: 'HR Manager', icon: 'badge' },
     { key: 'marketing_design_manager', label: 'Marketing & Design', icon: 'palette' },
     { key: 'sustainable_campus_manager', label: 'Sustainable Campus', icon: 'eco' },
+    { key: 'communication_engagement_manager', label: 'Communication & Engagement', icon: 'campaign' },
     { key: 'events_manager', label: 'Events Manager', icon: 'event' },
     { key: 'project_manager', label: 'Project Manager', icon: 'rocket_launch' },
-    { key: 'partnerships_sponsorship_manager', label: 'Partnerships Lead', icon: 'handshake' },
+    { key: 'partnerships_sponsorship_manager', label: 'Partnerships & Sponsorship', icon: 'handshake' },
     { key: 'all', label: 'All Bureau Modules', icon: 'dashboard' },
   ];
 
@@ -96,10 +99,17 @@ export default function AppHeader() {
     };
   });
 
-  const currentDisplayTitle =
-    activeRole === 'bureau' && activeBureauPosition !== 'all'
-      ? activeBureauPosition.replace(/_/g, ' ')
-      : `${activeRole} role`;
+  const currentDisplayTitle = (() => {
+    if (activeRole === 'admin') return 'Admin Role';
+    if (activeRole === 'member') return 'Preview: Member';
+    if (activeRole === 'lead') return 'Preview: Dept Lead';
+    if (activeRole === 'bureau') {
+      if (activeBureauPosition === 'all') return 'Preview: Bureau (All)';
+      const found = bureauPositionBase.find((p) => p.key === activeBureauPosition);
+      return `Preview: ${found ? found.label : activeBureauPosition.replace(/_/g, ' ')}`;
+    }
+    return `${activeRole} role`;
+  })();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -125,16 +135,36 @@ export default function AppHeader() {
           <div className="relative">
             <button
               onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium transition-colors shadow-xs"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                activeRole === 'admin'
+                  ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                  : 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900 font-semibold'
+              }`}
               title={t('nav.switchRoleSimulation')}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${activeRole === 'admin' ? 'bg-emerald-600' : 'bg-amber-600 animate-pulse'}`}></span>
               <span className="capitalize truncate max-w-[140px] sm:max-w-none">{currentDisplayTitle}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             {showRoleDropdown && (
-              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 p-1.5 z-50 max-h-[80vh] overflow-y-auto no-scrollbar">
+              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 max-h-[85vh] overflow-y-auto no-scrollbar">
+                {activeRole !== 'admin' && (
+                  <div className="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-amber-900">Simulation Active</span>
+                    <button
+                      onClick={() => {
+                        setActiveRole('admin');
+                        setActiveBureauPosition('all');
+                        setShowRoleDropdown(false);
+                      }}
+                      className="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold shadow-xs transition-colors"
+                    >
+                      Reset to Admin
+                    </button>
+                  </div>
+                )}
+
                 <div className="px-2 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                   {t('nav.securityRoleMode')}
                 </div>
@@ -145,8 +175,8 @@ export default function AppHeader() {
                       setActiveRole(role.key);
                       if (role.key !== 'bureau') {
                         setActiveBureauPosition('all');
-                        setShowRoleDropdown(false);
                       }
+                      setShowRoleDropdown(false);
                     }}
                     className={`w-full text-left p-2 rounded-lg flex items-center gap-2.5 transition-colors ${
                       activeRole === role.key ? 'bg-emerald-50 text-emerald-900 font-semibold' : 'hover:bg-slate-50 text-slate-700'
@@ -162,7 +192,7 @@ export default function AppHeader() {
 
                 {/* Functional Bureau Positions Switcher */}
                 <div className="px-2 pt-2.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-1.5">
-                  {t('nav.bureauWorkspaces')}
+                  All 12 Bureau Executive Mandates
                 </div>
                 <div className="grid grid-cols-1 gap-0.5">
                   {bureauPositionList.map((bp) => (
@@ -174,8 +204,8 @@ export default function AppHeader() {
                         setShowRoleDropdown(false);
                       }}
                       className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-colors ${
-                        activeBureauPosition === bp.key
-                          ? 'bg-emerald-700 text-white font-semibold'
+                        activeRole === 'bureau' && activeBureauPosition === bp.key
+                          ? 'bg-emerald-700 text-white font-semibold shadow-xs'
                           : 'text-slate-700 hover:bg-slate-50'
                       }`}
                     >
@@ -197,8 +227,8 @@ export default function AppHeader() {
             <span className="text-[11px] font-medium tracking-wide">{t('nav.nfcPass')}</span>
           </div>
 
-          {/* Quick Admin Role Management Shortcut */}
-          {isSuperAdmin && (
+          {/* Quick Admin Role Management Shortcut (only visible in Admin Mode) */}
+          {isSuperAdmin && activeRole === 'admin' && (
             <Link
               href="/admin/roles"
               className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200/70 text-rose-700 text-xs font-medium transition-colors"

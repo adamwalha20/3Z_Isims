@@ -84,6 +84,7 @@ interface AuthContextType {
   isLoading: boolean;
   isLiveSupabase: boolean;
   isAdmin: boolean;
+  isRealAdmin: boolean;
 
   // Data store state
   tasks: Task[];
@@ -3565,6 +3566,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const isRealAdmin = Boolean(
+    isSuperAdminEmail(user?.email) ||
+    Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'))
+  );
+
+  const effectiveAdmin = isRealAdmin
+    ? activeRole === 'admin'
+    : (activeRole === 'admin' && Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')));
+
+  const effectiveBureauPositions = activeRole === 'bureau'
+    ? (activeBureauPosition !== 'all' ? [activeBureauPosition] : (userBureauPositions.length > 0 ? userBureauPositions : ['all']))
+    : [];
+
   return (
     <AuthContext.Provider
       value={{
@@ -3573,12 +3587,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setActiveRole,
         activeBureauPosition,
         setActiveBureauPosition,
-        userBureauPositions,
+        userBureauPositions: effectiveBureauPositions,
         isAuthenticated,
         isApproved,
         isLoading,
         isLiveSupabase,
-        isAdmin: isSuperAdminEmail(user?.email) || Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')) || activeRole === 'admin',
+        isAdmin: effectiveAdmin,
+        isRealAdmin,
         tasks,
         projects,
         events,

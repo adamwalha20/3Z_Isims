@@ -31,13 +31,13 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const { t, isRtl } = useTranslation();
-  const { activeRole, user, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
-  const isSuperAdmin = isSuperAdminEmail(user?.email) || isAdmin;
-  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
+  const { activeRole, user, isAdmin, isRealAdmin, userBureauPositions, activeBureauPosition } = useAuth();
+  const isSuperAdmin = activeRole === 'admin' && (isRealAdmin || isAdmin || isSuperAdminEmail(user?.email));
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
   const canScan = canAccessAttendanceScanner({
     activeRole,
-    isAdmin,
-    userEmail: user?.email,
+    isAdmin: isSuperAdmin,
+    userEmail: isSuperAdmin ? user?.email : null,
     userBureauPositions,
     activeBureauPosition,
   });

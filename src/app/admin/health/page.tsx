@@ -79,10 +79,10 @@ export default function AdminSystemHealthPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isAuthorized =
-    isAdmin ||
-    activeRole === 'admin' ||
-    isSuperAdminEmail(user?.email) ||
-    Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
+    activeRole === 'admin' &&
+    (isAdmin ||
+      isSuperAdminEmail(user?.email) ||
+      Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')));
 
   const fetchHealth = async () => {
     setIsRefreshing(true);

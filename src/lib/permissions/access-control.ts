@@ -18,8 +18,9 @@ export interface UserPermissionContext {
 export function hasPermission(ctx: UserPermissionContext | null | undefined, permission: PermissionKey): boolean {
   if (!ctx) return false;
 
-  // 1. Super Admin has all permissions
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') {
+  // 1. Super Admin has all permissions ONLY when active role is 'admin' (or when no explicit role is provided)
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin')) {
     return true;
   }
 

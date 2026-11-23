@@ -59,30 +59,32 @@ export function canAccessAttendanceScanner({
   userBureauPositions,
   activeBureauPosition,
 }: ScannerAuthCheckParams): boolean {
-  // 1. Club super administrator
-  if (isSuperAdminEmail(userEmail)) {
-    return true;
-  }
-  if (isAdmin === true) {
-    return true;
-  }
-  if (activeRole === 'admin') {
-    return true;
+  // 1. If actively simulating member or lead, explicitly disallow scanner
+  if (activeRole === 'member' || activeRole === 'lead') {
+    return false;
   }
 
   // 2. Active bureau position check (for simulation / active role switching)
-  if (activeBureauPosition) {
-    if (isScannerAuthorizedPosition(activeBureauPosition)) {
-      return true;
-    }
+  if (activeRole === 'bureau' && activeBureauPosition && activeBureauPosition !== 'all') {
+    return isScannerAuthorizedPosition(activeBureauPosition);
   }
 
-  // 3. User's assigned bureau positions check
+  // 3. Admin mode (simulating admin or verified club administrator)
+  if (activeRole === 'admin' || (isAdmin === true && activeRole !== 'member')) {
+    return true;
+  }
+
+  // 4. User's assigned bureau positions check
   if (Array.isArray(userBureauPositions) && userBureauPositions.length > 0) {
     const hasAllowedPosition = userBureauPositions.some(isScannerAuthorizedPosition);
     if (hasAllowedPosition) {
       return true;
     }
+  }
+
+  // 5. Fallback for super administrator when not actively previewing a non-admin role
+  if (isSuperAdminEmail(userEmail) && (!activeRole || activeRole === 'admin')) {
+    return true;
   }
 
   return false;

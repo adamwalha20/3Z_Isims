@@ -38,6 +38,7 @@ export default function AdminMembersManagementPage() {
     user,
     isAdmin,
     activeRole,
+    activeBureauPosition,
     members,
     departments,
     auditLogs,
@@ -62,13 +63,14 @@ export default function AdminMembersManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Authorization check (Admin, HR Manager, President, Secretary General)
-  const isSuperAdmin = isSuperAdminEmail(user?.email);
-  const isAuthorized = isAdmin || activeRole === 'admin' || isSuperAdmin || activeRole === 'bureau';
+  const isSuperAdmin = activeRole === 'admin' && isSuperAdminEmail(user?.email);
+  const isAuthorized = activeRole === 'admin' || activeRole === 'bureau';
 
   const permCtx = {
     userId: user?.id,
     email: user?.email,
-    role: isAdmin ? 'admin' : activeRole,
+    role: activeRole,
+    activeBureauPosition,
   };
 
   const pendingMembers = useMemo(() => {

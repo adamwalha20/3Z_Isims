@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdmin, hasServiceRoleKey } from '@/lib/supabase/admin';
 import { isSuperAdminEmail, RESTRICTED_NON_ADMIN_EMAILS } from '@/lib/constants/auth';
 
 function isUuid(str: string): boolean {
@@ -55,15 +55,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Position key is required' }, { status: 400 });
     }
 
-    // Determine database client: prefer service-role admin client to prevent RLS false rejections
+    // Determine database client: use service-role admin client if configured, otherwise authenticated session client
     let db = supabase;
-    try {
-      const adminClient = getSupabaseAdmin();
-      if (adminClient) {
-        db = adminClient as any;
+    if (hasServiceRoleKey()) {
+      try {
+        const adminClient = getSupabaseAdmin();
+        if (adminClient) {
+          db = adminClient as any;
+        }
+      } catch (err) {
+        console.warn('Could not initialize service-role admin client, using authenticated session:', err);
       }
-    } catch {
-      // Fallback to session client if admin key not set
     }
 
     // 1. Fetch bureau position

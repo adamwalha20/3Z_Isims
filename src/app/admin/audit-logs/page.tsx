@@ -103,10 +103,10 @@ export default function AdminAuditLogsPage() {
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   const isAuthorized =
-    isAdmin ||
-    activeRole === 'admin' ||
-    isSuperAdminEmail(user?.email) ||
-    Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN'));
+    activeRole === 'admin' &&
+    (isAdmin ||
+      isSuperAdminEmail(user?.email) ||
+      Boolean(user?.student_id?.toUpperCase().startsWith('ISIMS-ADMIN')));
 
   const fetchLogs = async (page = 1) => {
     setIsLoading(true);

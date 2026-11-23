@@ -11,7 +11,8 @@ export function canAccessDepartment(
   targetDeptSlugOrId: string | null | undefined
 ): boolean {
   if (!ctx || !targetDeptSlugOrId) return false;
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin')) return true;
 
   const positions = new Set<string>();
   if (ctx.activeBureauPosition) positions.add(ctx.activeBureauPosition.toLowerCase());
@@ -56,7 +57,8 @@ export function canManageDepartment(
   targetDeptSlugOrId: string | null | undefined
 ): boolean {
   if (!ctx || !targetDeptSlugOrId) return false;
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin')) return true;
 
   const positions = new Set<string>();
   if (ctx.activeBureauPosition) positions.add(ctx.activeBureauPosition.toLowerCase());
@@ -82,7 +84,8 @@ export function canViewDepartmentDocument(
   }
 ): boolean {
   if (!ctx) return false;
-  if (isSuperAdminEmail(ctx.email) || ctx.role === 'admin') return true;
+  const effectiveRole = ctx.role || (isSuperAdminEmail(ctx.email) ? 'admin' : 'member');
+  if (effectiveRole === 'admin' && (isSuperAdminEmail(ctx.email) || ctx.role === 'admin')) return true;
 
   const vis = document.visibility || 'club';
   if (vis === 'public' || vis === 'club') return true;

@@ -43,7 +43,7 @@ interface BureauPositionRecord {
 
 export default function BureauAttendanceAnalyticsPage() {
   const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition, bureauMembers } = useAuth();
-  const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau' || isAdmin;
+  const isBureauOrAdmin = activeRole === 'admin' || activeRole === 'bureau';
   const canScan = canAccessAttendanceScanner({
     activeRole,
     isAdmin,

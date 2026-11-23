@@ -44,16 +44,16 @@ interface NavDrawerSection {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user, activeRole, isAdmin, userBureauPositions, activeBureauPosition } = useAuth();
+  const { user, activeRole, isAdmin, isRealAdmin, userBureauPositions, activeBureauPosition } = useAuth();
   const { t, isRtl } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isSuperAdmin = isSuperAdminEmail(user?.email) || isAdmin || activeRole === 'admin';
-  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin' || isSuperAdmin;
+  const isSuperAdmin = activeRole === 'admin' && (isRealAdmin || isAdmin || isSuperAdminEmail(user?.email));
+  const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
   const canScan = canAccessAttendanceScanner({
     activeRole,
-    isAdmin,
-    userEmail: user?.email,
+    isAdmin: isSuperAdmin,
+    userEmail: isSuperAdmin ? user?.email : null,
     userBureauPositions,
     activeBureauPosition,
   });

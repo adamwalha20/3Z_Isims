@@ -51,7 +51,7 @@ export default function AdminRecycleBinPage() {
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
-  const isAuthorized = isAdmin || activeRole === 'admin' || isSuperAdmin;
+  const isAuthorized = activeRole === 'admin' && (isAdmin || isSuperAdminEmail(user?.email));
 
   const fetchDeleted = async () => {
     setIsLoading(true);
