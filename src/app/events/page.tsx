@@ -30,6 +30,11 @@ import {
   AlertTriangle,
   RotateCcw,
   Shield,
+  Building,
+  Mic2,
+  Ticket,
+  Cpu,
+  Check,
 } from 'lucide-react';
 import { canEditEvent, canDeleteEvent, canAccessRecycleBin } from '@/lib/permissions/permission-checks';
 import { UserPermissionContext } from '@/lib/permissions/access-control';
@@ -380,10 +385,38 @@ export default function EventsPage() {
 
   // Event Preparation Checklist
   const [checklist, setChecklist] = useState([
-    { id: 'c1', textKey: 'events.checklistVenue', subKey: 'events.checklistVenueSub', done: true },
-    { id: 'c2', textKey: 'events.checklistKeynote', subKey: 'events.checklistKeynoteSub', done: true },
-    { id: 'c3', textKey: 'events.checklistBadges', subKey: 'events.checklistBadgesSub', done: false },
-    { id: 'c4', textKey: 'events.checklistAV', subKey: 'events.checklistAVSub', done: false },
+    {
+      id: 'c1',
+      textKey: 'events.checklistVenue',
+      subKey: 'events.checklistVenueSub',
+      done: true,
+      category: 'Venue & Admin',
+      icon: Building,
+    },
+    {
+      id: 'c2',
+      textKey: 'events.checklistKeynote',
+      subKey: 'events.checklistKeynoteSub',
+      done: true,
+      category: 'Keynotes & Panelists',
+      icon: Mic2,
+    },
+    {
+      id: 'c3',
+      textKey: 'events.checklistBadges',
+      subKey: 'events.checklistBadgesSub',
+      done: false,
+      category: 'Comms & Badges',
+      icon: Ticket,
+    },
+    {
+      id: 'c4',
+      textKey: 'events.checklistAV',
+      subKey: 'events.checklistAVSub',
+      done: false,
+      category: 'Livestream & IoT',
+      icon: Cpu,
+    },
   ]);
 
   const toggleChecklist = (id: string) => {
@@ -968,52 +1001,7 @@ export default function EventsPage() {
         )}
 
         {/* =========================================================================
-            5. EVENT READINESS LOG (AGENDA MODE ONLY)
-        ========================================================================= */}
-        {viewMode === 'agenda' && (
-          <div className="bg-white p-5 rounded-3xl shadow-xs border border-emerald-900/10 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
-                  <CheckSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900">{t('events.checklistTitle')}</h3>
-                  <p className="text-[11px] text-slate-500">{t('events.checklistSub')}</p>
-                </div>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-                {readinessPercent}% {t('events.readinessScore')}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-1">
-              {checklist.map((item) => (
-                <label
-                  key={item.id}
-                  onClick={() => toggleChecklist(item.id)}
-                  className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50/50 transition-colors cursor-pointer border border-slate-100"
-                >
-                  <input
-                    type="checkbox"
-                    checked={item.done}
-                    onChange={() => {}}
-                    className="mt-0.5 rounded text-emerald-700 focus:ring-0 cursor-pointer w-4 h-4"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-xs font-bold ${item.done ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                      {t(item.textKey)}
-                    </p>
-                    <p className="text-[10px] text-emerald-800 mt-0.5 font-medium">{t(item.subKey)}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================================
-            6. SESSIONS SCHEDULE FEED (DYNAMIC FILTER: UPCOMING VS PAST)
+            5. SESSIONS SCHEDULE FEED (UPCOMING CLUB SCHEDULE - PRIORITIZED FIRST)
         ========================================================================= */}
         <div className="flex flex-col gap-3 pt-2">
           {/* Header & Filter Controls */}
@@ -1215,6 +1203,119 @@ export default function EventsPage() {
           )}
         </div>
       </div>
+
+      {/* =========================================================================
+          6. EVENT OPERATIONAL CHECKLIST (REPOSITIONED BELOW SCHEDULE & REDESIGNED ELEGANTLY)
+      ========================================================================= */}
+      {viewMode === 'agenda' && (
+        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-emerald-900/10 flex flex-col gap-4 mt-2">
+          {/* Header with Title, Progress Bar, and Score Badge */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 shadow-xs">
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                      {t('events.checklistTitle')}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                      Logistics Ready
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">{t('events.checklistSub')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 font-extrabold text-xs shadow-xs border border-emerald-200/80">
+                  {readinessPercent}% {t('events.readinessScore')}
+                </span>
+              </div>
+            </div>
+
+            {/* Linear Visual Progress Gauge */}
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-xs"
+                style={{ width: `${readinessPercent}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 px-0.5">
+              <span>
+                {doneCount} of {checklist.length} sprint milestones completed
+              </span>
+              <span className="text-emerald-700 font-bold">
+                {readinessPercent === 100 ? 'All Systems Verified' : `${100 - readinessPercent}% remaining`}
+              </span>
+            </div>
+          </div>
+
+          {/* Checklist Items Stack */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            {checklist.map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => toggleChecklist(item.id)}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none group ${
+                    item.done
+                      ? 'bg-emerald-50/40 border-emerald-200/80 shadow-2xs'
+                      : 'bg-white border-slate-200/90 hover:border-emerald-300 hover:bg-slate-50/60 shadow-2xs'
+                  }`}
+                >
+                  {/* Custom Modern Checkbox Button */}
+                  <div
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                      item.done
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'border-2 border-slate-300 group-hover:border-emerald-500 bg-white'
+                    }`}
+                  >
+                    {item.done && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  </div>
+
+                  {/* Content */}
+                  <div className="min-w-0 flex-1 flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">
+                        <ItemIcon className="w-3 h-3 text-slate-500" />
+                        <span>{item.category}</span>
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                          item.done
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-900'
+                        }`}
+                      >
+                        {item.done ? 'Done' : 'Pending'}
+                      </span>
+                    </div>
+
+                    <p
+                      className={`text-xs font-bold leading-snug transition-colors ${
+                        item.done ? 'line-through text-slate-500 decoration-emerald-600/60' : 'text-slate-900'
+                      }`}
+                    >
+                      {t(item.textKey)}
+                    </p>
+
+                    <p className="text-[11px] text-emerald-800 font-medium">
+                      {t(item.subKey)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Edit Event Modal */}
       {isEditModalOpen && editingEvent && (
