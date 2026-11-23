@@ -58,6 +58,16 @@ export default function BottomNav() {
     activeBureauPosition,
   });
 
+  const isHrManager =
+    activeBureauPosition === 'hr_manager' ||
+    userBureauPositions?.includes('hr_manager') ||
+    activeBureauPosition === 'all' ||
+    activeBureauPosition === 'president' ||
+    activeBureauPosition === 'vice_president' ||
+    activeBureauPosition === 'secretary_general';
+
+  const canSeeMemberApprovalsInBureau = !isSuperAdmin && isHrManager;
+
   // Quick primary tabs for the bar matching simple general navigation: Home, Tasks, Ranking, Events
   const primaryTabs = [
     { label: t('nav.home'), href: '/', icon: 'home' },
@@ -87,6 +97,9 @@ export default function BottomNav() {
             items: [
               ...(canScan
                 ? [{ label: t('nav.attendanceScanner'), href: '/attendance/scanner', icon: 'camera_alt', desc: t('attendance.scannerSubtitle'), badge: 'Live' }]
+                : []),
+              ...(canSeeMemberApprovalsInBureau
+                ? [{ label: t('nav.memberApprovals'), href: '/admin/members', icon: 'verified', desc: t('members.subtitle'), badge: 'HR' }]
                 : []),
               { label: t('nav.bureauAttendance'), href: '/admin/attendance', icon: 'analytics', desc: t('admin.healthSubtitle') },
               { label: t('nav.projects'), href: '/projects', icon: 'rocket_launch', desc: t('projects.subtitle') },

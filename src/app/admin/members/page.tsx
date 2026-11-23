@@ -242,11 +242,10 @@ export default function AdminMembersManagementPage() {
         {/* Feedback Banner */}
         {feedback && (
           <div
-            className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between border shadow-xs animate-in fade-in duration-200 ${
-              feedback.type === 'success'
+            className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between border shadow-xs animate-in fade-in duration-200 ${feedback.type === 'success'
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                 : 'bg-rose-50 text-rose-900 border-rose-200'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2.5">
               {feedback.type === 'success' ? (
@@ -268,33 +267,29 @@ export default function AdminMembersManagementPage() {
             <div className="inline-flex p-1 bg-slate-100 rounded-2xl text-xs font-bold">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'all' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all ${activeTab === 'all' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 All Active ({members.filter((m) => m.membership?.membership_status !== 'removed').length})
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'pending' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all ${activeTab === 'pending' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Pending ({pendingMembers.length})
               </button>
               <button
                 onClick={() => setActiveTab('suspended')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'suspended' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all ${activeTab === 'suspended' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Suspended ({members.filter((m) => m.membership?.membership_status === 'suspended').length})
               </button>
               <button
                 onClick={() => setActiveTab('removed')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'removed' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all ${activeTab === 'removed' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Removed ({members.filter((m) => m.membership?.membership_status === 'removed').length})
               </button>
@@ -362,15 +357,14 @@ export default function AdminMembersManagementPage() {
                           </span>
                         )}
                         <span
-                          className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                            status === 'active'
+                          className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${status === 'active'
                               ? 'bg-emerald-100 text-emerald-800'
                               : status === 'pending'
-                              ? 'bg-amber-100 text-amber-800'
-                              : status === 'suspended'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}
+                                ? 'bg-amber-100 text-amber-800'
+                                : status === 'suspended'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-rose-100 text-rose-800'
+                            }`}
                         >
                           {status.toUpperCase()}
                         </span>
@@ -504,13 +498,12 @@ export default function AdminMembersManagementPage() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                      actionType === 'delete' || actionType === 'remove'
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center ${actionType === 'delete' || actionType === 'remove'
                         ? 'bg-rose-100 text-rose-700'
                         : actionType === 'suspend'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-emerald-100 text-emerald-700'
-                    }`}
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}
                   >
                     {actionType === 'delete' ? (
                       <Trash2 className="w-4 h-4" />
@@ -526,10 +519,10 @@ export default function AdminMembersManagementPage() {
                     {actionType === 'remove'
                       ? t('admin.confirmRemove')
                       : actionType === 'suspend'
-                      ? t('admin.confirmSuspend')
-                      : actionType === 'reactivate'
-                      ? t('admin.reactivateMember')
-                      : t('admin.confirmDelete')}
+                        ? t('admin.confirmSuspend')
+                        : actionType === 'reactivate'
+                          ? t('admin.reactivateMember')
+                          : t('admin.confirmDelete')}
                   </h3>
                 </div>
 
@@ -583,13 +576,12 @@ export default function AdminMembersManagementPage() {
                 <button
                   onClick={handleExecuteMemberAction}
                   disabled={isSubmitting}
-                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 ${
-                    actionType === 'delete' || actionType === 'remove'
+                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 ${actionType === 'delete' || actionType === 'remove'
                       ? 'bg-rose-700 hover:bg-rose-800'
                       : actionType === 'suspend'
-                      ? 'bg-purple-700 hover:bg-purple-800'
-                      : 'bg-emerald-700 hover:bg-emerald-800'
-                  }`}
+                        ? 'bg-purple-700 hover:bg-purple-800'
+                        : 'bg-emerald-700 hover:bg-emerald-800'
+                    }`}
                 >
                   <span>Confirm Action</span>
                 </button>

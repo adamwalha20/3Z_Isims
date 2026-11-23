@@ -31,7 +31,7 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const { t, isRtl } = useTranslation();
-  const { activeRole, user, isAdmin, isRealAdmin, userBureauPositions, activeBureauPosition } = useAuth();
+  const { activeRole, user, isAdmin, isRealAdmin, userBureauPositions, activeBureauPosition, members } = useAuth();
   const isSuperAdmin = activeRole === 'admin' && (isRealAdmin || isAdmin || isSuperAdminEmail(user?.email));
   const isBureauOrAdmin = activeRole === 'bureau' || activeRole === 'admin';
   const canScan = canAccessAttendanceScanner({
@@ -41,6 +41,17 @@ export default function Sidebar() {
     userBureauPositions,
     activeBureauPosition,
   });
+
+  const isHrManager =
+    activeBureauPosition === 'hr_manager' ||
+    userBureauPositions?.includes('hr_manager') ||
+    activeBureauPosition === 'all' ||
+    activeBureauPosition === 'president' ||
+    activeBureauPosition === 'vice_president' ||
+    activeBureauPosition === 'secretary_general';
+
+  const canSeeMemberApprovalsInBureau = !isSuperAdmin && isHrManager;
+  const pendingApprovalsCount = members?.filter((m) => m.membership?.membership_status === 'pending').length || 0;
 
   // General Navigation for all members
   const coreNavLinks = [
@@ -56,6 +67,16 @@ export default function Sidebar() {
   // Role-restricted management modules (Bureau & Admin only)
   const bureauNavLinks = [
     ...(canScan ? [{ label: t('nav.attendanceScanner'), href: '/attendance/scanner', icon: Camera, badge: 'Live' }] : []),
+    ...(canSeeMemberApprovalsInBureau
+      ? [
+          {
+            label: t('nav.memberApprovals'),
+            href: '/admin/members',
+            icon: UserCheck,
+            badge: pendingApprovalsCount > 0 ? `${pendingApprovalsCount}` : 'HR',
+          },
+        ]
+      : []),
     { label: t('nav.projects'), href: '/projects', icon: Rocket },
     { label: t('nav.documents'), href: '/documents', icon: FolderLock },
     { label: t('nav.departments'), href: '/departments', icon: Layers },
@@ -65,7 +86,12 @@ export default function Sidebar() {
   const adminLinks = [
     { label: t('nav.adminGovernance'), href: '/admin', icon: ShieldCheck },
     { label: t('nav.auditLogs'), href: '/admin/audit-logs', icon: ShieldAlert },
-    { label: t('nav.memberApprovals'), href: '/admin/members', icon: UserCheck },
+    {
+      label: t('nav.memberApprovals'),
+      href: '/admin/members',
+      icon: UserCheck,
+      badge: pendingApprovalsCount > 0 ? `${pendingApprovalsCount}` : undefined,
+    },
     { label: t('nav.bureauAttendance'), href: '/admin/attendance', icon: BarChart3 },
   ];
 
@@ -128,14 +154,37 @@ export default function Sidebar() {
                   href={item.href}
                   className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-slate-100 text-slate-900 font-semibold'
+                      ? item.href === '/admin/members'
+                        ? 'bg-rose-50 text-rose-900 font-semibold border border-rose-200/60'
+                        : 'bg-slate-100 text-slate-900 font-semibold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`} />
+                    <Icon
+                      className={`w-4 h-4 ${
+                        isActive
+                          ? item.href === '/admin/members'
+                            ? 'text-rose-600'
+                            : 'text-emerald-700'
+                          : item.href === '/admin/members'
+                          ? 'text-rose-500'
+                          : 'text-slate-400'
+                      }`}
+                    />
                     <span>{item.label}</span>
                   </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[10px] font-medium px-1.5 py-0.2 rounded ${
+                        item.href === '/admin/members'
+                          ? 'bg-rose-100 text-rose-800'
+                          : 'bg-slate-200/70 text-slate-700'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -155,14 +204,21 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
                       ? 'bg-rose-50 text-rose-900 font-semibold border border-rose-200/60'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-rose-600' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-rose-600' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
