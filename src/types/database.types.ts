@@ -19,6 +19,7 @@ export interface Profile {
   phone?: string | null;
   study_field?: string | null;
   department_id?: string | null;
+  interested_department_id?: string | null;
   skills: string[];
   contact_preferences: {
     email: boolean;
