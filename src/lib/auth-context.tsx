@@ -776,6 +776,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             p_rejection_reason: reason || null,
           });
           if (!error) {
+            try {
+              const targetTask = tasks.find((t) => t.id === taskId);
+              const assigneeId = targetTask?.assignees?.[0]?.id || targetTask?.creator_id;
+              if (assigneeId) {
+                fetch('/api/email/dispatch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'task_verification',
+                    payload: {
+                      taskId,
+                      taskTitle: targetTask?.title || 'Tâche ZEC',
+                      assigneeId,
+                      approved,
+                      points: data?.points_awarded || (approved ? 10 : 0),
+                      reviewerName: user?.full_name || 'Bureau Exécutif',
+                      feedback: reason,
+                    },
+                  }),
+                }).catch(() => {});
+              }
+            } catch {}
             await loadUserData();
             return { success: true, status: data?.status, points: data?.points_awarded };
           }
@@ -1028,6 +1050,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await supabase.from('task_assignees').insert(assigneeRows);
               }
             }
+            // Trigger transactional task assignment email to assignees
+            try {
+              const assigneeIds = (newTaskData.assignees || []).map((a) => a.id).filter(Boolean);
+              if (assigneeIds.length > 0) {
+                fetch('/api/email/dispatch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'task_assignment',
+                    payload: {
+                      taskId: data.id,
+                      taskTitle: newTaskData.title,
+                      description: newTaskData.description,
+                      priority: newTaskData.priority || 'medium',
+                      dueAt: newTaskData.due_at,
+                      assigneeUserIds: assigneeIds,
+                      assignedByName: user?.full_name || 'Bureau Exécutif',
+                    },
+                  }),
+                }).catch(() => {});
+              }
+            } catch {}
             await loadUserData();
             return;
           }
@@ -1127,6 +1171,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 attendance_status: 'registered',
                 registered_at: new Date().toISOString(),
               });
+
+            // Trigger registration confirmation email
+            try {
+              const existingEvt = events.find((e) => e.id === eventId);
+              if (existingEvt && user?.id) {
+                fetch('/api/email/dispatch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'event',
+                    payload: {
+                      eventId: existingEvt.id,
+                      eventTitle: existingEvt.title,
+                      startsAt: existingEvt.starts_at,
+                      endsAt: existingEvt.ends_at,
+                      location: existingEvt.location,
+                      description: existingEvt.description,
+                      organizerName: existingEvt.organizer?.full_name || '3ZERO Club ISIMS',
+                      eventType: 'registered',
+                      targetUserIds: [user.id],
+                    },
+                  }),
+                }).catch(() => {});
+              }
+            } catch {}
           }
         } catch (e: any) {
           console.warn('Event registration DB error:', e?.message);
@@ -1287,7 +1356,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateEmailPreferences = async (
     prefs: Partial<EmailPreferences>
   ): Promise<{ success: boolean; error?: string }> => {
-    setEmailPreferences((prev) => (prev ? { ...prev, ...prefs, updated_at: new Date().toISOString() } : null));
+    setEmailPreferences((prev) => ({
+      id: prev?.id || `pref-${user?.id || 'default'}`,
+      user_id: prev?.user_id || user?.id || '',
+      meeting_reminders_enabled: prefs.meeting_reminders_enabled ?? prev?.meeting_reminders_enabled ?? true,
+      task_emails_enabled: prefs.task_emails_enabled ?? prev?.task_emails_enabled ?? true,
+      event_emails_enabled: prefs.event_emails_enabled ?? prev?.event_emails_enabled ?? true,
+      announcement_emails_enabled: prefs.announcement_emails_enabled ?? prev?.announcement_emails_enabled ?? true,
+      ...prefs,
+      updated_at: new Date().toISOString(),
+    }));
 
     if (isLiveSupabase && user?.id && isUuid(user.id)) {
       const supabase = createClient();
@@ -1295,7 +1373,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const payload = {
             user_id: user.id,
-            ...prefs,
+            meeting_reminders_enabled: prefs.meeting_reminders_enabled ?? emailPreferences?.meeting_reminders_enabled ?? true,
+            task_emails_enabled: prefs.task_emails_enabled ?? emailPreferences?.task_emails_enabled ?? true,
+            event_emails_enabled: prefs.event_emails_enabled ?? emailPreferences?.event_emails_enabled ?? true,
+            announcement_emails_enabled: prefs.announcement_emails_enabled ?? emailPreferences?.announcement_emails_enabled ?? true,
             updated_at: new Date().toISOString(),
           };
           const { error } = await supabase
@@ -1345,6 +1426,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (!error && data) {
             setAnnouncements((prev) => [data as Announcement, ...prev]);
+
+            // Dispatch transactional announcement email broadcast
+            try {
+              fetch('/api/email/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'announcement',
+                  payload: {
+                    announcementId: data.id,
+                    title: data.title,
+                    body: data.body,
+                    authorName: user?.full_name || 'Bureau Exécutif',
+                    publishedAt: data.published_at || data.created_at,
+                    isPinned: data.is_pinned,
+                    audienceType: data.audience_type,
+                  },
+                }),
+              }).catch(() => {});
+            } catch {}
+
             return;
           }
         } catch (e: any) {
@@ -1354,6 +1456,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setAnnouncements((prev) => [ann, ...prev]);
+
+    // Dispatch fallback notification & email
+    try {
+      fetch('/api/email/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'announcement',
+          payload: {
+            announcementId: ann.id,
+            title: ann.title,
+            body: ann.body,
+            authorName: user?.full_name || 'Bureau Exécutif',
+            publishedAt: ann.created_at,
+            isPinned: ann.is_pinned,
+            audienceType: ann.audience_type,
+          },
+        }),
+      }).catch(() => {});
+    } catch {}
 
     // Dispatch in-app notification to all active members
     members.forEach((m) => {
@@ -1499,6 +1621,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'schedule', meetingId: newMeet.id, meetingData: newMeet }),
+              }).catch(() => {});
+            } catch {}
+
+            // Trigger immediate meeting invitation email dispatch
+            try {
+              fetch('/api/email/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'meeting_invite',
+                  payload: {
+                    meetingId: newMeet.id,
+                    meetingTitle: newMeet.title,
+                    startsAt: newMeet.starts_at,
+                    endsAt: newMeet.ends_at,
+                    description: newMeet.description,
+                    meetingUrl: newMeet.meeting_url,
+                    organizerName: user?.full_name || 'Bureau Exécutif',
+                    agenda: newMeet.agenda,
+                    attendeeUserIds: members.map((m) => m.id),
+                  },
+                }),
               }).catch(() => {});
             } catch {}
 

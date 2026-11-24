@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { createClient } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 
 export interface SendEmailOptions {
   to: string;
@@ -30,11 +30,15 @@ function getResendClient(): Resend | null {
   return resendClient;
 }
 
+const isUuid = (val: any): boolean =>
+  typeof val === 'string' &&
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+
 export async function sendTransactionalEmail(options: SendEmailOptions): Promise<SendEmailResult> {
   const { to, recipientUserId, subject, html, text, meetingId, reminderId, emailType = 'meeting_reminder' } = options;
 
   const resend = getResendClient();
-  const fromEmail = process.env.EMAIL_FROM || 'ZEC Campus Club ISIMS <onboarding@resend.dev>';
+  const fromEmail = process.env.EMAIL_FROM || '3ZERO Club ISIMS <onboarding@resend.dev>';
   const replyTo = process.env.EMAIL_REPLY_TO || 'notifications@zec-isims.org';
 
   let result: SendEmailResult;
@@ -83,12 +87,12 @@ export async function sendTransactionalEmail(options: SendEmailOptions): Promise
 
   // Persist delivery log to Supabase
   try {
-    const supabase = await createClient();
-    if (supabase) {
+    const supabase = getSupabaseAdmin();
+    if (supabase && isUuid(recipientUserId)) {
       await supabase.from('email_delivery_logs').insert({
         recipient_user_id: recipientUserId,
-        meeting_id: meetingId || null,
-        reminder_id: reminderId || null,
+        meeting_id: isUuid(meetingId) ? meetingId : null,
+        reminder_id: isUuid(reminderId) ? reminderId : null,
         email_type: emailType,
         recipient_email: to,
         subject,
@@ -104,4 +108,3 @@ export async function sendTransactionalEmail(options: SendEmailOptions): Promise
 
   return result;
 }
-
